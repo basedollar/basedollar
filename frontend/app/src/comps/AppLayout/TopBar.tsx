@@ -2,10 +2,10 @@
 
 import type { MenuItem } from "./Menu";
 
-import { Logo } from "@/src/comps/Logo/Logo";
+import { LogoConfigurable } from "@/src/comps/Logo/LogoConfigurable";
 import { Tag } from "@/src/comps/Tag/Tag";
-import content from "@/src/content";
 import { DEPLOYMENT_FLAVOR } from "@/src/env";
+import { useWhiteLabelHeader } from "@/src/hooks/useWhiteLabel";
 import { css } from "@/styled-system/css";
 import { IconBorrow, IconDashboard, IconEarn, IconStake } from "@liquity2/uikit";
 import Link from "next/link";
@@ -13,14 +13,17 @@ import { AccountButton } from "./AccountButton";
 import { Menu } from "./Menu";
 import { MenuDrawerButton } from "./MenuDrawer";
 
-const menuItems: MenuItem[] = [
-  [content.menu.dashboard, "/", IconDashboard],
-  [content.menu.borrow, "/borrow", IconBorrow],
-  [content.menu.earn, "/earn", IconEarn],
-  [content.menu.stake, "/stake", IconStake],
-];
-
 export function TopBar() {
+  const headerConfig = useWhiteLabelHeader();
+  
+  const menuItems: MenuItem[] = [
+    [headerConfig.navigation.items.dashboard.label, "/", IconDashboard],
+    // Conditional menu items
+    ...(headerConfig.navigation.showBorrow ? [[headerConfig.navigation.items.borrow.label, "/borrow", IconBorrow] as MenuItem] : []),
+    ...(headerConfig.navigation.showEarn ? [[headerConfig.navigation.items.earn.label, "/earn", IconEarn] as MenuItem] : []),
+    ...(headerConfig.navigation.showStake ? [[headerConfig.navigation.items.stake.label, "/stake", IconStake] as MenuItem] : []),
+  ];
+
   return (
     <div
       className={css({
@@ -81,7 +84,7 @@ export function TopBar() {
                 flexShrink: 0,
               })}
             >
-              <Logo />
+              <LogoConfigurable size={32} variant="main" />
             </div>
             <div
               className={css({
@@ -98,7 +101,7 @@ export function TopBar() {
                 whiteSpace: "nowrap",
               })}
             >
-              <div>{content.appName}</div>
+              <div>{headerConfig.appName}</div>
               {DEPLOYMENT_FLAVOR && (
                 <div
                   className={css({
