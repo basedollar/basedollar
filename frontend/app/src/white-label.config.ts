@@ -11,7 +11,7 @@ export const WHITE_LABEL_CONFIG = {
   // ===========================
   header: {
     // App name displayed in header
-    appName: "BOLD",
+    appName: "LMAO",
     
     logo: {
       // Main logo (icon + text)
@@ -19,7 +19,7 @@ export const WHITE_LABEL_CONFIG = {
       // Icon only (for mobile or compact views)  
       icon: "/brand/logo-icon.svg",
       // Alt text for accessibility
-      alt: "BOLD Logo",
+      alt: "LMAO Logo",
     },
     
     // Navigation configuration
@@ -50,9 +50,9 @@ export const WHITE_LABEL_CONFIG = {
   // MAIN TOKEN (STABLECOIN)
   // ===========================
   mainToken: {
-    name: "BOLD",
-    symbol: "BOLD" as const, 
-    ticker: "BOLD",
+    name: "LMAO",
+    symbol: "LMAO" as const, 
+    ticker: "LMAO",
     decimals: 18,
     description: "USD-pegged stablecoin",
   },

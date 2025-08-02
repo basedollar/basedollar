@@ -1,4 +1,4 @@
-import tokenBold from "./token-icons/bold.svg";
+import tokenMainToken from "./token-icons/main-token.svg";
 import tokenEth from "./token-icons/eth.svg";
 import tokenLqty from "./token-icons/lqty.svg";
 import tokenLusd from "./token-icons/lusd.svg";
@@ -7,16 +7,6 @@ import tokenSbold from "./token-icons/sbold.svg";
 import tokenSteth from "./token-icons/wsteth.svg";
 import { WHITE_LABEL_CONFIG } from "../../app/src/white-label.config";
 
-// Icon mapping for white-label configuration
-const TOKEN_ICONS = {
-  bold: tokenBold,
-  eth: tokenEth,
-  lqty: tokenLqty,
-  lusd: tokenLusd,
-  reth: tokenReth,
-  sbold: tokenSbold,
-  wsteth: tokenSteth,
-} as const;
 
 // any external token, without a known symbol
 export type ExternalToken = {
@@ -81,7 +71,7 @@ export const LUSD: Token = {
 } as const;
 
 export const MAIN_TOKEN: Token = {
-  icon: TOKEN_ICONS[WHITE_LABEL_CONFIG.mainToken.icon as keyof typeof TOKEN_ICONS] || tokenBold,
+  icon: tokenMainToken,
   name: WHITE_LABEL_CONFIG.mainToken.name,
   symbol: WHITE_LABEL_CONFIG.mainToken.symbol,
 } as const;
