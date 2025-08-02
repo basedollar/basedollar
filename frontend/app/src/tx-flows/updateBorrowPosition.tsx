@@ -510,10 +510,10 @@ function getFinalStep(
   // coll decreases => withdraw
   if (dn.lt(collChange, 0)) return "withdrawColl";
 
-  // debt increases => withdraw BOLD (borrow)
+  // debt increases => withdraw main token (borrow)
   if (dn.gt(debtChange, 0)) return "withdrawBold";
 
-  // debt decreases => deposit BOLD (repay)
+  // debt decreases => deposit main token (repay)
   if (dn.lt(debtChange, 0)) return "depositBold";
 
   throw new Error("Invalid request");

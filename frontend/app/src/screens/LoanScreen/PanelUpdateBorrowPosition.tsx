@@ -135,7 +135,7 @@ export function PanelUpdateBorrowPosition({
     && !isBelowMinDebt
     // the new deposit must be positive
     && dn.gt(newLoanDetails.deposit ?? dnum18(0), 0)
-    // the account must have enough BOLD
+    // the account must have enough main token
     && !insufficientBold
     // there should be a change in the deposit or debt
     && (

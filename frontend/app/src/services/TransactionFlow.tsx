@@ -30,10 +30,6 @@ import { claimCollateralSurplus, type ClaimCollateralSurplusRequest } from "@/sr
 import { closeLoanPosition, type CloseLoanPositionRequest } from "@/src/tx-flows/closeLoanPosition";
 import { earnClaimRewards, type EarnClaimRewardsRequest } from "@/src/tx-flows/earnClaimRewards";
 import { earnUpdate, type EarnUpdateRequest } from "@/src/tx-flows/earnUpdate";
-import { legacyCloseLoanPosition, type LegacyCloseLoanPositionRequest } from "@/src/tx-flows/legacyCloseLoanPosition";
-import { legacyEarnWithdrawAll, type LegacyEarnWithdrawAllRequest } from "@/src/tx-flows/legacyEarnWithdrawAll";
-import { legacyRedeemCollateral, type LegacyRedeemCollateralRequest } from "@/src/tx-flows/legacyRedeemCollateral";
-import { legacyUnstakeAll, type LegacyUnstakeAllRequest } from "@/src/tx-flows/legacyUnstakeAll";
 import { openBorrowPosition, type OpenBorrowPositionRequest } from "@/src/tx-flows/openBorrowPosition";
 import { openLeveragePosition, type OpenLeveragePositionRequest } from "@/src/tx-flows/openLeveragePosition";
 import { redeemCollateral, type RedeemCollateralRequest } from "@/src/tx-flows/redeemCollateral";
@@ -53,10 +49,6 @@ export type FlowRequestMap = {
   "closeLoanPosition": CloseLoanPositionRequest;
   "earnClaimRewards": EarnClaimRewardsRequest;
   "earnUpdate": EarnUpdateRequest;
-  "legacyCloseLoanPosition": LegacyCloseLoanPositionRequest;
-  "legacyEarnWithdrawAll": LegacyEarnWithdrawAllRequest;
-  "legacyRedeemCollateral": LegacyRedeemCollateralRequest;
-  "legacyUnstakeAll": LegacyUnstakeAllRequest;
   "openBorrowPosition": OpenBorrowPositionRequest;
   "openLeveragePosition": OpenLeveragePositionRequest;
   "redeemCollateral": RedeemCollateralRequest;
@@ -77,10 +69,6 @@ const FlowIdSchema = v.union([
   v.literal("closeLoanPosition"),
   v.literal("earnClaimRewards"),
   v.literal("earnUpdate"),
-  v.literal("legacyCloseLoanPosition"),
-  v.literal("legacyEarnWithdrawAll"),
-  v.literal("legacyRedeemCollateral"),
-  v.literal("legacyUnstakeAll"),
   v.literal("openBorrowPosition"),
   v.literal("openLeveragePosition"),
   v.literal("redeemCollateral"),
@@ -101,10 +89,6 @@ export const flows: FlowsMap = {
   closeLoanPosition,
   earnClaimRewards,
   earnUpdate,
-  legacyCloseLoanPosition,
-  legacyEarnWithdrawAll,
-  legacyRedeemCollateral,
-  legacyUnstakeAll,
   openBorrowPosition,
   openLeveragePosition,
   redeemCollateral,

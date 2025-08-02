@@ -223,12 +223,12 @@ export function PanelInterestRate({
             {
               label: (
                 <>
-                  <div>BOLD interest per year</div>
+                  <div>{WHITE_LABEL_CONFIG.mainToken.symbol} interest per year</div>
                   <InfoTooltip {...infoTooltipProps(content.generalInfotooltips.interestRateBoldPerYear)} />
                 </>
               ),
-              before: <Amount value={boldInterestPerYearPrev} suffix=" BOLD" />,
-              after: <Amount value={boldInterestPerYear} suffix=" BOLD" />,
+              before: <Amount value={boldInterestPerYearPrev} suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`} />,
+              after: <Amount value={boldInterestPerYear} suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`} />,
             },
           ]}
         />

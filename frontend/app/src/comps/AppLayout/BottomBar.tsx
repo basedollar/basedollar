@@ -15,7 +15,7 @@ import { blo } from "blo";
 import Image from "next/image";
 import { AboutButton } from "./AboutButton";
 
-const DISPLAYED_PRICES = ["LQTY", "BOLD", "ETH"] as const;
+const DISPLAYED_PRICES = ["LQTY", WHITE_LABEL_CONFIG.mainToken.symbol, "ETH"] as const;
 
 export function BottomBar() {
   const account = useAccount();

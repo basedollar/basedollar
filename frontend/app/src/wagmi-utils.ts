@@ -4,6 +4,7 @@ import type { Address } from "@liquity2/uikit";
 import { dnum18 } from "@/src/dnum-utils";
 import { CONTRACT_BOLD_TOKEN, CONTRACT_LQTY_TOKEN, CONTRACT_LUSD_TOKEN } from "@/src/env";
 import { getBranch } from "@/src/liquity-utils";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { getSafeStatus } from "@/src/safe-utils";
 import { isCollateralSymbol } from "@liquity2/uikit";
 import { useQuery } from "@tanstack/react-query";
@@ -39,7 +40,7 @@ export function useBalances(
         },
       )
       .with("LUSD", () => CONTRACT_LUSD_TOKEN)
-      .with("BOLD", () => CONTRACT_BOLD_TOKEN)
+      .with(WHITE_LABEL_CONFIG.mainToken.symbol, () => CONTRACT_BOLD_TOKEN)
       .with("LQTY", () => CONTRACT_LQTY_TOKEN)
       .otherwise(() => null);
 

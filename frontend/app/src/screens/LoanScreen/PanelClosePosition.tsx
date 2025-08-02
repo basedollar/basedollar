@@ -33,7 +33,7 @@ export function PanelClosePosition({
 
   const repayToken = TOKENS_BY_SYMBOL[repayDropdownIndex === 0 ? WHITE_LABEL_CONFIG.mainToken.symbol : collateral.symbol];
 
-  // either in BOLD or in collateral
+  // either in main token or in collateral
   const amountToRepay = repayToken.symbol === WHITE_LABEL_CONFIG.mainToken.symbol
     ? loan.borrowed
     : collPriceUsd.data && dn.div(loan.borrowed, collPriceUsd.data);

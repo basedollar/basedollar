@@ -5,6 +5,7 @@ import { useAppear } from "@/src/anim-utils";
 import { useBreakpointName } from "@/src/breakpoints";
 import { INTEREST_RATE_START, REDEMPTION_RISK } from "@/src/constants";
 import content from "@/src/content";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { DNUM_0, jsonStringifyWithDnum } from "@/src/dnum-utils";
 import { useInputFieldValue } from "@/src/form-utils";
 import { fmtnum } from "@/src/formatting";
@@ -323,7 +324,7 @@ export const InterestRateField = memo(
                 >
                   {boldInterestPerYear && (mode === "manual" || delegate !== null)
                     ? fmtnum(boldInterestPerYear, breakpoint === "small" ? "compact" : "2z")
-                    : "−"} BOLD / year
+                    : "−"} {WHITE_LABEL_CONFIG.mainToken.symbol} / year
                 </div>
                 <InfoTooltip {...infoTooltipProps(content.generalInfotooltips.interestRateBoldPerYear)} />
               </div>
@@ -335,7 +336,7 @@ export const InterestRateField = memo(
                     (mode === "manual" || delegate !== null)
                       ? fmtnum(bracket?.debtInFront, "compact")
                       : "−"
-                  } BOLD`}
+                  } ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
                   className={css({
                     overflow: "hidden",
                     whiteSpace: "nowrap",
@@ -355,7 +356,7 @@ export const InterestRateField = memo(
                         ? fmtnum(bracket?.debtInFront, "compact")
                         : "−"}
                     </span>
-                    {breakpoint === "large" && <span>{" BOLD"}</span>}
+                    {breakpoint === "large" && <span>{` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}</span>}
                   </span>
                 </a.div>
               )

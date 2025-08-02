@@ -139,7 +139,7 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
       },
     },
 
-    // Close a loan position, repaying with BOLD or with the collateral
+    // Close a loan position, repaying with main token or with the collateral
     closeLoanPosition: {
       name: () => "Close loan",
       Status: TransactionStatus,
