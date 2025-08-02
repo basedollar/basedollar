@@ -9,6 +9,7 @@ import { LinkTextButton } from "@/src/comps/LinkTextButton/LinkTextButton";
 import { Positions } from "@/src/comps/Positions/Positions";
 import { FORKS_INFO } from "@/src/constants";
 import content from "@/src/content";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { DNUM_1 } from "@/src/dnum-utils";
 import {
   getBranch,
@@ -105,7 +106,7 @@ function BorrowTable({
 
   return (
     <HomeTable
-      title="Borrow BOLD against ETH and staked ETH"
+      title={`Borrow ${WHITE_LABEL_CONFIG.mainToken.symbol} against ETH and staked ETH`}
       subtitle="You can adjust your loans, including your interest rate, at any time"
       icon={<IconBorrow />}
       columns={columns}
@@ -361,7 +362,7 @@ function BorrowingRow({
                   })}
                 >
                   Borrow
-                  <TokenIcon symbol="BOLD" size="mini" />
+                  <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} size="mini" />
                 </div>
               }
               title={`Borrow ${collateral?.name} from ${symbol}`}
@@ -441,7 +442,7 @@ function EarnRewardsRow({
               >
                 Earn
                 <TokenIcon.Group size="mini">
-                  <TokenIcon symbol="BOLD" />
+                  <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} />
                   {symbol === "SBOLD"
                     ? (
                       <div
@@ -454,7 +455,7 @@ function EarnRewardsRow({
                 </TokenIcon.Group>
               </div>
             }
-            title={`Earn BOLD with ${token?.name}`}
+            title={`Earn ${WHITE_LABEL_CONFIG.mainToken.symbol} with ${token?.name}`}
           />
         </td>
       )}

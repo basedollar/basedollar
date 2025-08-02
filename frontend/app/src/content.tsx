@@ -2,6 +2,7 @@
 
 import type { ReactNode as N } from "react";
 
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { css } from "@/styled-system/css";
 
 export default {
@@ -9,7 +10,7 @@ export default {
   appName: "Liquity V2",
   appDescription: `
     Liquity V2 is a new borrowing protocol that lets users
-    deposit ETH or LSTs as collateral and mint the stablecoin BOLD.
+    deposit ETH or LSTs as collateral and mint the stablecoin ${WHITE_LABEL_CONFIG.mainToken.symbol}.
   `,
   appUrl: typeof window === "undefined"
     ? "https://www.liquity.org/"
@@ -44,20 +45,20 @@ export default {
     loanRedemptionRisk: [
       "Redemption risk",
       <>
-        Users paying the lowest interest rate can get redeemed, if the price of BOLD falls below $1. By raising your
+        Users paying the lowest interest rate can get redeemed, if the price of ${WHITE_LABEL_CONFIG.mainToken.symbol} falls below $1. By raising your
         interest rate, you reduce this risk.
       </>,
     ],
     loanLtv: [
       "Loan-to-value ratio",
       <>
-        The ratio between the amount of BOLD borrowed and the deposited collateral (in USD).
+        The ratio between the amount of ${WHITE_LABEL_CONFIG.mainToken.symbol} borrowed and the deposited collateral (in USD).
       </>,
     ],
     loanMaxLtv: [
       "Maximum Loan-To-Value (LTV) Ratio",
       <>
-        The maximum ratio between the USD value of a loan (in BOLD) and the collateral backing it. The LTV will
+        The maximum ratio between the USD value of a loan (in ${WHITE_LABEL_CONFIG.mainToken.symbol}) and the collateral backing it. The LTV will
         fluctuate as the price of the collateral changes. To decrease the LTV add more colateral or reduce debt.
       </>,
     ],
@@ -75,7 +76,7 @@ export default {
     interestRateBoldPerYear: [
       "Interest rate",
       <>
-        The annualized interest amount in BOLD for the selected interest rate. The accumulated interest is added to the
+        The annualized interest amount in ${WHITE_LABEL_CONFIG.mainToken.symbol} for the selected interest rate. The accumulated interest is added to the
         loan.
       </>,
     ],
@@ -90,7 +91,7 @@ export default {
       heading: "Your collateral and debt are reduced by the same value.",
       body: (
         <>
-          When BOLD trades for under $1, anyone can redeem positions to get BOLD back at $1. Positions with the lowest
+          When ${WHITE_LABEL_CONFIG.mainToken.symbol} trades for under $1, anyone can redeem positions to get ${WHITE_LABEL_CONFIG.mainToken.symbol} back at $1. Positions with the lowest
           interest rate get redeemed first.
         </>
       ),
@@ -106,14 +107,14 @@ export default {
     title: "Redemptions in a nutshell",
     subtitle: (
       <>
-        Redemptions help maintain BOLD’s peg in a decentralized way. If a user is redeemed, their collateral and debt
+        Redemptions help maintain ${WHITE_LABEL_CONFIG.mainToken.symbol}’s peg in a decentralized way. If a user is redeemed, their collateral and debt
         are reduced equally, resulting in no net loss.
       </>
     ),
     infoItems: [
       {
         icon: "bold",
-        text: "Redemptions occur when BOLD drops below $1.",
+        text: `Redemptions occur when ${WHITE_LABEL_CONFIG.mainToken.symbol} drops below $1.`,
       },
       {
         icon: "redemption",
@@ -202,15 +203,15 @@ export default {
     actions: {
       borrow: {
         title: "Borrow",
-        description: "Mint BOLD against your collateral at whatever interest rate you want",
+        description: `Mint ${WHITE_LABEL_CONFIG.mainToken.symbol} against your collateral at whatever interest rate you want`,
       },
       multiply: {
         title: "Multiply",
         description: "Increase your exposure to ETH and its staking yield with a single click",
       },
       earn: {
-        title: "Earn with BOLD",
-        description: "Deposit BOLD to earn protocol revenues and liquidation proceeds",
+        title: `Earn with ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
+        description: `Deposit ${WHITE_LABEL_CONFIG.mainToken.symbol} to earn protocol revenues and liquidation proceeds`,
       },
       stake: {
         title: "Stake LQTY",
@@ -218,8 +219,8 @@ export default {
       },
     },
     earnTable: {
-      title: "Earn rewards with BOLD",
-      subtitle: "Earn BOLD & (staked) ETH rewards by depositing your BOLD in a stability pool",
+      title: `Earn rewards with ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
+      subtitle: `Earn ${WHITE_LABEL_CONFIG.mainToken.symbol} & (staked) ETH rewards by depositing your ${WHITE_LABEL_CONFIG.mainToken.symbol} in a stability pool`,
       forksInfo: {
         text: (
           <>
@@ -247,7 +248,7 @@ export default {
       ],
       spTvl: [
         "Total Value Locked",
-        "The total amount of BOLD deposited in each stability pool.",
+        `The total amount of ${WHITE_LABEL_CONFIG.mainToken.symbol} deposited in each stability pool.`,
       ],
       borrowTvl: [
         "Total Value Locked",
@@ -278,7 +279,7 @@ export default {
     action: "Next: Summary",
     infoTooltips: {
       interestRateSuggestions: [
-        "Positions with lower interest rates are the first to be redeemed by BOLD holders.",
+        "Positions with lower interest rates are the first to be redeemed by ${WHITE_LABEL_CONFIG.mainToken.symbol} holders.",
       ],
     },
   },
@@ -310,7 +311,7 @@ export default {
       ],
       interestRateSuggestions: [
         <>
-          Positions with lower interest rates are the first to be redeemed by BOLD holders.
+          Positions with lower interest rates are the first to be redeemed by ${WHITE_LABEL_CONFIG.mainToken.symbol} holders.
         </>,
       ],
       exposure: [
@@ -327,13 +328,13 @@ export default {
     headline: (rewards: N, bold: N) => (
       <>
         Deposit
-        <NoWrap>{bold} BOLD</NoWrap>
+        <NoWrap>{bold} {WHITE_LABEL_CONFIG.mainToken.symbol}</NoWrap>
         to earn <NoWrap>rewards {rewards}</NoWrap>
       </>
     ),
     subheading: (
       <>
-        A BOLD deposit in a stability pool earns rewards from the fees that users pay on their loans. Also, the BOLD may
+        A ${WHITE_LABEL_CONFIG.mainToken.symbol} deposit in a stability pool earns rewards from the fees that users pay on their loans. Also, the ${WHITE_LABEL_CONFIG.mainToken.symbol} may
         be swapped to collateral in case the system needs to liquidate positions.
       </>
     ),
@@ -345,7 +346,7 @@ export default {
     },
     infoTooltips: {
       tvl: (collateral: N) => [
-        <>Total BOLD covering {collateral}-backed position liquidations</>,
+        <>Total {WHITE_LABEL_CONFIG.mainToken.symbol} covering {collateral}-backed position liquidations</>,
       ],
     },
   },
@@ -393,10 +394,10 @@ export default {
     },
     infoTooltips: {
       tvl: (collateral: N) => [
-        <>Total BOLD covering {collateral}-backed position liquidations.</>,
+        <>Total {WHITE_LABEL_CONFIG.mainToken.symbol} covering {collateral}-backed position liquidations.</>,
       ],
       depositPoolShare: [
-        "Percentage of your BOLD deposit compared to the total deposited in this stability pool.",
+        `Percentage of your ${WHITE_LABEL_CONFIG.mainToken.symbol} deposit compared to the total deposited in this stability pool.`,
       ],
       alsoClaimRewardsDeposit: [
         <>
@@ -411,14 +412,14 @@ export default {
         </>,
       ],
       currentApr: [
-        "Average annualized return for BOLD deposits over the past 7 days.",
+        `Average annualized return for ${WHITE_LABEL_CONFIG.mainToken.symbol} deposits over the past 7 days.`,
       ],
       rewardsEth: [
         "ETH rewards",
         "Your proceeds from liquidations conducted by this stability pool.",
       ],
       rewardsBold: [
-        "BOLD rewards",
+        `${WHITE_LABEL_CONFIG.mainToken.symbol} rewards`,
         "Your earnings from protocol revenue distributions to this stability pool.",
       ],
     },
@@ -476,7 +477,7 @@ export default {
       title: "Allocate your voting power",
       intro: (
         <>
-          Direct incentives from Liquity V2 protocol revenues towards liquidity providers for BOLD. Upvote from Thursday
+          Direct incentives from Liquity V2 protocol revenues towards liquidity providers for ${WHITE_LABEL_CONFIG.mainToken.symbol}. Upvote from Thursday
           to Tuesday. Downvote all week. <Link href="https://docs.liquity.org/v2-faq/lqty-staking">Learn more</Link>
         </>
       ),

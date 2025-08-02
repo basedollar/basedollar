@@ -9,6 +9,7 @@ import { Tag } from "@/src/comps/Tag/Tag";
 import { VoteInput } from "@/src/comps/VoteInput/VoteInput";
 import content from "@/src/content";
 import { DNUM_0 } from "@/src/dnum-utils";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { CHAIN_BLOCK_EXPLORER, CHAIN_ID } from "@/src/env";
 import { fmtnum, formatDate } from "@/src/formatting";
 import {
@@ -742,7 +743,7 @@ function InitiativeRow({
   const inputRef = useRef<HTMLInputElement>(null);
   const [editIntent, setEditIntent] = useState(false);
   const editMode = (editIntent || !voteAllocation?.vote) && !disabled;
-  const boldPrice = usePrice(bribe ? "BOLD" : null);
+  const boldPrice = usePrice(bribe ? WHITE_LABEL_CONFIG.mainToken.symbol : null);
   const bribeTokenPrice = usePrice(bribe ? bribe.tokenSymbol : null);
 
   return (
@@ -851,7 +852,7 @@ function InitiativeRow({
               >
                 {dn.gt(bribe.boldAmount, 0) && (
                   <div
-                    title={`${fmtnum(bribe.boldAmount)} BOLD`}
+                    title={`${fmtnum(bribe.boldAmount)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
                     className={css({
                       display: "flex",
                       alignItems: "center",
@@ -859,7 +860,7 @@ function InitiativeRow({
                     })}
                   >
                     <TokenIcon
-                      symbol="BOLD"
+                      symbol={WHITE_LABEL_CONFIG.mainToken.symbol}
                       size={12}
                       title={null}
                     />

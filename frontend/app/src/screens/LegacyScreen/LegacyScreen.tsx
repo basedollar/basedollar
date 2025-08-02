@@ -15,6 +15,7 @@ import { useLegacyPositions } from "@/src/liquity-utils";
 import { HomeTable } from "@/src/screens/HomeScreen/HomeTable";
 import { useTransactionFlow } from "@/src/services/TransactionFlow";
 import { useAccount } from "@/src/wagmi-utils";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { css } from "@/styled-system/css";
 import {
   Button,
@@ -35,7 +36,16 @@ import { useRef } from "react";
 import { useReadContract } from "wagmi";
 
 function getLegacyBranch(branchId: number) {
-  const branch = LEGACY_CHECK?.BRANCHES[branchId];
+  const branches = LEGACY_CHECK?.BRANCHES as Array<{
+    symbol: string;
+    name: string;
+    COLL_TOKEN: string;
+    LEVERAGE_ZAPPER: string;
+    STABILITY_POOL: string;
+    TROVE_MANAGER: string;
+  }> | undefined;
+  
+  const branch = branches?.[branchId];
   if (!branch) {
     throw new Error(`Invalid branch ID: ${branchId}`);
   }
@@ -525,7 +535,7 @@ function RedeemSection() {
                     id="input-redeem-amount"
                     contextual={
                       <InputField.Badge
-                        icon={<TokenIcon symbol="BOLD" />}
+                        icon={<TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} />}
                         label="Legacy BOLD"
                       />
                     }
@@ -536,7 +546,7 @@ function RedeemSection() {
                           && dn.gt(amount.parsed, boldBalance)
                       ? {
                         mode: "error",
-                        message: `Insufficient BOLD balance. You have ${fmtnum(boldBalance)} BOLD.`,
+                        message: `Insufficient ${WHITE_LABEL_CONFIG.mainToken.symbol} balance. You have ${fmtnum(boldBalance)} ${WHITE_LABEL_CONFIG.mainToken.symbol}.`,
                       }
                       : null}
                     label="Redeeming"
@@ -550,7 +560,7 @@ function RedeemSection() {
                       end: (
                         boldBalance && dn.gt(boldBalance, 0) && (
                           <TextButton
-                            label={`Max ${fmtnum(boldBalance)} Legacy BOLD`}
+                            label={`Max ${fmtnum(boldBalance)} Legacy ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
                             onClick={() => {
                               amount.setValue(dn.toString(boldBalance));
                             }}
@@ -714,7 +724,7 @@ function TokenAmount({
   symbol: TokenSymbol | "LEGACY_BOLD";
   value?: Dnum | null;
 }) {
-  const token = TOKENS_BY_SYMBOL[symbol === "LEGACY_BOLD" ? "BOLD" : symbol];
+  const token = TOKENS_BY_SYMBOL[symbol === "LEGACY_BOLD" ? WHITE_LABEL_CONFIG.mainToken.symbol : symbol];
   return (
     <div
       title={fmtnum(value, {
@@ -745,7 +755,7 @@ function TokenAmount({
       >
         <TokenIcon
           size="mini"
-          symbol={symbol === "LEGACY_BOLD" ? "BOLD" : symbol}
+          symbol={symbol === "LEGACY_BOLD" ? WHITE_LABEL_CONFIG.mainToken.symbol : symbol}
         />
       </div>
     </div>

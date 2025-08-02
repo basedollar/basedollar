@@ -45,6 +45,17 @@ export const WHITE_LABEL_CONFIG = {
       },
     },
   },
+
+  // ===========================
+  // MAIN TOKEN (STABLECOIN)
+  // ===========================
+  mainToken: {
+    name: "BOLD",
+    symbol: "BOLD" as const, 
+    ticker: "BOLD",
+    decimals: 18,
+    description: "USD-pegged stablecoin",
+  },
 };
 
 // Type exports for TypeScript support

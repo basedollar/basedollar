@@ -3,6 +3,7 @@
 import type { Dnum, PositionSbold } from "@/src/types";
 
 import { useBreakpointName } from "@/src/breakpoints";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { Amount } from "@/src/comps/Amount/Amount";
 import { SboldPositionSummary } from "@/src/comps/EarnPositionSummary/SboldPositionSummary";
 import { Field } from "@/src/comps/Field/Field";
@@ -61,7 +62,7 @@ export function SboldPoolScreen() {
     },
   });
 
-  const boldBalance = useBalance(account.address, "BOLD");
+  const boldBalance = useBalance(account.address, WHITE_LABEL_CONFIG.mainToken.symbol);
 
   return (
     <Screen
@@ -231,28 +232,28 @@ export function PanelUpdate({
               drawer={insufficientBalance
                 ? {
                   mode: "error",
-                  message: `Insufficient balance. You have ${fmtnum(boldBalance)} BOLD.`,
+                  message: `Insufficient balance. You have ${fmtnum(boldBalance)} ${WHITE_LABEL_CONFIG.mainToken.symbol}.`,
                 }
                 : withdrawAboveDeposit
                 ? {
                   mode: "error",
                   message: hasAnyBoldDeposited
                     ? `You can’t withdraw more than you have deposited.`
-                    : `No BOLD deposited.`,
+                    : `No ${WHITE_LABEL_CONFIG.mainToken.symbol} deposited.`,
                 }
                 : null}
               contextual={
                 <InputTokenBadge
                   background={false}
-                  icon={<TokenIcon symbol={mode === "deposit" ? "BOLD" : "SBOLD"} />}
-                  label={mode === "deposit" ? "BOLD" : "sBOLD"}
+                  icon={<TokenIcon symbol={mode === "deposit" ? WHITE_LABEL_CONFIG.mainToken.symbol : "SBOLD"} />}
+                  label={mode === "deposit" ? WHITE_LABEL_CONFIG.mainToken.symbol : "sBOLD"}
                 />
               }
               id="input-deposit-change"
               label={{
                 start: mode === "redeem"
                   ? "Redeem sBOLD"
-                  : "Deposit BOLD",
+                  : `Deposit ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
                 end: (
                   <Tabs
                     compact
@@ -296,7 +297,7 @@ export function PanelUpdate({
                   ? (
                     dn.gt(boldBalance, 0) && (
                       <TextButton
-                        label={`Max ${fmtnum(boldBalance, 2)} BOLD`}
+                        label={`Max ${fmtnum(boldBalance, 2)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
                         onClick={() => {
                           setValue(dn.toString(boldBalance));
                         }}

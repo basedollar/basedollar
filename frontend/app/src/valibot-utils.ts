@@ -1,5 +1,6 @@
 import type { Address, IcStrategy, PrefixedTroveId, TroveId } from "@/src/types";
 import type { Dnum } from "dnum";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 import { isPrefixedtroveId, isTroveId } from "@/src/types";
 import { isDnum } from "dnum";
@@ -271,7 +272,7 @@ export function vCollateralSymbol() {
 export function vTokenSymbol() {
   return v.union([
     vCollateralSymbol(),
-    v.literal("BOLD"),
+    v.literal(WHITE_LABEL_CONFIG.mainToken.symbol),
     v.literal("LEGACY_BOLD"),
     v.literal("LQTY"),
     v.literal("LUSD"),
@@ -286,7 +287,7 @@ export function vEnvLegacyCheck() {
       v.string(),
       v.transform((value) => JSON.parse(value)),
       v.object({
-        BOLD_TOKEN: vAddress(),
+        [WHITE_LABEL_CONFIG.mainToken.symbol + "_TOKEN"]: vAddress(),
         COLLATERAL_REGISTRY: vAddress(),
         GOVERNANCE: vAddress(),
         INITIATIVES_SNAPSHOT_URL: v.string(),

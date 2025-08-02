@@ -5,6 +5,7 @@ import tokenLusd from "./token-icons/lusd.svg";
 import tokenReth from "./token-icons/reth.svg";
 import tokenSbold from "./token-icons/sbold.svg";
 import tokenSteth from "./token-icons/wsteth.svg";
+import { WHITE_LABEL_CONFIG } from "../../app/src/white-label.config";
 
 // any external token, without a known symbol
 export type ExternalToken = {
@@ -21,7 +22,7 @@ export type Token = ExternalToken & {
 };
 
 export type TokenSymbol =
-  | "BOLD"
+  | typeof WHITE_LABEL_CONFIG.mainToken.symbol
   | "ETH"
   | "LQTY"
   | "LUSD"
@@ -39,7 +40,7 @@ export type CollateralSymbol =
 
 export function isTokenSymbol(symbolOrUrl: string): symbolOrUrl is TokenSymbol {
   return (
-    symbolOrUrl === "BOLD"
+    symbolOrUrl === WHITE_LABEL_CONFIG.mainToken.symbol
     || symbolOrUrl === "ETH"
     || symbolOrUrl === "LQTY"
     || symbolOrUrl === "LUSD"
@@ -68,10 +69,10 @@ export const LUSD: Token = {
   symbol: "LUSD" as const,
 } as const;
 
-export const BOLD: Token = {
+export const MAIN_TOKEN: Token = {
   icon: tokenBold,
-  name: "BOLD",
-  symbol: "BOLD" as const,
+  name: WHITE_LABEL_CONFIG.mainToken.name,
+  symbol: WHITE_LABEL_CONFIG.mainToken.symbol,
 } as const;
 
 export const LQTY: Token = {
@@ -82,7 +83,7 @@ export const LQTY: Token = {
 
 export const SBOLD: Token = {
   icon: tokenSbold,
-  name: "sBOLD",
+  name: `s${WHITE_LABEL_CONFIG.mainToken.symbol}`,
   symbol: "SBOLD" as const,
 } as const;
 
@@ -114,7 +115,7 @@ export const COLLATERALS: CollateralToken[] = [
 ];
 
 export const TOKENS_BY_SYMBOL = {
-  BOLD,
+  [WHITE_LABEL_CONFIG.mainToken.symbol]: MAIN_TOKEN,
   ETH,
   LQTY,
   LUSD,

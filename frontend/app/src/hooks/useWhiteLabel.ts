@@ -1,11 +1,18 @@
-import { WHITE_LABEL_CONFIG } from "../../../../white-label.config";
-import type { WhiteLabelConfig } from "../../../../white-label.config";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
+import type { WhiteLabelConfig } from "@/src/white-label.config";
 
 /**
  * Hook to access white-label header configuration
  */
 export function useWhiteLabelHeader() {
   return WHITE_LABEL_CONFIG.header;
+}
+
+/**
+ * Hook to access main token (stablecoin) configuration
+ */
+export function useMainToken() {
+  return WHITE_LABEL_CONFIG.mainToken;
 }
 
 // Type exports

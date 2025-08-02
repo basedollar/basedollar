@@ -2,6 +2,7 @@ import type { FlowDeclaration } from "@/src/services/TransactionFlow";
 
 import { Amount } from "@/src/comps/Amount/Amount";
 import { ETH_GAS_COMPENSATION, MAX_UPFRONT_FEE } from "@/src/constants";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { dnum18 } from "@/src/dnum-utils";
 import { fmtnum } from "@/src/formatting";
 import { getOpenLeveragedTroveParams } from "@/src/liquity-leverage";
@@ -21,6 +22,7 @@ import * as v from "valibot";
 import { maxUint256, parseEventLogs } from "viem";
 import { readContract } from "wagmi/actions";
 import { createRequestSchema, verifyTransaction } from "./shared";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 const RequestSchema = createRequestSchema(
   "openLeveragePosition",
@@ -81,7 +83,7 @@ export const openLeveragePosition: FlowDeclaration<OpenLeveragePositionRequest> 
         <TransactionDetailsRow
           label="Borrowed"
           value={[
-            `${fmtnum(borrowedWithFee)} BOLD`,
+            `${fmtnum(borrowedWithFee)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
             <div
               key="end"
               className={css({
@@ -95,9 +97,9 @@ export const openLeveragePosition: FlowDeclaration<OpenLeveragePositionRequest> 
                 fallback="…"
                 prefix="Incl. "
                 value={upfrontFee.data}
-                suffix=" BOLD creation fee"
+                suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol} creation fee`}
               />
-              <InfoTooltip heading="BOLD Creation Fee">
+              <InfoTooltip heading={`${WHITE_LABEL_CONFIG.mainToken.symbol} Creation Fee`}>
                 This fee is charged when you open a new loan or increase your debt. It corresponds to 7 days of average
                 interest for the respective collateral asset.
               </InfoTooltip>
@@ -115,7 +117,7 @@ export const openLeveragePosition: FlowDeclaration<OpenLeveragePositionRequest> 
                     digits: 4,
                     dust: false,
                     prefix: "~",
-                  })} BOLD per year)
+                  })} ${WHITE_LABEL_CONFIG.mainToken.symbol} per year)
                 </div>,
               ]}
             />
@@ -125,7 +127,7 @@ export const openLeveragePosition: FlowDeclaration<OpenLeveragePositionRequest> 
               label="Interest rate"
               value={[
                 `${fmtnum(loan.interestRate, "pct2")}%`,
-                `${fmtnum(dn.mul(loan.borrowed, loan.interestRate))} BOLD per year`,
+                `${fmtnum(dn.mul(loan.borrowed, loan.interestRate))} ${WHITE_LABEL_CONFIG.mainToken.symbol} per year`,
               ]}
             />
           )}

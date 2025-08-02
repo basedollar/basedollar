@@ -7,6 +7,7 @@ import { Spinner } from "@/src/comps/Spinner/Spinner";
 import { TagPreview } from "@/src/comps/TagPreview/TagPreview";
 import { Value } from "@/src/comps/Value/Value";
 import { formatRisk } from "@/src/formatting";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { fmtnum } from "@/src/formatting";
 import { getLoanDetails } from "@/src/liquity-math";
 import { getCollToken, useRedemptionRisk } from "@/src/liquity-utils";
@@ -427,7 +428,7 @@ function TotalDebt({
         })}
       >
         <div
-          title={`${fmtnum(loan.borrowed, "full")} BOLD`}
+          title={`${fmtnum(loan.borrowed, "full")} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
           className={css({
             display: "flex",
             alignItems: "center",
@@ -441,10 +442,10 @@ function TotalDebt({
           >
             {fmtnum(loan.borrowed)}
           </div>
-          <TokenIcon symbol="BOLD" size={32} />
+          <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} size={32} />
           {prevLoan && !dn.eq(prevLoan.borrowed, loan.borrowed) && (
             <div
-              title={`${fmtnum(prevLoan.borrowed, "full")} BOLD`}
+              title={`${fmtnum(prevLoan.borrowed, "full")} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
               className={css({
                 color: "contentAlt",
                 textDecoration: "line-through",
@@ -556,7 +557,7 @@ function LoadingCard({
   onRetry: () => void;
   txPreviewMode?: boolean;
 }) {
-  const title = leverage ? "Multiply" : "BOLD loan";
+  const title = leverage ? "Multiply" : `${WHITE_LABEL_CONFIG.mainToken.symbol} loan`;
 
   const spring = useSpring({
     to: match(loadingState)

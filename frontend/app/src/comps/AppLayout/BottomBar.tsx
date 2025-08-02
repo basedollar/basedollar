@@ -1,6 +1,7 @@
 import type { Address, TokenSymbol } from "@/src/types";
 
 import { Amount } from "@/src/comps/Amount/Amount";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { LinkTextButton } from "@/src/comps/LinkTextButton/LinkTextButton";
 import { Logo } from "@/src/comps/Logo/Logo";
 import { ACCOUNT_SCREEN, CHAIN_BLOCK_EXPLORER, CONTRACT_BOLD_TOKEN, CONTRACT_LQTY_TOKEN } from "@/src/env";
@@ -102,7 +103,7 @@ export function BottomBar() {
             <div
               title={`Total supply: ${
                 fmtnum(boldSupply, {
-                  suffix: " BOLD",
+                  suffix: ` ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
                   preset: "2z",
                 })
               }`}
@@ -120,7 +121,7 @@ export function BottomBar() {
               >
                 <TokenIcon
                   title={null}
-                  symbol="BOLD"
+                  symbol={WHITE_LABEL_CONFIG.mainToken.symbol}
                   size={16}
                 />
               </div>
@@ -131,7 +132,7 @@ export function BottomBar() {
                     fallback="…"
                     format="compact"
                     value={boldSupply}
-                    suffix=" BOLD"
+                    suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
                   />
                 )}
               </span>
@@ -148,7 +149,7 @@ export function BottomBar() {
                     whiteSpace: "nowrap",
                   })}
                 >
-                  Redeem BOLD
+                  Redeem {WHITE_LABEL_CONFIG.mainToken.symbol}
                 </div>
               }
               className={css({
@@ -214,7 +215,7 @@ function getTokenAddress(symbol: TokenSymbol) {
   if (symbol === "LQTY") {
     return CONTRACT_LQTY_TOKEN;
   }
-  if (symbol === "BOLD") {
+  if (symbol === WHITE_LABEL_CONFIG.mainToken.symbol) {
     return CONTRACT_BOLD_TOKEN;
   }
   return null;

@@ -8,6 +8,7 @@ import { useBreakpoint } from "@/src/breakpoints";
 import { INFINITY } from "@/src/characters";
 import { ScreenCard } from "@/src/comps/Screen/ScreenCard";
 import { LoanStatusTag } from "@/src/comps/Tag/LoanStatusTag";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { Value } from "@/src/comps/Value/Value";
 import { CHAIN_BLOCK_EXPLORER } from "@/src/env";
 import { formatRisk } from "@/src/formatting";
@@ -90,7 +91,7 @@ export function LoanScreenCard({
   );
 
   const nftUrl = useTroveNftUrl(loan?.branchId ?? null, troveId);
-  const title = mode === "multiply" ? "Multiply" : "BOLD loan";
+  const title = mode === "multiply" ? "Multiply" : `${WHITE_LABEL_CONFIG.mainToken.symbol} loan`;
 
   const fullyRedeemed = loan && loan.status === "redeemed" && dn.eq(loan.borrowed, 0);
 
@@ -405,7 +406,7 @@ function LoanCard(props: {
         troveId,
         nftUrl,
       }) => {
-        const title = mode === "multiply" ? "Multiply" : "BOLD loan";
+        const title = mode === "multiply" ? "Multiply" : `${WHITE_LABEL_CONFIG.mainToken.symbol} loan`;
         return (
           <a.div
             className={css({
@@ -638,7 +639,7 @@ function LoanCard(props: {
                       )
                       : (
                         <div
-                          title={`${fmtnum(loan.borrowed)} BOLD`}
+                          title={`${fmtnum(loan.borrowed)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
                           className={css({
                             display: "flex",
                             alignItems: "center",
@@ -646,7 +647,7 @@ function LoanCard(props: {
                           })}
                         >
                           {fmtnum(loan.borrowed)}
-                          <TokenIcon symbol="BOLD" size={24} />
+                          <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} size={24} />
                         </div>
                       )}
                   </div>

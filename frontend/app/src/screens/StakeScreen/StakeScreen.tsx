@@ -7,6 +7,7 @@ import { Screen } from "@/src/comps/Screen/Screen";
 import { StakePositionSummary } from "@/src/comps/StakePositionSummary/StakePositionSummary";
 import content from "@/src/content";
 import { CHAIN_ID } from "@/src/env";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { fmtnum } from "@/src/formatting";
 import { useBribingClaim, useNamedInitiatives } from "@/src/liquity-governance";
 import { useStakePosition } from "@/src/liquity-utils";
@@ -203,7 +204,7 @@ function BribesInfoBox({
                 })}
               >
                 <div
-                  title={`${fmtnum(data.boldAmount)} BOLD`}
+                  title={`${fmtnum(data.boldAmount)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
                   className={css({
                     display: "flex",
                     alignItems: "center",
@@ -217,7 +218,7 @@ function BribesInfoBox({
                   />
                   <TokenIcon
                     size={16}
-                    symbol="BOLD"
+                    symbol={WHITE_LABEL_CONFIG.mainToken.symbol}
                     title={null}
                   />
                 </div>

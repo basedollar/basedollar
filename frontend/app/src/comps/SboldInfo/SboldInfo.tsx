@@ -1,6 +1,7 @@
 import type { Dnum } from "@/src/types";
 
 import { TokenAmount } from "@/src/comps/Amount/TokenAmount";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { ValueUpdate } from "@/src/comps/ValueUpdate/ValueUpdate";
 import { css } from "@/styled-system/css";
 import { TokenIcon } from "@liquity2/uikit";
@@ -70,11 +71,11 @@ export function SboldInfo({
 
   const bold = (
     <TokenAmount
-      symbol="BOLD"
+      symbol={WHITE_LABEL_CONFIG.mainToken.symbol}
       animate={false}
       value={conversion.boldAmount}
-      fallback={loading ? "… BOLD" : "− BOLD"}
-      suffix=" BOLD"
+      fallback={loading ? `… ${WHITE_LABEL_CONFIG.mainToken.symbol}` : `− ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+      suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
     />
   );
 

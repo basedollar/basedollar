@@ -22,6 +22,7 @@ Edit the main configuration file: **`white-label.config.ts`**
 - **`showEarn`** - Show/hide Earn navigation and action cards  
 - **`showStake`** - Show/hide Stake navigation and action cards
 - **Navigation labels** - Custom text for Dashboard, Borrow, Earn, Stake menu items
+- **Main token** - Stablecoin name, symbol, ticker throughout the app
 
 ## Current Features
 
@@ -43,9 +44,19 @@ navigation: {
 ### 3. Custom Navigation Labels
 ```typescript
 items: {
-  dashboard: { label: "Overview", path: "/" },
-  borrow: { label: "Lend", path: "/borrow" },
-  earn: { label: "Farm", path: "/earn" },
+  dashboard: { label: "Overview" },
+  borrow: { label: "Lend" },
+  earn: { label: "Farm" },
+}
+```
+
+### 4. Main Token (Stablecoin)
+```typescript
+mainToken: {
+  name: "BOLD",
+  symbol: "BOLD",
+  ticker: "BOLD",
+  description: "USD-pegged stablecoin",
 }
 ```
 

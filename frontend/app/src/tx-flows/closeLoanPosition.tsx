@@ -17,6 +17,7 @@ import * as v from "valibot";
 import { maxUint256 } from "viem";
 import { readContract, readContracts } from "wagmi/actions";
 import { createRequestSchema, verifyTransaction } from "./shared";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 const RequestSchema = createRequestSchema(
   "closeLoanPosition",
@@ -70,7 +71,7 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
               <Amount
                 key="start"
                 value={amountToRepay}
-                suffix={` ${repayWithCollateral ? collateral.symbol : "BOLD"}`}
+                suffix={` ${repayWithCollateral ? collateral.symbol : WHITE_LABEL_CONFIG.mainToken.symbol}`}
               />,
             ]}
           />
@@ -102,7 +103,7 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
 
   steps: {
     approveBold: {
-      name: () => "Approve BOLD",
+      name: () => `Approve ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
       Status: (props) => (
         <TransactionStatus
           {...props}
@@ -147,7 +148,7 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
         const { loan } = ctx.request;
         const branch = getBranch(loan.branchId);
 
-        // repay with BOLD => get ETH
+        // repay with ${WHITE_LABEL_CONFIG.mainToken.symbol} => get ETH
         if (!ctx.request.repayWithCollateral && branch.symbol === "ETH") {
           return ctx.writeContract({
             ...branch.contracts.LeverageWETHZapper,
@@ -156,7 +157,7 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
           });
         }
 
-        // repay with BOLD => get LST
+        // repay with ${WHITE_LABEL_CONFIG.mainToken.symbol} => get LST
         if (!ctx.request.repayWithCollateral) {
           return ctx.writeContract({
             ...branch.contracts.LeverageLSTZapper,

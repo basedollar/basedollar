@@ -9,6 +9,7 @@ import { vDnum } from "@/src/valibot-utils";
 import { Fragment } from "react";
 import * as v from "valibot";
 import { createRequestSchema, verifyTransaction } from "./shared";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 const RequestSchema = createRequestSchema(
   "legacyEarnWithdrawAll",
@@ -48,7 +49,7 @@ export const legacyEarnWithdrawAll: FlowDeclaration<LegacyEarnWithdrawAllRequest
               value={[
                 <Amount
                   key="start"
-                  suffix=" BOLD"
+                  suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
                   value={pool.deposit}
                 />,
                 pool.rewards.coll[0] > 0n
@@ -65,7 +66,7 @@ export const legacyEarnWithdrawAll: FlowDeclaration<LegacyEarnWithdrawAllRequest
                     <Amount
                       key="end"
                       value={pool.rewards.bold}
-                      suffix=" BOLD"
+                      suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
                     />
                   )
                   : null,

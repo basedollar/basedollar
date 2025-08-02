@@ -1,6 +1,7 @@
 import type { Dnum, PositionSbold } from "@/src/types";
 
 import { Amount } from "@/src/comps/Amount/Amount";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { TagPreview } from "@/src/comps/TagPreview/TagPreview";
 import { fmtnum } from "@/src/formatting";
 import { getBranch } from "@/src/liquity-utils";
@@ -115,7 +116,7 @@ export function SboldPositionSummary({
             <Amount
               fallback="-"
               format="compact"
-              suffix=" BOLD"
+              suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
               value={tvl_}
             />
           </div>
@@ -127,7 +128,7 @@ export function SboldPositionSummary({
                 gap: 8,
               })}
             >
-              <div>Total amount of BOLD deposited in the sBOLD pool.</div>
+              <div>Total amount of {WHITE_LABEL_CONFIG.mainToken.symbol} deposited in the sBOLD pool.</div>
               <div
                 className={css({
                   display: "flex",
@@ -208,12 +209,12 @@ export function SboldPositionSummary({
           ),
         },
         {
-          label: "BOLD Deposit",
+          label: `${WHITE_LABEL_CONFIG.mainToken.symbol} Deposit`,
           content: (
             <>
               <div
                 title={active
-                  ? `${fmtnum(sboldPosition?.bold, "full")} BOLD`
+                  ? `${fmtnum(sboldPosition?.bold, "full")} ${WHITE_LABEL_CONFIG.mainToken.symbol}`
                   : undefined}
                 className={css({
                   display: "flex",
@@ -224,11 +225,11 @@ export function SboldPositionSummary({
                 })}
               >
                 {active && fmtnum(sboldPosition?.bold)}
-                <TokenIcon symbol="BOLD" size="mini" title={null} />
+                <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} size="mini" title={null} />
               </div>
               {prevSboldPosition && (
                 <div
-                  title={`${fmtnum(prevSboldPosition.bold, "full")} BOLD`}
+                  title={`${fmtnum(prevSboldPosition.bold, "full")} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
                   className={css({
                     display: "flex",
                     justifyContent: "flex-start",
@@ -240,7 +241,7 @@ export function SboldPositionSummary({
                   })}
                 >
                   {fmtnum(prevSboldPosition.bold)}
-                  <TokenIcon symbol="BOLD" size="mini" title={null} />
+                  <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} size="mini" title={null} />
                 </div>
               )}
             </>

@@ -4,6 +4,7 @@ import type { Address } from "@/src/types";
 import { CollateralRegistry } from "@/src/abi/CollateralRegistry";
 import { Amount } from "@/src/comps/Amount/Amount";
 import { dnum18, jsonStringifyWithDnum } from "@/src/dnum-utils";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { LEGACY_CHECK } from "@/src/env";
 import { TransactionDetailsRow } from "@/src/screens/TransactionsScreen/TransactionsScreen";
 import { TransactionStatus } from "@/src/screens/TransactionsScreen/TransactionStatus";
@@ -15,6 +16,7 @@ import * as v from "valibot";
 import { createPublicClient, erc20Abi } from "viem";
 import { http, useConfig as useWagmiConfig } from "wagmi";
 import { createRequestSchema, verifyTransaction } from "./shared";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 const RequestSchema = createRequestSchema(
   "legacyRedeemCollateral",
@@ -31,8 +33,8 @@ export const legacyRedeemCollateral: FlowDeclaration<LegacyRedeemCollateralReque
   Summary: () => null,
   Details(ctx) {
     const estimatedGains = useSimulatedBalancesChange(ctx);
-    const boldChange = estimatedGains.data?.find(({ symbol }) => symbol === "BOLD")?.change;
-    const collChanges = estimatedGains.data?.filter(({ symbol }) => symbol !== "BOLD");
+    const boldChange = estimatedGains.data?.find(({ symbol }) => symbol === WHITE_LABEL_CONFIG.mainToken.symbol)?.change;
+    const collChanges = estimatedGains.data?.filter(({ symbol }) => symbol !== WHITE_LABEL_CONFIG.mainToken.symbol);
     return (
       <>
         <TransactionDetailsRow
@@ -47,16 +49,16 @@ export const legacyRedeemCollateral: FlowDeclaration<LegacyRedeemCollateralReque
           ]}
         />
         <TransactionDetailsRow
-          label="Reedeming BOLD"
+          label={`Redeeming ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
           value={[
             <Amount
               key="start"
               value={boldChange}
               fallback={estimatedGains.isError ? "loading error." : "fetching…"}
-              suffix=" BOLD"
+              suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
             />,
             <Fragment key="end">
-              Estimated BOLD that will be redeemed.
+              Estimated ${WHITE_LABEL_CONFIG.mainToken.symbol} that will be redeemed.
             </Fragment>,
           ]}
         />
@@ -86,7 +88,7 @@ export const legacyRedeemCollateral: FlowDeclaration<LegacyRedeemCollateralReque
   },
   steps: {
     approve: {
-      name: () => "Approve BOLD",
+      name: () => `Approve ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
       Status: TransactionStatus,
       async commit({ request, writeContract }) {
         if (!LEGACY_CHECK) {
@@ -104,7 +106,7 @@ export const legacyRedeemCollateral: FlowDeclaration<LegacyRedeemCollateralReque
       },
     },
     redeemCollateral: {
-      name: () => "Redeem BOLD",
+      name: () => `Redeem ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
       Status: TransactionStatus,
       async commit({ request, writeContract }) {
         if (!LEGACY_CHECK) {
@@ -231,7 +233,7 @@ export function useSimulatedBalancesChange({
             if (!LEGACY_CHECK) {
               throw new Error("LEGACY_CHECK is not defined");
             }
-            const symbol = index === 0 ? "BOLD" : LEGACY_CHECK.BRANCHES[index - 1]?.symbol;
+            const symbol = index === 0 ? WHITE_LABEL_CONFIG.mainToken.symbol : LEGACY_CHECK.BRANCHES[index - 1]?.symbol;
             return {
               symbol,
               balance: dnum18(result.data ?? 0n),

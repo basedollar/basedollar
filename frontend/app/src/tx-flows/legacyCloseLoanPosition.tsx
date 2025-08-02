@@ -14,6 +14,7 @@ import * as dn from "dnum";
 import * as v from "valibot";
 import { erc20Abi, maxUint256 } from "viem";
 import { createRequestSchema, verifyTransaction } from "./shared";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 const RequestSchema = createRequestSchema(
   "legacyCloseLoanPosition",
@@ -59,7 +60,7 @@ export const legacyCloseLoanPosition: FlowDeclaration<LegacyCloseLoanPositionReq
               <Amount
                 key="start"
                 value={trove.borrowed}
-                suffix=" BOLD"
+                suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
               />,
             ]}
           />
@@ -91,7 +92,7 @@ export const legacyCloseLoanPosition: FlowDeclaration<LegacyCloseLoanPositionReq
 
   steps: {
     approveBold: {
-      name: () => "Approve BOLD",
+      name: () => `Approve ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
       Status: (props) => (
         <TransactionStatus
           {...props}
@@ -102,7 +103,7 @@ export const legacyCloseLoanPosition: FlowDeclaration<LegacyCloseLoanPositionReq
         const { trove } = ctx.request;
         const { LEVERAGE_ZAPPER } = getLegacyBranch(trove.branchId);
         if (!LEGACY_CHECK?.BOLD_TOKEN) {
-          throw new Error("BOLD token address not available");
+          throw new Error(`${WHITE_LABEL_CONFIG.mainToken.symbol} token address not available`);
         }
         return ctx.writeContract({
           abi: erc20Abi,
@@ -161,7 +162,7 @@ export const legacyCloseLoanPosition: FlowDeclaration<LegacyCloseLoanPositionReq
     const branch = getLegacyBranch(trove.branchId);
 
     if (!LEGACY_CHECK?.BOLD_TOKEN) {
-      throw new Error("BOLD token address not available");
+      throw new Error(`${WHITE_LABEL_CONFIG.mainToken.symbol} token address not available`);
     }
     const isBoldApproved = !dn.gt(trove.borrowed, [
       (await ctx.readContract({

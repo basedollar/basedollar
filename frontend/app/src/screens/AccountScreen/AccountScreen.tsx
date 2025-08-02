@@ -4,6 +4,7 @@ import type { Address, TokenSymbol } from "@/src/types";
 import type { ReactNode } from "react";
 
 import { ERC20Faucet } from "@/src/abi/ERC20Faucet";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { Positions } from "@/src/comps/Positions/Positions";
 import { Screen } from "@/src/comps/Screen/Screen";
 import { getBranchContract, getProtocolContract } from "@/src/contracts";
@@ -106,10 +107,10 @@ export function AccountScreen({
               gridTemplateColumns: `repeat(3, 1fr)`,
             }}
           >
-            <GridItem label="BOLD balance">
+            <GridItem label={`${WHITE_LABEL_CONFIG.mainToken.symbol} balance`}>
               <Balance
                 address={address}
-                tokenSymbol="BOLD"
+                tokenSymbol={WHITE_LABEL_CONFIG.mainToken.symbol}
               />
             </GridItem>
             <GridItem label="LQTY balance">
