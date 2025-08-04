@@ -2,7 +2,7 @@
 
 import type { MenuItem } from "./Menu";
 
-import { LogoConfigurable } from "@/src/comps/Logo/LogoConfigurable";
+import { Logo } from "@/src/comps/Logo/Logo";
 import { Tag } from "@/src/comps/Tag/Tag";
 import { DEPLOYMENT_FLAVOR } from "@/src/env";
 import { useWhiteLabelHeader } from "@/src/hooks/useWhiteLabel";
@@ -84,7 +84,7 @@ export function TopBar() {
                 flexShrink: 0,
               })}
             >
-              <LogoConfigurable size={32} variant="main" />
+              <Logo size={32} />
             </div>
             <div
               className={css({

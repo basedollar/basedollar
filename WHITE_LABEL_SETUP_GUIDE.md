@@ -15,8 +15,8 @@
 
 ## Assets to Replace
 
-- `main-token.svg` - Your token icon (24x24px SVG)
-- `/frontend/public/brand/logo-*.svg` - App logos (optional)
+- `main-token.svg` - Your token icon (24x24px SVG)  
+- `/frontend/app/src/assets/logo.svg` - Your app logo (32x32px SVG)
 
 ## What Updates Automatically
 

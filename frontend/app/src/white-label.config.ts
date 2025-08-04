@@ -13,15 +13,6 @@ export const WHITE_LABEL_CONFIG = {
     // App name displayed in header
     appName: "LMAO",
     
-    logo: {
-      // Main logo (icon + text)
-      main: "/brand/logo-main.svg",
-      // Icon only (for mobile or compact views)  
-      icon: "/brand/logo-icon.svg",
-      // Alt text for accessibility
-      alt: "LMAO Logo",
-    },
-    
     // Navigation configuration
     navigation: {
       showBorrow: true,
