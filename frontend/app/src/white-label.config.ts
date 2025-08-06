@@ -56,6 +56,16 @@ export const WHITE_LABEL_CONFIG = {
   },
 
   // ===========================
+  // TYPOGRAPHY
+  // ===========================
+  typography: {
+    // Font family for CSS (used in Panda config)
+    fontFamily: "Geist, sans-serif",
+    // Next.js font import name (should match the import)
+    fontImport: "GeistSans" as const,
+  },
+
+  // ===========================
   // MAIN TOKEN (STABLECOIN)
   // ===========================
   mainToken: {

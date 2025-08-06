@@ -13,11 +13,25 @@
 - **`navigation.showBorrow/showEarn/showStake`** - Hide/show sections
 - **`navigation.items`** - Custom labels for menu items
 - **`brandColors`** - Primary brand colors for ActionCards and hero elements
+- **`typography.fontFamily`** - Font family CSS value (e.g., "Inter, sans-serif")
 
 ## Assets to Replace
 
 - `main-token.svg` - Your token icon (24x24px SVG)  
 - `/frontend/app/src/assets/logo.svg` - Your app logo (32x32px SVG)
+
+## Font Setup
+
+After changing `typography.fontFamily` in the config:
+1. Import your font in `/frontend/app/src/app/layout.tsx`
+2. Apply the font class to the body element
+
+Example for Google Fonts:
+```typescript
+import { Inter } from "next/font/google"
+const inter = Inter({ subsets: ["latin"] })
+// In body tag: className={inter.className}
+```
 
 ## Colors & Design
 
