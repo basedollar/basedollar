@@ -11,7 +11,7 @@ export const WHITE_LABEL_CONFIG = {
   // ===========================
   header: {
     // App name displayed in header
-    appName: "LMAO",
+    appName: "NEW NAME",
     
     // Navigation configuration
     navigation: {
@@ -37,13 +37,31 @@ export const WHITE_LABEL_CONFIG = {
     },
   },
 
+  brandColors: {
+    primary: "black:700" as const,
+    primaryContent: "white" as const,
+    primaryContentAlt: "gray:300" as const,
+    
+    secondary: "silver:100" as const,
+    secondaryContent: "black:700" as const,
+    secondaryContentAlt: "black:400" as const,
+    
+    accent1: "red:500" as const,  
+    accent1Content: "white" as const,
+    accent1ContentAlt: "red:100" as const,
+    
+    accent2: "green:500" as const,
+    accent2Content: "black:700" as const,
+    accent2ContentAlt: "green:800" as const,
+  },
+
   // ===========================
   // MAIN TOKEN (STABLECOIN)
   // ===========================
   mainToken: {
-    name: "LMAO",
-    symbol: "LMAO" as const, 
-    ticker: "LMAO",
+    name: "LOL",
+    symbol: "LOL" as const, 
+    ticker: "LOL",
     decimals: 18,
     description: "USD-pegged stablecoin",
   },

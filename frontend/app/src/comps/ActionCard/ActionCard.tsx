@@ -1,4 +1,5 @@
 import content from "@/src/content";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { css, cx } from "@/styled-system/css";
 import { token } from "@/styled-system/tokens";
 import { a, useSpring } from "@react-spring/web";
@@ -36,9 +37,9 @@ export function ActionCard({
   const { description, path, title, colors } = match(type)
     .with("borrow", () => ({
       colors: {
-        background: token("colors.brandDarkBlue"),
-        foreground: token("colors.brandDarkBlueContent"),
-        foregroundAlt: token("colors.brandDarkBlueContentAlt"),
+        background: token(`colors.${WHITE_LABEL_CONFIG.brandColors.primary}`),
+        foreground: token(`colors.${WHITE_LABEL_CONFIG.brandColors.primaryContent}`),
+        foregroundAlt: token(`colors.${WHITE_LABEL_CONFIG.brandColors.primaryContentAlt}`),
       },
       description: ac.borrow.description,
       path: "/borrow",
@@ -46,9 +47,9 @@ export function ActionCard({
     }))
     .with("multiply", () => ({
       colors: {
-        background: token("colors.brandGreen"),
-        foreground: token("colors.brandGreenContent"),
-        foregroundAlt: token("colors.brandGreenContentAlt"),
+        background: token(`colors.${WHITE_LABEL_CONFIG.brandColors.accent2}`),
+        foreground: token(`colors.${WHITE_LABEL_CONFIG.brandColors.accent2Content}`),
+        foregroundAlt: token(`colors.${WHITE_LABEL_CONFIG.brandColors.accent2ContentAlt}`),
       },
       description: ac.multiply.description,
       path: "/multiply",
@@ -56,9 +57,9 @@ export function ActionCard({
     }))
     .with("earn", () => ({
       colors: {
-        background: token("colors.brandBlue"),
-        foreground: token("colors.brandBlueContent"),
-        foregroundAlt: token("colors.brandBlueContentAlt"),
+        background: token(`colors.${WHITE_LABEL_CONFIG.brandColors.accent1}`),
+        foreground: token(`colors.${WHITE_LABEL_CONFIG.brandColors.accent1Content}`),
+        foregroundAlt: token(`colors.${WHITE_LABEL_CONFIG.brandColors.accent1ContentAlt}`),
       },
       description: ac.earn.description,
       path: "/earn",
@@ -66,9 +67,9 @@ export function ActionCard({
     }))
     .with("stake", () => ({
       colors: {
-        background: token("colors.brandGolden"),
-        foreground: token("colors.brandGoldenContent"),
-        foregroundAlt: token("colors.brandGoldenContentAlt"),
+        background: token(`colors.${WHITE_LABEL_CONFIG.brandColors.secondary}`),
+        foreground: token(`colors.${WHITE_LABEL_CONFIG.brandColors.secondaryContent}`),
+        foregroundAlt: token(`colors.${WHITE_LABEL_CONFIG.brandColors.secondaryContentAlt}`),
       },
       description: ac.stake.description,
       path: "/stake",
