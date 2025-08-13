@@ -29,6 +29,10 @@ export function EarnPositionSummaryBase({
   title?: ReactNode;
 }) {
   const token = TOKENS_BY_SYMBOL[poolToken];
+  
+  if (!token) {
+    throw new Error(`Token not found for symbol: ${poolToken}`);
+  }
 
   return (
     <div

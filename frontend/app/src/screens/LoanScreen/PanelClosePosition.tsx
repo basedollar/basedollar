@@ -32,6 +32,9 @@ export function PanelClosePosition({
   const repayDropdownIndex = 0;
 
   const repayToken = TOKENS_BY_SYMBOL[repayDropdownIndex === 0 ? WHITE_LABEL_CONFIG.mainToken.symbol : collateral.symbol];
+  if (!repayToken) {
+    throw new Error(`Repay token not found for symbol: ${repayDropdownIndex === 0 ? WHITE_LABEL_CONFIG.mainToken.symbol : collateral.symbol}`);
+  }
 
   // either in main token or in collateral
   const amountToRepay = repayToken.symbol === WHITE_LABEL_CONFIG.mainToken.symbol

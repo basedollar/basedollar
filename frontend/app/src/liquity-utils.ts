@@ -54,6 +54,10 @@ import { encodeAbiParameters, erc20Abi, isAddressEqual, keccak256, parseAbiParam
 import { useBalance, useConfig as useWagmiConfig, useReadContract, useReadContracts } from "wagmi";
 import { readContract, readContracts } from "wagmi/actions";
 
+function isLegacyCheckObject(check: typeof LEGACY_CHECK): check is { BRANCHES: Array<any>; [key: string]: any } {
+  return typeof check === "object" && check !== null && "BRANCHES" in check && Array.isArray(check.BRANCHES);
+}
+
 export function shortenTroveId(troveId: TroveId, chars = 8) {
   return troveId.length < chars * 2 + 2
     ? troveId
@@ -1032,7 +1036,7 @@ export function useLegacyPositions(account: Address | null): UseQueryResult<{
   const legacyTrovesFromSnapshot = useQuery<PrefixedTroveId[]>({
     queryKey: ["legacyTrovesFromSnapshot", account],
     queryFn: async () => {
-      if (!LEGACY_CHECK || !account) {
+      if (!isLegacyCheckObject(LEGACY_CHECK) || !account) {
         throw new Error("LEGACY_CHECK or account not defined");
       }
       const result = await fetch(LEGACY_CHECK.TROVES_SNAPSHOT_URL);
@@ -1046,8 +1050,8 @@ export function useLegacyPositions(account: Address | null): UseQueryResult<{
   const legacyTroves = useReadContracts({
     contracts: legacyTrovesFromSnapshot.data?.map((prefixedTroveId) => {
       const { branchId, troveId } = parsePrefixedTroveId(prefixedTroveId);
-      const branch = LEGACY_CHECK?.BRANCHES[branchId as number];
-      const address: Address = branch?.TROVE_MANAGER ?? "0x";
+      const branch = isLegacyCheckObject(LEGACY_CHECK) ? LEGACY_CHECK.BRANCHES[branchId as number] : undefined;
+      const address: Address = branch?.TROVE_MANAGER ?? "0x0000000000000000000000000000000000000000";
       return {
         abi: TroveManager,
         address,
@@ -1067,7 +1071,7 @@ export function useLegacyPositions(account: Address | null): UseQueryResult<{
                 throw new Error("Trove ID not found");
               }
               const { branchId, troveId } = parsePrefixedTroveId(prefixedTroveId);
-              const branch = LEGACY_CHECK?.BRANCHES[branchId as number];
+              const branch = isLegacyCheckObject(LEGACY_CHECK) ? LEGACY_CHECK.BRANCHES[branchId as number] : undefined;
               if (!branch) {
                 throw new Error(`Invalid branch ID: ${branchId}`);
               }
@@ -1090,7 +1094,7 @@ export function useLegacyPositions(account: Address | null): UseQueryResult<{
   const hasAnyLegacyTrove = (legacyTrovesFromSnapshot.data?.length ?? 0) > 0;
 
   const spDeposits = useReadContracts({
-    contracts: LEGACY_CHECK
+    contracts: isLegacyCheckObject(LEGACY_CHECK)
       ? [
         ...LEGACY_CHECK.BRANCHES.map(({ STABILITY_POOL }) => ({
           abi: StabilityPool,
@@ -1116,7 +1120,7 @@ export function useLegacyPositions(account: Address | null): UseQueryResult<{
     query: {
       enabled: checkLegacyPositions,
       select: (results) => {
-        if (!LEGACY_CHECK) {
+        if (!isLegacyCheckObject(LEGACY_CHECK)) {
           throw new Error("LEGACY_CHECK not defined");
         }
         const branchCount = LEGACY_CHECK.BRANCHES.length;
@@ -1143,7 +1147,7 @@ export function useLegacyPositions(account: Address | null): UseQueryResult<{
 
   const legacyBoldBalance = useReadContract({
     abi: erc20Abi,
-    address: LEGACY_CHECK?.BOLD_TOKEN,
+    address: isLegacyCheckObject(LEGACY_CHECK) ? LEGACY_CHECK.BOLD_TOKEN : "0x",
     functionName: "balanceOf",
     args: [account ?? "0x"],
     query: {
@@ -1153,7 +1157,7 @@ export function useLegacyPositions(account: Address | null): UseQueryResult<{
 
   const stakedLqty = useReadContract({
     abi: Governance,
-    address: LEGACY_CHECK?.GOVERNANCE,
+    address: isLegacyCheckObject(LEGACY_CHECK) ? LEGACY_CHECK.GOVERNANCE : "0x",
     functionName: "userStates" as const,
     args: [account ?? "0x"],
     query: {

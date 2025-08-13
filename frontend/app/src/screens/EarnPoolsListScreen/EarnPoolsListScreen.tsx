@@ -54,7 +54,7 @@ export function EarnPoolsListScreen() {
           >
             {content.earnHome.headline(
               <TokenIcon.Group>
-                {[WHITE_LABEL_CONFIG.mainToken.symbol as const, ...collSymbols].map((symbol) => (
+                {[WHITE_LABEL_CONFIG.mainToken.symbol, ...collSymbols].map((symbol) => (
                   <TokenIcon
                     key={symbol}
                     symbol={symbol}

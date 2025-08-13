@@ -262,22 +262,12 @@ export function vVoteAllocations() {
 }
 
 export function vCollateralSymbol() {
-  return v.union([
-    v.literal("ETH"),
-    v.literal("RETH"),
-    v.literal("WSTETH"),
-  ]);
-}
-
-export function vTokenSymbol() {
-  return v.union([
-    vCollateralSymbol(),
-    v.literal(WHITE_LABEL_CONFIG.mainToken.symbol),
-    v.literal("LEGACY_BOLD"),
-    v.literal("LQTY"),
-    v.literal("LUSD"),
-    v.literal("SBOLD"),
-  ]);
+  // Generate validation schema from config
+  const collateralLiterals = WHITE_LABEL_CONFIG.collaterals.map(collateral => 
+    v.literal(collateral.symbol)
+  );
+  
+  return v.union(collateralLiterals as [any, ...any[]]);
 }
 
 export function vEnvLegacyCheck() {

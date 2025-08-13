@@ -67,9 +67,12 @@ export function BorrowScreen() {
   const collaterals = branches.map((b) => getCollToken(b.branchId));
 
   const maxCollDeposit = MAX_COLLATERAL_DEPOSITS[collSymbol];
+  if (!maxCollDeposit) {
+    throw new Error(`No max collateral deposit configured for ${collSymbol}`);
+  }
 
   const deposit = useInputFieldValue(fmtnum, {
-    validate: (parsed, value) => {
+    validate: (parsed, value): { parsed: Dnum | null; value: string } => {
       const isAboveMax = parsed && dn.gt(parsed, maxCollDeposit);
       return {
         parsed: isAboveMax ? maxCollDeposit : parsed,

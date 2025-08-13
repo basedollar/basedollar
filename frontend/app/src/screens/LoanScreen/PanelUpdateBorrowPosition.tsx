@@ -196,7 +196,7 @@ export function PanelUpdateBorrowPosition({
                 ),
                 end: collMax && dn.gt(collMax, 0) && (
                   <TextButton
-                    label={`Max ${fmtnum(collMax, 2)} ${TOKENS_BY_SYMBOL[collToken.symbol].name}`}
+                    label={`Max ${fmtnum(collMax, 2)} ${TOKENS_BY_SYMBOL[collToken.symbol]?.name ?? collToken.symbol}`}
                     onClick={() => {
                       depositChange.setValue(dn.toString(collMax));
                     }}
