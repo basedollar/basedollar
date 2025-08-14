@@ -56,7 +56,7 @@ export const sboldRedeem: FlowDeclaration<SboldRedeemRequest> = {
           value={[
             <Amount
               key="end"
-              suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+              suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
               value={dn.abs(boldAmount)}
             />,
           ]}

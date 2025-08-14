@@ -35,7 +35,7 @@ export function PanelInterestRate({
   const deposit = useInputFieldValue((value) => `${fmtnum(value, "full")} ${collToken.symbol}`, {
     defaultValue: dn.toString(loan.deposit),
   });
-  const debt = useInputFieldValue((value) => `${fmtnum(value, "full")} ${WHITE_LABEL_CONFIG.mainToken.symbol}`, {
+  const debt = useInputFieldValue((value) => `${fmtnum(value, "full")} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`, {
     defaultValue: dn.toString(loan.borrowed),
   });
 
@@ -223,12 +223,12 @@ export function PanelInterestRate({
             {
               label: (
                 <>
-                  <div>{WHITE_LABEL_CONFIG.mainToken.symbol} interest per year</div>
+                  <div>{WHITE_LABEL_CONFIG.tokens.mainToken.symbol} interest per year</div>
                   <InfoTooltip {...infoTooltipProps(content.generalInfotooltips.interestRateBoldPerYear)} />
                 </>
               ),
-              before: <Amount value={boldInterestPerYearPrev} suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`} />,
-              after: <Amount value={boldInterestPerYear} suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`} />,
+              before: <Amount value={boldInterestPerYearPrev} suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`} />,
+              after: <Amount value={boldInterestPerYear} suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`} />,
             },
           ]}
         />

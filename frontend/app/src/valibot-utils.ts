@@ -263,7 +263,7 @@ export function vVoteAllocations() {
 
 export function vCollateralSymbol() {
   // Generate validation schema from config
-  const collateralLiterals = WHITE_LABEL_CONFIG.collaterals.map(collateral => 
+  const collateralLiterals = WHITE_LABEL_CONFIG.tokens.collaterals.map(collateral => 
     v.literal(collateral.symbol)
   );
   
@@ -277,7 +277,7 @@ export function vEnvLegacyCheck() {
       v.string(),
       v.transform((value) => JSON.parse(value)),
       v.object({
-        [WHITE_LABEL_CONFIG.mainToken.symbol + "_TOKEN"]: vAddress(),
+        [WHITE_LABEL_CONFIG.tokens.mainToken.symbol + "_TOKEN"]: vAddress(),
         COLLATERAL_REGISTRY: vAddress(),
         GOVERNANCE: vAddress(),
         INITIATIVES_SNAPSHOT_URL: v.string(),

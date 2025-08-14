@@ -64,11 +64,11 @@ export const claimBribes: FlowDeclaration<ClaimBribesRequest> = {
           epoch{totalEpochs > 1 ? "s" : ""}.
         </div>
         <TransactionDetailsRow
-          label={`${WHITE_LABEL_CONFIG.mainToken.symbol} rewards`}
+          label={`${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} rewards`}
           value={[
             <div
               key="bold"
-              title={`${fmtnum(boldAmount)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+              title={`${fmtnum(boldAmount)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
               className={css({
                 display: "flex",
                 alignItems: "center",
@@ -83,7 +83,7 @@ export const claimBribes: FlowDeclaration<ClaimBribesRequest> = {
               />
               <TokenIcon
                 size={16}
-                symbol={WHITE_LABEL_CONFIG.mainToken.symbol}
+                symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
                 title={null}
               />
             </div>,

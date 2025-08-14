@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { createContext, useContext, useState } from "react";
 
-// The Liquity V2 base color palette, adapted to match your design system
+// Base color palette, adapted to match your design system
 export const colors = {
   // Blue (keeping existing as accent colors)
   "blue:50": "#F0F3FE",

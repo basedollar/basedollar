@@ -61,7 +61,7 @@ export const sboldDeposit: FlowDeclaration<SboldDepositRequest> = {
           value={[
             <Amount
               key="start"
-              suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+              suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
               value={depositChange}
             />,
             dn.gt(depositFee, 0) && (
@@ -78,13 +78,13 @@ export const sboldDeposit: FlowDeclaration<SboldDepositRequest> = {
                   fallback="…"
                   title={{
                     prefix: "Accounting for ",
-                    suffix: ` ${WHITE_LABEL_CONFIG.mainToken.symbol} (Entry Fee)`,
+                    suffix: ` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} (Entry Fee)`,
                   }}
                   value={depositFee}
-                  suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol} Entry Fee`}
+                  suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} Entry Fee`}
                 />
-                <InfoTooltip heading="sBOLD Entry Fee">
-                  This fee is charged when you deposit ${WHITE_LABEL_CONFIG.mainToken.symbol} for sBOLD shares, and has been deducted from the deposit
+                <InfoTooltip heading={`${WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol} Entry Fee`}>
+                  This fee is charged when you deposit ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} for ${WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol} shares, and has been deducted from the deposit
                   amount.
                 </InfoTooltip>
               </div>
@@ -123,7 +123,7 @@ export const sboldDeposit: FlowDeclaration<SboldDepositRequest> = {
 
   steps: {
     approveBold: {
-      name: () => `Approve ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
+      name: () => `Approve ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`,
       Status: (props) => (
         <TransactionStatus
           {...props}

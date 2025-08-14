@@ -20,6 +20,7 @@ import {
   useBranchDebt,
   useEarnPool,
 } from "@/src/liquity-utils";
+import { getAvailableEarnPools } from "@/src/white-label.config";
 import { useSboldStats } from "@/src/sbold";
 import { useAccount } from "@/src/wagmi-utils";
 import { css } from "@/styled-system/css";
@@ -106,7 +107,7 @@ function BorrowTable({
 
   return (
     <HomeTable
-      title={`Borrow ${WHITE_LABEL_CONFIG.mainToken.symbol} against ETH and staked ETH`}
+      title={`Borrow ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} against ETH and staked ETH`}
       subtitle="You can adjust your loans, including your interest rate, at any time"
       icon={<IconBorrow />}
       columns={columns}
@@ -166,16 +167,20 @@ function EarnTable({
           subtitle={content.home.earnTable.subtitle}
           icon={<IconEarn />}
           columns={columns}
-          rows={[
-            ...getBranches(),
-            { symbol: "SBOLD" as const },
-          ].map(({ symbol }) => (
-            <EarnRewardsRow
-              key={symbol}
-              compact={compact}
-              symbol={symbol}
-            />
-          ))}
+          rows={getAvailableEarnPools().map((pool) => {
+            // Convert pool symbol back to the format expected by the component
+            const symbol = pool.type === 'staked' 
+              ? WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol
+              : pool.symbol.toUpperCase();
+            
+            return (
+              <EarnRewardsRow
+                key={pool.symbol}
+                compact={compact}
+                symbol={symbol as any}
+              />
+            );
+          })}
         />
       </div>
       <div
@@ -362,7 +367,7 @@ function BorrowingRow({
                   })}
                 >
                   Borrow
-                  <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} size="mini" />
+                  <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} size="mini" />
                 </div>
               }
               title={`Borrow ${collateral?.name} from ${symbol}`}
@@ -379,9 +384,10 @@ function EarnRewardsRow({
   symbol,
 }: {
   compact: boolean;
-  symbol: CollateralSymbol | "SBOLD";
+  symbol: CollateralSymbol | typeof WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol;
 }) {
-  const branch = symbol === "SBOLD" ? null : getBranch(symbol);
+  const stakedSymbol = WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol;
+  const branch = symbol === stakedSymbol ? null : getBranch(symbol);
   const token = getToken(symbol);
   const earnPool = useEarnPool(branch?.id ?? null);
   const sboldStats = useSboldStats();
@@ -396,14 +402,14 @@ function EarnRewardsRow({
           })}
         >
           <TokenIcon symbol={symbol} size="mini" />
-          <span>{symbol === "SBOLD" ? "sBOLD by K3 Capital" : token?.name}</span>
+          <span>{symbol === stakedSymbol ? `${WHITE_LABEL_CONFIG.tokens.otherTokens.staked.name} by K3 Capital` : token?.name}</span>
         </div>
       </td>
       <td>
         <Amount
           fallback="…"
           percentage
-          value={symbol === "SBOLD"
+          value={symbol === stakedSymbol
             ? sboldStats.data?.apr
             : earnPool.data?.apr}
         />
@@ -412,7 +418,7 @@ function EarnRewardsRow({
         <Amount
           fallback="…"
           percentage
-          value={symbol === "SBOLD"
+          value={symbol === stakedSymbol
             ? sboldStats.data?.apr7d
             : earnPool.data?.apr7d}
         />
@@ -422,7 +428,7 @@ function EarnRewardsRow({
           fallback="…"
           format="compact"
           prefix="$"
-          value={symbol === "SBOLD"
+          value={symbol === stakedSymbol
             ? sboldStats.data?.totalBold
             : earnPool.data?.totalDeposited}
         />
@@ -442,8 +448,8 @@ function EarnRewardsRow({
               >
                 Earn
                 <TokenIcon.Group size="mini">
-                  <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} />
-                  {symbol === "SBOLD"
+                  <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />
+                  {symbol === stakedSymbol
                     ? (
                       <div
                         className={css({
@@ -455,7 +461,7 @@ function EarnRewardsRow({
                 </TokenIcon.Group>
               </div>
             }
-            title={`Earn ${WHITE_LABEL_CONFIG.mainToken.symbol} with ${token?.name}`}
+            title={`Earn ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} with ${token?.name}`}
           />
         </td>
       )}

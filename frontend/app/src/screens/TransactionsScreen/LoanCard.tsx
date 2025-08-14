@@ -428,7 +428,7 @@ function TotalDebt({
         })}
       >
         <div
-          title={`${fmtnum(loan.borrowed, "full")} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+          title={`${fmtnum(loan.borrowed, "full")} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
           className={css({
             display: "flex",
             alignItems: "center",
@@ -442,10 +442,10 @@ function TotalDebt({
           >
             {fmtnum(loan.borrowed)}
           </div>
-          <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} size={32} />
+          <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} size={32} />
           {prevLoan && !dn.eq(prevLoan.borrowed, loan.borrowed) && (
             <div
-              title={`${fmtnum(prevLoan.borrowed, "full")} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+              title={`${fmtnum(prevLoan.borrowed, "full")} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
               className={css({
                 color: "contentAlt",
                 textDecoration: "line-through",
@@ -557,7 +557,7 @@ function LoadingCard({
   onRetry: () => void;
   txPreviewMode?: boolean;
 }) {
-  const title = leverage ? "Multiply" : `${WHITE_LABEL_CONFIG.mainToken.symbol} loan`;
+  const title = leverage ? "Multiply" : `${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} loan`;
 
   const spring = useSpring({
     to: match(loadingState)

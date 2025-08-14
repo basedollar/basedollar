@@ -204,7 +204,7 @@ function BribesInfoBox({
                 })}
               >
                 <div
-                  title={`${fmtnum(data.boldAmount)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                  title={`${fmtnum(data.boldAmount)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                   className={css({
                     display: "flex",
                     alignItems: "center",
@@ -218,7 +218,7 @@ function BribesInfoBox({
                   />
                   <TokenIcon
                     size={16}
-                    symbol={WHITE_LABEL_CONFIG.mainToken.symbol}
+                    symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
                     title={null}
                   />
                 </div>

@@ -54,14 +54,14 @@ export function EarnPoolsListScreen() {
           >
             {content.earnHome.headline(
               <TokenIcon.Group>
-                {[WHITE_LABEL_CONFIG.mainToken.symbol, ...collSymbols].map((symbol) => (
+                {[WHITE_LABEL_CONFIG.tokens.mainToken.symbol, ...collSymbols].map((symbol) => (
                   <TokenIcon
                     key={symbol}
                     symbol={symbol}
                   />
                 ))}
               </TokenIcon.Group>,
-              <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} />,
+              <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />,
             )}
           </div>
         ),

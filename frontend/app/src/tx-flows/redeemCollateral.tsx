@@ -34,8 +34,8 @@ export const redeemCollateral: FlowDeclaration<RedeemCollateralRequest> = {
   Details(ctx) {
     const estimatedGains = useSimulatedBalancesChange(ctx);
     const branches = getBranches();
-    const boldChange = estimatedGains.data?.find(({ symbol }) => symbol === WHITE_LABEL_CONFIG.mainToken.symbol)?.change;
-    const collChanges = estimatedGains.data?.filter(({ symbol }) => symbol !== WHITE_LABEL_CONFIG.mainToken.symbol);
+    const boldChange = estimatedGains.data?.find(({ symbol }) => symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol)?.change;
+    const collChanges = estimatedGains.data?.filter(({ symbol }) => symbol !== WHITE_LABEL_CONFIG.tokens.mainToken.symbol);
     return (
       <>
         <TransactionDetailsRow
@@ -50,16 +50,16 @@ export const redeemCollateral: FlowDeclaration<RedeemCollateralRequest> = {
           ]}
         />
         <TransactionDetailsRow
-          label={`Redeeming ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+          label={`Redeeming ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
           value={[
             <Amount
               key="start"
               value={boldChange}
               fallback="fetching…"
-              suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+              suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
             />,
             <Fragment key="end">
-              Estimated ${WHITE_LABEL_CONFIG.mainToken.symbol} that will be redeemed.
+              Estimated ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} that will be redeemed.
             </Fragment>,
           ]}
         />
@@ -89,7 +89,7 @@ export const redeemCollateral: FlowDeclaration<RedeemCollateralRequest> = {
   },
   steps: {
     approve: {
-      name: () => `Approve ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
+      name: () => `Approve ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`,
       Status: TransactionStatus,
       async commit({ request, writeContract }) {
         const CollateralRegistry = getProtocolContract("CollateralRegistry");
@@ -106,7 +106,7 @@ export const redeemCollateral: FlowDeclaration<RedeemCollateralRequest> = {
       },
     },
     redeemCollateral: {
-      name: () => `Redeem ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
+      name: () => `Redeem ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`,
       Status: TransactionStatus,
       async commit({ request, writeContract }) {
         const CollateralRegistry = getProtocolContract("CollateralRegistry");
@@ -239,7 +239,7 @@ export function useSimulatedBalancesChange({
         return simulation.results
           .slice(position, position + branches.length + 1)
           .map((result, index) => {
-            const symbol = index === 0 ? WHITE_LABEL_CONFIG.mainToken.symbol : branches[index - 1]?.symbol;
+            const symbol = index === 0 ? WHITE_LABEL_CONFIG.tokens.mainToken.symbol : branches[index - 1]?.symbol;
             return {
               symbol,
               balance: dnum18(result.data ?? 0n),

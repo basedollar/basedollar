@@ -88,7 +88,7 @@ export function DelegateBox({
               <Amount
                 value={delegate.boldAmount}
                 format="compact"
-                suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
               />
             </div>
             <div

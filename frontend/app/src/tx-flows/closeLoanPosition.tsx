@@ -71,7 +71,7 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
               <Amount
                 key="start"
                 value={amountToRepay}
-                suffix={` ${repayWithCollateral ? collateral.symbol : WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                suffix={` ${repayWithCollateral ? collateral.symbol : WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
               />,
             ]}
           />
@@ -103,7 +103,7 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
 
   steps: {
     approveBold: {
-      name: () => `Approve ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
+      name: () => `Approve ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`,
       Status: (props) => (
         <TransactionStatus
           {...props}
@@ -148,7 +148,7 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
         const { loan } = ctx.request;
         const branch = getBranch(loan.branchId);
 
-        // repay with ${WHITE_LABEL_CONFIG.mainToken.symbol} => get ETH
+        // repay with ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} => get ETH
         if (!ctx.request.repayWithCollateral && branch.symbol === "ETH") {
           return ctx.writeContract({
             ...branch.contracts.LeverageWETHZapper,
@@ -157,7 +157,7 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
           });
         }
 
-        // repay with ${WHITE_LABEL_CONFIG.mainToken.symbol} => get LST
+        // repay with ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} => get LST
         if (!ctx.request.repayWithCollateral) {
           return ctx.writeContract({
             ...branch.contracts.LeverageLSTZapper,

@@ -121,7 +121,7 @@ export const updateLoanInterestRate: FlowDeclaration<UpdateLoanInterestRateReque
                     <Amount
                       format="2z"
                       prefix="~"
-                      suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol} per year`}
+                      suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} per year`}
                       value={yearlyBoldInterest}
                     />
                   </>
@@ -140,13 +140,13 @@ export const updateLoanInterestRate: FlowDeclaration<UpdateLoanInterestRateReque
               </div>,
               <div
                 key="end"
-                title={`${fmtnum(yearlyBoldInterest, "full")} ${WHITE_LABEL_CONFIG.mainToken.symbol} per year`}
+                title={`${fmtnum(yearlyBoldInterest, "full")} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} per year`}
               >
                 {fmtnum(yearlyBoldInterest, {
                   digits: 4,
                   dust: false,
                   prefix: "~",
-                })} ${WHITE_LABEL_CONFIG.mainToken.symbol} per year
+                })} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} per year
               </div>,
             ]}
           />
@@ -185,7 +185,7 @@ export const updateLoanInterestRate: FlowDeclaration<UpdateLoanInterestRateReque
                   <Amount
                     format="2z"
                     prefix="~"
-                    suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol} per year`}
+                    suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} per year`}
                     value={prevYearlyBoldInterest}
                   />
                 </div>,
@@ -224,7 +224,7 @@ export const updateLoanInterestRate: FlowDeclaration<UpdateLoanInterestRateReque
                   key="start"
                   fallback="…"
                   value={upfrontFee.data}
-                  suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                  suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                 />,
               ]}
             />

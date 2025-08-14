@@ -199,8 +199,8 @@ export function BorrowScreen() {
                   alignItems: "center",
                 })}
               >
-                <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} />
-                {NBSP}{WHITE_LABEL_CONFIG.mainToken.symbol}
+                <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />
+                {NBSP}{WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
               </div>,
             )}
           </div>
@@ -280,13 +280,13 @@ export function BorrowScreen() {
             id="input-debt"
             contextual={
               <InputField.Badge
-                icon={<TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} />}
-                label={WHITE_LABEL_CONFIG.mainToken.symbol}
+                icon={<TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />}
+                label={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
               />
             }
             drawer={debt.isFocused || !isBelowMinDebt ? null : {
               mode: "error",
-              message: `You must borrow at least ${fmtnum(MIN_DEBT, 2)} ${WHITE_LABEL_CONFIG.mainToken.symbol}.`,
+              message: `You must borrow at least ${fmtnum(MIN_DEBT, 2)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}.`,
             }}
             label={content.borrowScreen.borrowField.label}
             placeholder="0.00"

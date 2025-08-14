@@ -5,14 +5,20 @@ import type { WhiteLabelConfig } from "@/src/white-label.config";
  * Hook to access white-label header configuration
  */
 export function useWhiteLabelHeader() {
-  return WHITE_LABEL_CONFIG.header;
+  return {
+    appName: WHITE_LABEL_CONFIG.branding.brandName,
+    navigation: {
+      ...WHITE_LABEL_CONFIG.branding.navigation,
+      items: WHITE_LABEL_CONFIG.branding.menu,
+    },
+  };
 }
 
 /**
  * Hook to access main token (stablecoin) configuration
  */
 export function useMainToken() {
-  return WHITE_LABEL_CONFIG.mainToken;
+  return WHITE_LABEL_CONFIG.tokens.mainToken;
 }
 
 // Type exports

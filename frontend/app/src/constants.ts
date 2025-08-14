@@ -69,7 +69,7 @@ export const TROVE_STATUS_ZOMBIE = 4;
 
 // Generate MAX_COLLATERAL_DEPOSITS from config
 export const MAX_COLLATERAL_DEPOSITS: Record<CollateralSymbol, dn.Dnum> = Object.fromEntries(
-  WHITE_LABEL_CONFIG.collaterals.map(collateral => [
+  WHITE_LABEL_CONFIG.tokens.collaterals.map(collateral => [
     collateral.symbol,
     dn.from(BigInt(collateral.maxDeposit), 18),
   ])

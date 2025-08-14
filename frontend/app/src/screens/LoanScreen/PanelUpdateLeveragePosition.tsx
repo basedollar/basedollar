@@ -272,7 +272,7 @@ export function PanelUpdateLeveragePosition({
               drawer={newLoanDetails.debt && dn.lt(newLoanDetails.debt, MIN_DEBT)
                 ? {
                   mode: "error",
-                  message: `You must borrow at least ${fmtnum(MIN_DEBT, 2)} ${WHITE_LABEL_CONFIG.mainToken.symbol}.`,
+                  message: `You must borrow at least ${fmtnum(MIN_DEBT, 2)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}.`,
                 }
                 : null}
               {...leverageField}
@@ -340,11 +340,11 @@ export function PanelUpdateLeveragePosition({
                 <ValueUpdate
                   fontSize={14}
                   before={initialLoanDetails.debt && (
-                    `${fmtnum(initialLoanDetails.debt)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`
+                    `${fmtnum(initialLoanDetails.debt)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`
                   )}
                   after={newLoanDetails.debt && dn.gt(newLoanDetails.debt, 0)
                     ? (
-                      `${fmtnum(newLoanDetails.debt)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`
+                      `${fmtnum(newLoanDetails.debt)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`
                     )
                     : (
                       `N/A`

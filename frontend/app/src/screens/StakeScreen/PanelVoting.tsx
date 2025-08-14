@@ -743,7 +743,7 @@ function InitiativeRow({
   const inputRef = useRef<HTMLInputElement>(null);
   const [editIntent, setEditIntent] = useState(false);
   const editMode = (editIntent || !voteAllocation?.vote) && !disabled;
-  const boldPrice = usePrice(bribe ? WHITE_LABEL_CONFIG.mainToken.symbol : null);
+  const boldPrice = usePrice(bribe ? WHITE_LABEL_CONFIG.tokens.mainToken.symbol : null);
   const bribeTokenPrice = usePrice(bribe ? bribe.tokenSymbol : null);
 
   return (
@@ -852,7 +852,7 @@ function InitiativeRow({
               >
                 {dn.gt(bribe.boldAmount, 0) && (
                   <div
-                    title={`${fmtnum(bribe.boldAmount)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                    title={`${fmtnum(bribe.boldAmount)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                     className={css({
                       display: "flex",
                       alignItems: "center",
@@ -860,7 +860,7 @@ function InitiativeRow({
                     })}
                   >
                     <TokenIcon
-                      symbol={WHITE_LABEL_CONFIG.mainToken.symbol}
+                      symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
                       size={12}
                       title={null}
                     />
@@ -1099,7 +1099,7 @@ function BribeMarketsInfo() {
             fontWeight: 600,
           })}
         >
-          Bribe Markets in Liquity V2
+          Bribe Markets in {WHITE_LABEL_CONFIG.branding.appName}
         </h1>
         <p
           className={css({

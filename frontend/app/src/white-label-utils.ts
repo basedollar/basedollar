@@ -1,7 +1,7 @@
 import type { Address } from "@/src/types";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
-type SupportedChainId = keyof typeof WHITE_LABEL_CONFIG.mainToken.deployments;
+type SupportedChainId = keyof typeof WHITE_LABEL_CONFIG.tokens.mainToken.deployments;
 
 type MainTokenDeployment = {
   token: string;
@@ -26,13 +26,13 @@ type CollateralDeployment = {
 
 // Get deployment info for current chain
 export function getDeploymentInfo(chainId: number) {
-  if (!(chainId in WHITE_LABEL_CONFIG.mainToken.deployments)) {
+  if (!(chainId in WHITE_LABEL_CONFIG.tokens.mainToken.deployments)) {
     throw new Error(`Unsupported chain ID: ${chainId}`);
   }
   
   const typedChainId = chainId as SupportedChainId;
-  const mainTokenDeployment: MainTokenDeployment = WHITE_LABEL_CONFIG.mainToken.deployments[typedChainId];
-  const governanceDeployment: GovernanceTokenDeployment | undefined = WHITE_LABEL_CONFIG.governanceToken.deployments[typedChainId];
+  const mainTokenDeployment: MainTokenDeployment = WHITE_LABEL_CONFIG.tokens.mainToken.deployments[typedChainId];
+  const governanceDeployment: GovernanceTokenDeployment | undefined = WHITE_LABEL_CONFIG.tokens.governanceToken.deployments[typedChainId];
   
   if (!mainTokenDeployment) {
     throw new Error(`No deployment info for chain ${chainId}`);
@@ -47,7 +47,7 @@ export function getDeploymentInfo(chainId: number) {
     EXCHANGE_HELPERS: mainTokenDeployment.exchangeHelpers as Address,
     LQTY_TOKEN: governanceDeployment?.token as Address,
     LQTY_STAKING: governanceDeployment?.staking as Address,
-    BRANCHES: WHITE_LABEL_CONFIG.collaterals.map((collateral, index) => {
+    BRANCHES: WHITE_LABEL_CONFIG.tokens.collaterals.map((collateral, index) => {
       if (!(chainId in collateral.deployments)) {
         throw new Error(`No deployment for ${collateral.symbol} on chain ${chainId}`);
       }
@@ -68,7 +68,7 @@ export function getDeploymentInfo(chainId: number) {
 
 // Get collateral config by symbol
 export function getCollateralConfig(symbol: string) {
-  const collateral = WHITE_LABEL_CONFIG.collaterals.find(c => c.symbol === symbol);
+  const collateral = WHITE_LABEL_CONFIG.tokens.collaterals.find(c => c.symbol === symbol);
   if (!collateral) {
     throw new Error(`Unknown collateral: ${symbol}`);
   }
@@ -91,7 +91,7 @@ export function getCollateralDeployment(symbol: string, chainId: number) {
 // Get all collateral limits
 export function getCollateralLimits() {
   return Object.fromEntries(
-    WHITE_LABEL_CONFIG.collaterals.map(c => [
+    WHITE_LABEL_CONFIG.tokens.collaterals.map(c => [
       c.symbol,
       {
         maxDeposit: c.maxDeposit,

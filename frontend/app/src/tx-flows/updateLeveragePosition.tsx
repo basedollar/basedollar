@@ -155,7 +155,7 @@ export const updateLeveragePosition: FlowDeclaration<UpdateLeveragePositionReque
               key="start"
               fallback="…"
               value={debtChangeWithFee}
-              suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+              suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
             />,
             upfrontFeeData.data?.upfrontFee
             && dn.gt(upfrontFeeData.data.upfrontFee, 0)
@@ -165,7 +165,7 @@ export const updateLeveragePosition: FlowDeclaration<UpdateLeveragePositionReque
                 fallback="…"
                 prefix="Incl. "
                 value={upfrontFeeData.data.upfrontFee}
-                suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol} interest rate adjustment fee`}
+                suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} interest rate adjustment fee`}
               />
             ),
           ]}

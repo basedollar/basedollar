@@ -68,7 +68,7 @@ export const earnClaimRewards: FlowDeclaration<EarnClaimRewardsRequest> = {
     const collateral = getCollToken(request.earnPosition.branchId);
     const { compound = false } = request;
 
-    const boldPrice = usePrice(WHITE_LABEL_CONFIG.mainToken.symbol);
+    const boldPrice = usePrice(WHITE_LABEL_CONFIG.tokens.mainToken.symbol);
     const collPrice = usePrice(collateral.symbol);
 
     const rewardsBold = request.earnPosition.rewards.bold;
@@ -79,12 +79,12 @@ export const earnClaimRewards: FlowDeclaration<EarnClaimRewardsRequest> = {
     return (
       <>
         <TransactionDetailsRow
-          label={compound ? `Compound ${WHITE_LABEL_CONFIG.mainToken.symbol} rewards` : `Claim ${WHITE_LABEL_CONFIG.mainToken.symbol} rewards`}
+          label={compound ? `Compound ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} rewards` : `Claim ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} rewards`}
           value={[
             <Amount
               key="start"
               value={rewardsBold}
-              suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+              suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
             />,
             <Amount
               key="end"

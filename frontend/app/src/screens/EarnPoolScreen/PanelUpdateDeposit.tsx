@@ -55,7 +55,7 @@ export function PanelUpdateDeposit({
     ? dn.div(updatedDeposit, updatedBoldQty)
     : DNUM_0;
 
-  const boldBalance = useBalance(account.address, WHITE_LABEL_CONFIG.mainToken.symbol);
+  const boldBalance = useBalance(account.address, WHITE_LABEL_CONFIG.tokens.mainToken.symbol);
 
   const insufficientBalance = mode === "add"
     && parsedValue
@@ -88,21 +88,21 @@ export function PanelUpdateDeposit({
             drawer={insufficientBalance
               ? {
                 mode: "error",
-                message: `Insufficient balance. You have ${fmtnum(boldBalance.data ?? 0)} ${WHITE_LABEL_CONFIG.mainToken.symbol}.`,
+                message: `Insufficient balance. You have ${fmtnum(boldBalance.data ?? 0)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}.`,
               }
               : withdrawAboveDeposit
               ? {
                 mode: "error",
                 message: hasDeposit
                   ? `You can’t withdraw more than you have deposited.`
-                  : `No ${WHITE_LABEL_CONFIG.mainToken.symbol} deposited.`,
+                  : `No ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} deposited.`,
               }
               : null}
             contextual={
               <InputTokenBadge
                 background={false}
-                icon={<TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} />}
-                label={WHITE_LABEL_CONFIG.mainToken.symbol}
+                icon={<TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />}
+                label={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
               />
             }
             id="input-deposit-change"
@@ -153,7 +153,7 @@ export function PanelUpdateDeposit({
                 ? boldBalance.data && (
                   <TextButton
                     label={dn.gt(boldBalance.data, 0)
-                      ? `Max ${fmtnum(boldBalance.data, 2)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`
+                      ? `Max ${fmtnum(boldBalance.data, 2)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`
                       : null}
                     onClick={() => {
                       if (boldBalance.data) {
@@ -164,7 +164,7 @@ export function PanelUpdateDeposit({
                 )
                 : position?.deposit && dn.gt(position.deposit, 0) && (
                   <TextButton
-                    label={`Max ${fmtnum(position.deposit, 2)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                    label={`Max ${fmtnum(position.deposit, 2)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                     onClick={() => {
                       setValue(dn.toString(position.deposit));
                       setClaimRewards(true);
@@ -232,7 +232,7 @@ export function PanelUpdateDeposit({
                       color: "contentAlt",
                     })}
                   >
-                    {WHITE_LABEL_CONFIG.mainToken.symbol}
+                    {WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
                   </span>
                 </div>
                 <div>

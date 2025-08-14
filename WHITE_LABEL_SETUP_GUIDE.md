@@ -6,98 +6,119 @@
 2. **Replace icons**: Update token icons in `/frontend/uikit/src/token-icons/`
 3. **Build**: `pnpm build`
 
-## Configuration Options
+## Configuration Structure
 
-- **`mainToken`** - Your stablecoin (name, symbol, ticker, description)
-- **`collaterals`** - Array of supported collateral tokens with ratios and deployment addresses
-- **`governanceToken`** - Your governance token configuration
-- **`header.appName`** - App name in header
-- **`navigation.showBorrow/showEarn/showStake`** - Hide/show sections
-- **`brandColors`** - Primary brand colors for ActionCards and hero elements
-- **`typography.fontFamily`** - Font family CSS value (e.g., "Inter, sans-serif")
+```typescript
+export const WHITE_LABEL_CONFIG = {
+  // Brand identity
+  branding: {
+    appName: "Your App V2",           // Full app name for titles
+    brandName: "Your Brand",          // Core brand name for protocol references
+    appUrl: "https://yourapp.com/",
+    navigation: { showBorrow: true, showEarn: true, showStake: false },
+    menu: { dashboard: "Dashboard", borrow: "Borrow", earn: "Earn", stake: "Stake" },
+    links: {
+      docs: { base: "https://docs.yourapp.com/", redemptions: "...", earn: "..." },
+      dune: "https://dune.com/yourapp",
+      discord: "https://discord.gg/yourapp",
+    }
+  },
+
+  // All tokens in one place
+  tokens: {
+    mainToken: { symbol: "YOUR", name: "Your Token", icon: "main-token" },
+    governanceToken: { symbol: "GOV", name: "Gov Token", icon: "lqty" },
+    collaterals: [
+      { symbol: "ETH", name: "ETH", icon: "eth", collateralRatio: 1.1, maxDeposit: "100000000", maxLTV: 0.916, deployments: {...} }
+    ],
+    otherTokens: {
+      lusd: { symbol: "LUSD", name: "LUSD", icon: "lusd" },
+      staked: { symbol: "sYOUR", name: "sYour Token", icon: "sbold" }
+    }
+  },
+
+  // Pool configuration
+  earnPools: { enableStabilityPools: true, enableStakedMainToken: true },
+
+  // Colors and fonts
+  brandColors: { primary: "blue:500", secondary: "gray:100" },
+  typography: { fontFamily: "Inter, sans-serif" }
+}
+```
 
 ## Required Icons (24x24px SVG)
 
-- `/frontend/uikit/src/token-icons/main-token.svg` - Your stablecoin icon
-- `/frontend/uikit/src/token-icons/lqty.svg` - Governance token icon
-- `/frontend/app/src/assets/logo.svg` - App logo (32x32px)
-- Collateral icons (see "Adding Collaterals" below)
+Place these in `/frontend/uikit/src/token-icons/`:
+- `main-token.svg` - Your stablecoin icon
+- `lqty.svg` - Governance token icon  
+- `eth.svg`, `reth.svg`, `wsteth.svg` - Collateral icons
+- `lusd.svg`, `sbold.svg` - Other token icons
+
+App logo: `/frontend/app/src/assets/logo.svg` (32x32px)
 
 ## Adding New Collaterals
 
 1. **Add icon**: Create `/frontend/uikit/src/token-icons/mytoken.svg`
 
-2. **Map icon**: In `/frontend/uikit/src/tokens.ts`:
+2. **Add to icon map**: In `/frontend/uikit/src/tokens.ts`:
    ```typescript
-   // Add import at top
    import tokenMytoken from "./token-icons/mytoken.svg";
    
-   // Add to collateralIcons object
-   const collateralIcons: Record<string, string> = {
-     ETH: tokenEth,
-     RETH: tokenReth,
-     WSTETH: tokenWsteth,
-     MYTOKEN: tokenMytoken, // Add this line
+   const tokenIconMap: Record<string, string> = {
+     // existing icons...
+     "mytoken": tokenMytoken,
    };
    ```
 
-3. **Add config**: In `/frontend/app/src/white-label.config.ts`:
+3. **Add config**: In `white-label.config.ts`:
    ```typescript
-   collaterals: [
-     // existing collaterals...
-     {
-       symbol: "MYTOKEN" as const,
-       name: "My Token",
-       collateralRatio: 1.2,
-       maxDeposit: "100000000",
-       maxLTV: 0.916,
-       deployments: {
-         1: { // mainnet
-           collToken: "0x...",
-           leverageZapper: "0x...",
-           stabilityPool: "0x...",
-           troveManager: "0x...",
+   tokens: {
+     collaterals: [
+       // existing collaterals...
+       {
+         symbol: "MYTOKEN" as const,
+         name: "My Token",
+         icon: "mytoken",  // matches icon map key
+         collateralRatio: 1.2,
+         maxDeposit: "100000000",
+         maxLTV: 0.916,
+         deployments: {
+           1: { collToken: "0x...", leverageZapper: "0x...", stabilityPool: "0x...", troveManager: "0x..." }
          }
        }
-     }
-   ]
+     ]
+   }
    ```
 
-4. **Deploy contracts** and update deployment addresses
+## Customizing Content
 
-Everything else updates automatically.
+All app content comes from the config:
+- **App name**: `branding.appName` ("Your App V2")  
+- **Protocol references**: `branding.brandName` ("Your Brand")
+- **Navigation labels**: `branding.menu.*`
+- **Documentation links**: `branding.links.docs.*`
+- **External links**: `branding.links.*`
+
+## Earn Pools
+
+Pools are auto-generated from config:
+- **Stability Pools**: One per collateral (if `enableStabilityPools: true`)
+- **Staked Token Pool**: Your staked main token (if `enableStakedMainToken: true`)  
+- **Custom Pools**: Add to `earnPools.customPools` array
 
 ## Font Setup
 
-After changing `typography.fontFamily` in the config:
-1. Import your font in `/frontend/app/src/app/layout.tsx`
-2. Apply the font class to the body element
-
-Example for Google Fonts:
-```typescript
-import { Inter } from "next/font/google"
-const inter = Inter({ subsets: ["latin"] })
-// In body tag: className={inter.className}
-```
-
-## Custom Colors
-
-For custom colors/branding, ask Claude to:
-```
-Update /frontend/uikit/src/Theme/Theme.tsx with my brand colors:
-- Primary: #YOUR_COLOR
-- Secondary: #YOUR_COLOR  
-- Background: #YOUR_COLOR
-[include your full color palette]
-
-Keep the same semantic structure but map colors to match my brand.
-```
+1. Update `typography.fontFamily` in config
+2. Import font in `/frontend/app/src/app/layout.tsx`
+3. Apply to body element
 
 ## What Updates Automatically
 
-When you update the config, these update automatically:
-- UI text, forms, transaction flows
-- Price displays, tooltips, navigation  
-- TypeScript types with full type safety
-- Token selection dropdowns
-- All collateral-specific screens and flows
+When you change the config:
+✅ All UI text, navigation, forms, transaction flows  
+✅ Token symbols, names, icons throughout the app  
+✅ Documentation links, external links  
+✅ TypeScript types with full type safety  
+✅ Routing for collateral and earn pool pages
+
+Just update the config and rebuild - everything else is dynamic.

@@ -40,7 +40,7 @@ export function useBalances(
         },
       )
       .with("LUSD", () => CONTRACT_LUSD_TOKEN)
-      .with(WHITE_LABEL_CONFIG.mainToken.symbol, () => CONTRACT_BOLD_TOKEN)
+      .with(WHITE_LABEL_CONFIG.tokens.mainToken.symbol, () => CONTRACT_BOLD_TOKEN)
       .with("LQTY", () => CONTRACT_LQTY_TOKEN)
       .otherwise(() => null);
 

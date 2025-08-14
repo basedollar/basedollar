@@ -24,7 +24,7 @@ export function RedeemScreen() {
   const account = useAccount();
   const txFlow = useTransactionFlow();
 
-  const boldBalance = useBalance(account.address, WHITE_LABEL_CONFIG.mainToken.symbol);
+  const boldBalance = useBalance(account.address, WHITE_LABEL_CONFIG.tokens.mainToken.symbol);
 
   const CollateralRegistry = getProtocolContract("CollateralRegistry");
   const redemptionRate = useReadContract({
@@ -63,7 +63,7 @@ export function RedeemScreen() {
       heading={{
         title: (
           <HFlex>
-            Redeem <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} /> {WHITE_LABEL_CONFIG.mainToken.symbol} for
+            Redeem <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} /> {WHITE_LABEL_CONFIG.tokens.mainToken.symbol} for
             <TokenIcon.Group>
               {branches.map((b) => getCollToken(b.branchId)).map(({ symbol }) => (
                 <TokenIcon
@@ -91,8 +91,8 @@ export function RedeemScreen() {
               id="input-redeem-amount"
               contextual={
                 <InputField.Badge
-                  icon={<TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} />}
-                  label={WHITE_LABEL_CONFIG.mainToken.symbol}
+                  icon={<TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />}
+                  label={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
                 />
               }
               drawer={amount.isFocused
@@ -102,7 +102,7 @@ export function RedeemScreen() {
                     && dn.gt(amount.parsed, boldBalance.data)
                 ? {
                   mode: "error",
-                  message: `Insufficient ${WHITE_LABEL_CONFIG.mainToken.symbol} balance. You have ${fmtnum(boldBalance.data)} ${WHITE_LABEL_CONFIG.mainToken.symbol}.`,
+                  message: `Insufficient ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} balance. You have ${fmtnum(boldBalance.data)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}.`,
                 }
                 : null}
               label="Redeeming"
@@ -116,7 +116,7 @@ export function RedeemScreen() {
                 end: (
                   boldBalance.data && dn.gt(boldBalance.data, 0) && (
                     <TextButton
-                      label={`Max ${fmtnum(boldBalance.data)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                      label={`Max ${fmtnum(boldBalance.data)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                       onClick={() => {
                         if (boldBalance.data) {
                           amount.setValue(dn.toString(boldBalance.data));
@@ -226,7 +226,7 @@ export function RedeemScreen() {
               },
             })}
           >
-            You will be charged a dynamic redemption fee (the more redemptions, the higher the fee). Trading ${WHITE_LABEL_CONFIG.mainToken.symbol} on an
+            You will be charged a dynamic redemption fee (the more redemptions, the higher the fee). Trading ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} on an
             exchange could be more favorable.{" "}
             <Link
               href="https://docs.liquity.org/v2-faq/redemptions-and-delegation"

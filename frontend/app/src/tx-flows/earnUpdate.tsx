@@ -68,7 +68,7 @@ export const earnUpdate: FlowDeclaration<EarnUpdateRequest> = {
 
     const collateral = getCollToken(earnPosition.branchId);
 
-    const boldPrice = usePrice(WHITE_LABEL_CONFIG.mainToken.symbol);
+    const boldPrice = usePrice(WHITE_LABEL_CONFIG.tokens.mainToken.symbol);
     const collPrice = usePrice(collateral.symbol);
 
     const depositChange = dn.sub(earnPosition.deposit, prevEarnPosition.deposit);
@@ -83,7 +83,7 @@ export const earnUpdate: FlowDeclaration<EarnUpdateRequest> = {
           value={[
             <Amount
               key="start"
-              suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+              suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
               value={dn.abs(depositChange)}
             />,
             <Amount
@@ -95,12 +95,12 @@ export const earnUpdate: FlowDeclaration<EarnUpdateRequest> = {
         />
         {dn.gt(rewards.bold, 0) && (
           <TransactionDetailsRow
-            label={claimRewards ? `Claim ${WHITE_LABEL_CONFIG.mainToken.symbol} rewards` : `Compound ${WHITE_LABEL_CONFIG.mainToken.symbol} rewards`}
+            label={claimRewards ? `Claim ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} rewards` : `Compound ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} rewards`}
             value={[
               <Amount
                 key="start"
                 value={rewards.bold}
-                suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
               />,
               <Amount
                 key="end"

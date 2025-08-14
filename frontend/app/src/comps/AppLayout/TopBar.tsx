@@ -17,11 +17,11 @@ export function TopBar() {
   const headerConfig = useWhiteLabelHeader();
   
   const menuItems: MenuItem[] = [
-    [headerConfig.navigation.items.dashboard.label, "/", IconDashboard],
+    [headerConfig.navigation.items.dashboard, "/", IconDashboard],
     // Conditional menu items
-    ...(headerConfig.navigation.showBorrow ? [[headerConfig.navigation.items.borrow.label, "/borrow", IconBorrow] as MenuItem] : []),
-    ...(headerConfig.navigation.showEarn ? [[headerConfig.navigation.items.earn.label, "/earn", IconEarn] as MenuItem] : []),
-    ...(headerConfig.navigation.showStake ? [[headerConfig.navigation.items.stake.label, "/stake", IconStake] as MenuItem] : []),
+    ...(headerConfig.navigation.showBorrow ? [[headerConfig.navigation.items.borrow, "/borrow", IconBorrow] as MenuItem] : []),
+    ...(headerConfig.navigation.showEarn ? [[headerConfig.navigation.items.earn, "/earn", IconEarn] as MenuItem] : []),
+    ...(headerConfig.navigation.showStake ? [[headerConfig.navigation.items.stake, "/stake", IconStake] as MenuItem] : []),
   ];
 
   return (

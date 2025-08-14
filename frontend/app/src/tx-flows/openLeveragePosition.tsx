@@ -82,7 +82,7 @@ export const openLeveragePosition: FlowDeclaration<OpenLeveragePositionRequest> 
         <TransactionDetailsRow
           label="Borrowed"
           value={[
-            `${fmtnum(borrowedWithFee)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
+            `${fmtnum(borrowedWithFee)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`,
             <div
               key="end"
               className={css({
@@ -96,9 +96,9 @@ export const openLeveragePosition: FlowDeclaration<OpenLeveragePositionRequest> 
                 fallback="…"
                 prefix="Incl. "
                 value={upfrontFee.data}
-                suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol} creation fee`}
+                suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} creation fee`}
               />
-              <InfoTooltip heading={`${WHITE_LABEL_CONFIG.mainToken.symbol} Creation Fee`}>
+              <InfoTooltip heading={`${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} Creation Fee`}>
                 This fee is charged when you open a new loan or increase your debt. It corresponds to 7 days of average
                 interest for the respective collateral asset.
               </InfoTooltip>
@@ -116,7 +116,7 @@ export const openLeveragePosition: FlowDeclaration<OpenLeveragePositionRequest> 
                     digits: 4,
                     dust: false,
                     prefix: "~",
-                  })} ${WHITE_LABEL_CONFIG.mainToken.symbol} per year)
+                  })} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} per year)
                 </div>,
               ]}
             />
@@ -126,7 +126,7 @@ export const openLeveragePosition: FlowDeclaration<OpenLeveragePositionRequest> 
               label="Interest rate"
               value={[
                 `${fmtnum(loan.interestRate, "pct2")}%`,
-                `${fmtnum(dn.mul(loan.borrowed, loan.interestRate))} ${WHITE_LABEL_CONFIG.mainToken.symbol} per year`,
+                `${fmtnum(dn.mul(loan.borrowed, loan.interestRate))} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} per year`,
               ]}
             />
           )}

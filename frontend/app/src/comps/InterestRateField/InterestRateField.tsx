@@ -324,7 +324,7 @@ export const InterestRateField = memo(
                 >
                   {boldInterestPerYear && (mode === "manual" || delegate !== null)
                     ? fmtnum(boldInterestPerYear, breakpoint === "small" ? "compact" : "2z")
-                    : "−"} {WHITE_LABEL_CONFIG.mainToken.symbol} / year
+                    : "−"} {WHITE_LABEL_CONFIG.tokens.mainToken.symbol} / year
                 </div>
                 <InfoTooltip {...infoTooltipProps(content.generalInfotooltips.interestRateBoldPerYear)} />
               </div>
@@ -336,7 +336,7 @@ export const InterestRateField = memo(
                     (mode === "manual" || delegate !== null)
                       ? fmtnum(bracket?.debtInFront, "compact")
                       : "−"
-                  } ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                  } ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                   className={css({
                     overflow: "hidden",
                     whiteSpace: "nowrap",
@@ -356,7 +356,7 @@ export const InterestRateField = memo(
                         ? fmtnum(bracket?.debtInFront, "compact")
                         : "−"}
                     </span>
-                    {breakpoint === "large" && <span>{` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}</span>}
+                    {breakpoint === "large" && <span>{` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}</span>}
                   </span>
                 </a.div>
               )

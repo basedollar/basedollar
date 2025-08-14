@@ -51,11 +51,11 @@ export function PanelUpdateBorrowPosition({
 
   // balances
   const collBalance = useBalance(account.address, collToken.symbol);
-  const boldBalance = useBalance(account.address, WHITE_LABEL_CONFIG.mainToken.symbol);
+  const boldBalance = useBalance(account.address, WHITE_LABEL_CONFIG.tokens.mainToken.symbol);
 
   // prices
   const collPrice = usePrice(collToken.symbol ?? null);
-  const boldPriceUsd = usePrice(WHITE_LABEL_CONFIG.mainToken.symbol) ?? dnum18(0);
+  const boldPriceUsd = usePrice(WHITE_LABEL_CONFIG.tokens.mainToken.symbol) ?? dnum18(0);
 
   // deposit change
   const [depositMode, setDepositMode] = useState<ValueUpdateMode>("add");
@@ -280,14 +280,14 @@ export function PanelUpdateBorrowPosition({
               contextual={
                 <InputTokenBadge
                   background={false}
-                  icon={<TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} />}
-                  label={WHITE_LABEL_CONFIG.mainToken.symbol}
+                  icon={<TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />}
+                  label={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
                 />
               }
               drawer={!debtChange.isFocused && isBelowMinDebt
-                ? { mode: "error", message: `You must borrow at least ${fmtnum(MIN_DEBT, 2)} ${WHITE_LABEL_CONFIG.mainToken.symbol}.` }
+                ? { mode: "error", message: `You must borrow at least ${fmtnum(MIN_DEBT, 2)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}.` }
                 : insufficientBold
-                ? { mode: "error", message: `Insufficient ${WHITE_LABEL_CONFIG.mainToken.symbol} balance.` }
+                ? { mode: "error", message: `Insufficient ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} balance.` }
                 : null}
               label={{
                 start: debtMode === "remove"
@@ -319,7 +319,7 @@ export function PanelUpdateBorrowPosition({
                 end: (
                   boldMax && (
                     <TextButton
-                      label={`Max ${fmtnum(boldMax)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                      label={`Max ${fmtnum(boldMax)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                       onClick={() => {
                         debtChange.setValue(dn.toString(boldMax));
                       }}
@@ -350,15 +350,15 @@ export function PanelUpdateBorrowPosition({
                     >
                       <Amount
                         value={newLoanDetails.debt}
-                        suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                        suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                       />
                     </div>
                     <InfoTooltip heading="Debt update">
                       <div>
-                        Before: <Amount value={loanDetails.debt} suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`} />
+                        Before: <Amount value={loanDetails.debt} suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`} />
                       </div>
                       <div>
-                        After: <Amount value={newLoanDetails.debt} suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`} />
+                        After: <Amount value={newLoanDetails.debt} suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`} />
                       </div>
                     </InfoTooltip>
                   </HFlex>

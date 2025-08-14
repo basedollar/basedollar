@@ -107,10 +107,10 @@ export function AccountScreen({
               gridTemplateColumns: `repeat(3, 1fr)`,
             }}
           >
-            <GridItem label={`${WHITE_LABEL_CONFIG.mainToken.symbol} balance`}>
+            <GridItem label={`${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} balance`}>
               <Balance
                 address={address}
-                tokenSymbol={WHITE_LABEL_CONFIG.mainToken.symbol}
+                tokenSymbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
               />
             </GridItem>
             <GridItem label="LQTY balance">

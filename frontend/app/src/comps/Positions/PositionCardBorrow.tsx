@@ -54,7 +54,7 @@ export function PositionCardBorrow({
   const title = token
     ? [
       `Loan ID: ${shortenTroveId(troveId)}…`,
-      `Debt: ${fmtnum(debt, "full")} ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
+      `Debt: ${fmtnum(debt, "full")} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`,
       `Collateral: ${fmtnum(deposit, "full")} ${token.name}`,
       `Interest rate: ${fmtnum(interestRate, "pctfull")}%`,
     ]
@@ -74,7 +74,7 @@ export function PositionCardBorrow({
             color: "positionContent",
           })}
         >
-          <div>{WHITE_LABEL_CONFIG.mainToken.symbol} loan</div>
+          <div>{WHITE_LABEL_CONFIG.tokens.mainToken.symbol} loan</div>
           {statusTag}
         </div>
       }
@@ -99,7 +99,7 @@ export function PositionCardBorrow({
             </div>
             <TokenIcon
               size={24}
-              symbol={WHITE_LABEL_CONFIG.mainToken.symbol}
+              symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
             />
           </HFlex>
         ),

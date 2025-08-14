@@ -123,7 +123,7 @@ export const openBorrowPosition: FlowDeclaration<OpenBorrowPositionRequest> = {
               key="start"
               fallback="…"
               value={boldAmountWithFee}
-              suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+              suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
             />,
             <div
               key="end"
@@ -137,9 +137,9 @@ export const openBorrowPosition: FlowDeclaration<OpenBorrowPositionRequest> = {
                 fallback="…"
                 prefix="Incl. "
                 value={upfrontFee.data}
-                suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol} creation fee`}
+                suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} creation fee`}
               />
-              <InfoTooltip heading={`${WHITE_LABEL_CONFIG.mainToken.symbol} Creation Fee`}>
+              <InfoTooltip heading={`${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} Creation Fee`}>
                 This fee is charged when you open a new loan or increase your debt. It corresponds to 7 days of average
                 interest for the respective collateral asset.
               </InfoTooltip>
@@ -177,7 +177,7 @@ export const openBorrowPosition: FlowDeclaration<OpenBorrowPositionRequest> = {
                         <Amount
                           format="2z"
                           prefix="~"
-                          suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol} per year`}
+                          suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} per year`}
                           value={yearlyBoldInterest}
                         />
                       </>
@@ -202,7 +202,7 @@ export const openBorrowPosition: FlowDeclaration<OpenBorrowPositionRequest> = {
                     boldAmountWithFee,
                     request.annualInterestRate,
                   )}
-                  suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol} per year`}
+                  suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} per year`}
                 />,
               ]}
             />

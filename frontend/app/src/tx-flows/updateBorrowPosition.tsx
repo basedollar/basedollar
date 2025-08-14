@@ -110,7 +110,7 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
                 key="start"
                 fallback="…"
                 value={debtChangeWithFee && dn.abs(debtChangeWithFee)}
-                suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
               />,
               upfrontFeeData.data?.upfrontFee && dn.gt(upfrontFeeData.data.upfrontFee, 0n) && (
                 <Amount
@@ -118,7 +118,7 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
                   fallback="…"
                   prefix="Incl. "
                   value={upfrontFeeData.data.upfrontFee}
-                  suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol} interest rate adjustment fee`}
+                  suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} interest rate adjustment fee`}
                 />
               ),
             ]}
@@ -130,7 +130,7 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
 
   steps: {
     approveBold: {
-      name: () => `Approve ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
+      name: () => `Approve ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`,
       Status: (props) => (
         <TransactionStatus
           {...props}
@@ -252,8 +252,8 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
         if (!dn.eq(collChange, 0) && !dn.eq(debtChange, 0)) return "Update Position";
         if (dn.gt(collChange, 0)) return "Deposit Collateral";
         if (dn.lt(collChange, 0)) return "Withdraw Collateral";
-        if (dn.gt(debtChange, 0)) return `Borrow ${WHITE_LABEL_CONFIG.mainToken.symbol}`;
-        if (dn.lt(debtChange, 0)) return `Repay ${WHITE_LABEL_CONFIG.mainToken.symbol}`;
+        if (dn.gt(debtChange, 0)) return `Borrow ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`;
+        if (dn.lt(debtChange, 0)) return `Repay ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`;
 
         throw new Error("Invalid request");
       },
@@ -314,7 +314,7 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
     },
 
     depositBold: {
-      name: () => `Repay ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
+      name: () => `Repay ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`,
       Status: TransactionStatus,
 
       async commit(ctx) {
@@ -375,7 +375,7 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
     },
 
     withdrawBold: {
-      name: () => `Borrow ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
+      name: () => `Borrow ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`,
       Status: TransactionStatus,
 
       async commit(ctx) {

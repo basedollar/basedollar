@@ -15,7 +15,7 @@ import { blo } from "blo";
 import Image from "next/image";
 import { AboutButton } from "./AboutButton";
 
-const DISPLAYED_PRICES = ["LQTY", WHITE_LABEL_CONFIG.mainToken.symbol, "ETH"] as const;
+const DISPLAYED_PRICES = ["LQTY", WHITE_LABEL_CONFIG.tokens.mainToken.symbol, "ETH"] as const;
 
 export function BottomBar() {
   const account = useAccount();
@@ -103,7 +103,7 @@ export function BottomBar() {
             <div
               title={`Total supply: ${
                 fmtnum(boldSupply, {
-                  suffix: ` ${WHITE_LABEL_CONFIG.mainToken.symbol}`,
+                  suffix: ` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`,
                   preset: "2z",
                 })
               }`}
@@ -121,7 +121,7 @@ export function BottomBar() {
               >
                 <TokenIcon
                   title={null}
-                  symbol={WHITE_LABEL_CONFIG.mainToken.symbol}
+                  symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
                   size={16}
                 />
               </div>
@@ -132,7 +132,7 @@ export function BottomBar() {
                     fallback="…"
                     format="compact"
                     value={boldSupply}
-                    suffix={` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                    suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                   />
                 )}
               </span>
@@ -149,7 +149,7 @@ export function BottomBar() {
                     whiteSpace: "nowrap",
                   })}
                 >
-                  Redeem {WHITE_LABEL_CONFIG.mainToken.symbol}
+                  Redeem {WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
                 </div>
               }
               className={css({
@@ -215,7 +215,7 @@ function getTokenAddress(symbol: TokenSymbol) {
   if (symbol === "LQTY") {
     return CONTRACT_LQTY_TOKEN;
   }
-  if (symbol === WHITE_LABEL_CONFIG.mainToken.symbol) {
+  if (symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol) {
     return CONTRACT_BOLD_TOKEN;
   }
   return null;

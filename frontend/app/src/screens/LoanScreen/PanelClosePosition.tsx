@@ -25,30 +25,30 @@ export function PanelClosePosition({
   const collateral = getCollToken(branch.id);
 
   const collPriceUsd = usePrice(collateral.symbol);
-  const boldPriceUsd = usePrice(WHITE_LABEL_CONFIG.mainToken.symbol);
-  const boldBalance = useBalance(account.address, WHITE_LABEL_CONFIG.mainToken.symbol);
+  const boldPriceUsd = usePrice(WHITE_LABEL_CONFIG.tokens.mainToken.symbol);
+  const boldBalance = useBalance(account.address, WHITE_LABEL_CONFIG.tokens.mainToken.symbol);
 
   // const [repayDropdownIndex, setRepayDropdownIndex] = useState(0);
   const repayDropdownIndex = 0;
 
-  const repayToken = TOKENS_BY_SYMBOL[repayDropdownIndex === 0 ? WHITE_LABEL_CONFIG.mainToken.symbol : collateral.symbol];
+  const repayToken = TOKENS_BY_SYMBOL[repayDropdownIndex === 0 ? WHITE_LABEL_CONFIG.tokens.mainToken.symbol : collateral.symbol];
   if (!repayToken) {
-    throw new Error(`Repay token not found for symbol: ${repayDropdownIndex === 0 ? WHITE_LABEL_CONFIG.mainToken.symbol : collateral.symbol}`);
+    throw new Error(`Repay token not found for symbol: ${repayDropdownIndex === 0 ? WHITE_LABEL_CONFIG.tokens.mainToken.symbol : collateral.symbol}`);
   }
 
   // either in main token or in collateral
-  const amountToRepay = repayToken.symbol === WHITE_LABEL_CONFIG.mainToken.symbol
+  const amountToRepay = repayToken.symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol
     ? loan.borrowed
     : collPriceUsd.data && dn.div(loan.borrowed, collPriceUsd.data);
 
   const amountToRepayUsd = amountToRepay && (
-    repayToken.symbol === WHITE_LABEL_CONFIG.mainToken.symbol
+    repayToken.symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol
       ? boldPriceUsd.data && dn.mul(amountToRepay, boldPriceUsd.data)
       : collPriceUsd.data && dn.mul(amountToRepay, collPriceUsd.data)
   );
 
   // when repaying with collateral, subtract the amount used to repay
-  const collToReclaim = repayToken.symbol === WHITE_LABEL_CONFIG.mainToken.symbol
+  const collToReclaim = repayToken.symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol
     ? loan.deposit
     : amountToRepay && dn.sub(loan.deposit, amountToRepay);
 
@@ -68,15 +68,15 @@ export function PanelClosePosition({
     }
     if (
       isOwner
-      && repayToken.symbol === WHITE_LABEL_CONFIG.mainToken.symbol
+      && repayToken.symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol
       && amountToRepay
       && (!boldBalance.data || dn.lt(boldBalance.data, amountToRepay))
     ) {
       return {
-        name: `Insufficient ${WHITE_LABEL_CONFIG.mainToken.symbol} balance`,
+        name: `Insufficient ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} balance`,
         message: `The balance held by the account (${
           fmtnum(boldBalance.data)
-        } ${WHITE_LABEL_CONFIG.mainToken.symbol}) is insufficient to repay the loan.`,
+        } ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}) is insufficient to repay the loan.`,
       };
     }
     return null;
@@ -115,7 +115,7 @@ export function PanelClosePosition({
                 >
                   <Amount
                     value={amountToRepay}
-                    title={{ suffix: ` ${WHITE_LABEL_CONFIG.mainToken.symbol}` }}
+                    title={{ suffix: ` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}` }}
                   />
                 </div>
                 {
@@ -131,12 +131,12 @@ export function PanelClosePosition({
                             fontWeight: 400,
                           })}
                         >
-                          {repayToken.symbol === WHITE_LABEL_CONFIG.mainToken.symbol ? " account" : " loan"}
+                          {repayToken.symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol ? " account" : " loan"}
                         </span>
                       </>
                     ),
                   })}
-                  items={([WHITE_LABEL_CONFIG.mainToken.symbol, collateral.symbol] as const).map((symbol) => ({
+                  items={([WHITE_LABEL_CONFIG.tokens.mainToken.symbol, collateral.symbol] as const).map((symbol) => ({
                     icon: <TokenIcon symbol={symbol} />,
                     label: (
                       <div
@@ -144,12 +144,12 @@ export function PanelClosePosition({
                           whiteSpace: "nowrap",
                         })}
                       >
-                        {TOKENS_BY_SYMBOL[symbol].name} {symbol === WHITE_LABEL_CONFIG.mainToken.symbol ? "(account)" : "(collateral)"}
+                        {TOKENS_BY_SYMBOL[symbol].name} {symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol ? "(account)" : "(collateral)"}
                       </div>
                     ),
-                    disabled: symbol !== WHITE_LABEL_CONFIG.mainToken.symbol,
-                    disabledReason: symbol !== WHITE_LABEL_CONFIG.mainToken.symbol ? "Coming soon" : undefined,
-                    value: symbol === WHITE_LABEL_CONFIG.mainToken.symbol ? fmtnum(boldBalance.data) : null,
+                    disabled: symbol !== WHITE_LABEL_CONFIG.tokens.mainToken.symbol,
+                    disabledReason: symbol !== WHITE_LABEL_CONFIG.tokens.mainToken.symbol ? "Coming soon" : undefined,
+                    value: symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol ? fmtnum(boldBalance.data) : null,
                   }))}
                   menuWidth={300}
                   menuPlacement="end"
@@ -171,10 +171,10 @@ export function PanelClosePosition({
                   })}
                 >
                   <TokenIcon
-                    symbol={WHITE_LABEL_CONFIG.mainToken.symbol}
+                    symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
                     size={24}
                   />
-                  <div>{WHITE_LABEL_CONFIG.mainToken.symbol}</div>
+                  <div>{WHITE_LABEL_CONFIG.tokens.mainToken.symbol}</div>
                 </div>
               </div>
             }
@@ -255,7 +255,7 @@ export function PanelClosePosition({
       >
         {claimOnly
           ? content.closeLoan.claimOnly
-          : repayToken.symbol === WHITE_LABEL_CONFIG.mainToken.symbol
+          : repayToken.symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol
           ? content.closeLoan.repayWithBoldMessage
           : content.closeLoan.repayWithCollateralMessage}
       </div>
@@ -282,7 +282,7 @@ export function PanelClosePosition({
           successLink: ["/", "Go to the dashboard"],
           successMessage: "The loan position has been closed successfully.",
           loan,
-          repayWithCollateral: claimOnly ? false : repayToken.symbol !== WHITE_LABEL_CONFIG.mainToken.symbol,
+          repayWithCollateral: claimOnly ? false : repayToken.symbol !== WHITE_LABEL_CONFIG.tokens.mainToken.symbol,
         }}
       />
     </>

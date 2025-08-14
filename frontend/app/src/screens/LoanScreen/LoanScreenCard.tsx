@@ -91,7 +91,7 @@ export function LoanScreenCard({
   );
 
   const nftUrl = useTroveNftUrl(loan?.branchId ?? null, troveId);
-  const title = mode === "multiply" ? "Multiply" : `${WHITE_LABEL_CONFIG.mainToken.symbol} loan`;
+  const title = mode === "multiply" ? "Multiply" : `${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} loan`;
 
   const fullyRedeemed = loan && loan.status === "redeemed" && dn.eq(loan.borrowed, 0);
 
@@ -406,7 +406,7 @@ function LoanCard(props: {
         troveId,
         nftUrl,
       }) => {
-        const title = mode === "multiply" ? "Multiply" : `${WHITE_LABEL_CONFIG.mainToken.symbol} loan`;
+        const title = mode === "multiply" ? "Multiply" : `${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} loan`;
         return (
           <a.div
             className={css({
@@ -639,7 +639,7 @@ function LoanCard(props: {
                       )
                       : (
                         <div
-                          title={`${fmtnum(loan.borrowed)} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                          title={`${fmtnum(loan.borrowed)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                           className={css({
                             display: "flex",
                             alignItems: "center",
@@ -647,7 +647,7 @@ function LoanCard(props: {
                           })}
                         >
                           {fmtnum(loan.borrowed)}
-                          <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} size={24} />
+                          <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} size={24} />
                         </div>
                       )}
                   </div>

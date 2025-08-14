@@ -147,7 +147,7 @@ export function EarnPositionSummary({
             />
           </div>
           <InfoTooltip heading="Total Value Locked (TVL)">
-            Total amount of {WHITE_LABEL_CONFIG.mainToken.symbol} deposited in this stability pool.
+            Total amount of {WHITE_LABEL_CONFIG.tokens.mainToken.symbol} deposited in this stability pool.
           </InfoTooltip>
         </>
       }
@@ -158,7 +158,7 @@ export function EarnPositionSummary({
             <>
               <div
                 title={active
-                  ? `${fmtnum(earnPosition?.deposit, "full")} ${WHITE_LABEL_CONFIG.mainToken.symbol}`
+                  ? `${fmtnum(earnPosition?.deposit, "full")} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`
                   : undefined}
                 className={css({
                   display: "flex",
@@ -169,11 +169,11 @@ export function EarnPositionSummary({
                 })}
               >
                 {active && fmtnum(earnPosition?.deposit)}
-                <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} size="mini" title={null} />
+                <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} size="mini" title={null} />
               </div>
               {prevEarnPosition && (
                 <div
-                  title={`${fmtnum(prevEarnPosition.deposit, "full")} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                  title={`${fmtnum(prevEarnPosition.deposit, "full")} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                   className={css({
                     display: "flex",
                     justifyContent: "flex-start",
@@ -185,7 +185,7 @@ export function EarnPositionSummary({
                   })}
                 >
                   {fmtnum(prevEarnPosition.deposit)}
-                  <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} size="mini" title={null} />
+                  <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} size="mini" title={null} />
                 </div>
               )}
             </>
@@ -199,13 +199,13 @@ export function EarnPositionSummary({
                 <>
                   <HFlex
                     gap={4}
-                    title={`${fmtnum(earnPosition?.rewards.bold, "full")} ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                    title={`${fmtnum(earnPosition?.rewards.bold, "full")} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                     className={css({
                       fontVariantNumeric: "tabular-nums",
                     })}
                   >
                     {fmtnum(earnPosition?.rewards.bold)}
-                    <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} size="mini" title={null} />
+                    <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} size="mini" title={null} />
                   </HFlex>
                   <HFlex gap={4}>
                     <Amount value={earnPosition?.rewards.coll} />
@@ -215,7 +215,7 @@ export function EarnPositionSummary({
               )
               : (
                 <TokenIcon.Group size="mini">
-                  <TokenIcon symbol={WHITE_LABEL_CONFIG.mainToken.symbol} />
+                  <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />
                   <TokenIcon symbol={collToken.symbol} />
                 </TokenIcon.Group>
               )

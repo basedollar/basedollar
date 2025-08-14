@@ -92,7 +92,7 @@ export function LeverageField({
                 >
                   {fmtnum(debt)}
                 </span>
-                {` ${WHITE_LABEL_CONFIG.mainToken.symbol}`}
+                {` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
               </>
             )}
           </div>

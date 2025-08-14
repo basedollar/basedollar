@@ -29,7 +29,7 @@ export function PositionCardSbold({
             color: "positionContent",
           })}
         >
-          sBOLD position
+          {WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol} position
         </div>,
       ]}
       contextual={
@@ -49,12 +49,12 @@ export function PositionCardSbold({
               fallback="−"
               format={2}
             />
-            <TokenIcon size="medium" symbol={WHITE_LABEL_CONFIG.mainToken.symbol} />
+            <TokenIcon size="medium" symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />
           </HFlex>
         ),
         label: (
           <HFlex gap={4} justifyContent="flex-start">
-            {WHITE_LABEL_CONFIG.mainToken.symbol} deposited
+            {WHITE_LABEL_CONFIG.tokens.mainToken.symbol} deposited
           </HFlex>
         ),
       }}
@@ -137,7 +137,7 @@ export function PositionCardSbold({
                     color: "positionContentAlt",
                   })}
                 >
-                  sBOLD balance
+                  {WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol} balance
                 </div>
                 <div
                   className={css({
@@ -152,7 +152,7 @@ export function PositionCardSbold({
                     value={sbold}
                     format={2}
                   />
-                  <TokenIcon size="mini" symbol="SBOLD" />
+                  <TokenIcon size="mini" symbol={WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol} />
                 </div>
               </div>
             }
