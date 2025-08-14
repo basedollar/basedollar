@@ -208,8 +208,8 @@ export default {
         description: `Deposit ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} to earn protocol revenues and liquidation proceeds`,
       },
       stake: {
-        title: "Stake LQTY",
-        description: `Direct protocol incentives with LQTY while earning from ${WHITE_LABEL_CONFIG.branding.brandName} V1`,
+        title: `Stake ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}`,
+        description: `Direct protocol incentives with ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} while earning from ${WHITE_LABEL_CONFIG.branding.brandName} V1`,
       },
     },
     earnTable: {
@@ -424,13 +424,13 @@ export default {
     headline: (lqtyIcon: N) => (
       <>
         <span>Stake</span>
-        {lqtyIcon} <span>LQTY & get</span>
+        {lqtyIcon} <span>{WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} & get</span>
         <span>voting power</span>
       </>
     ),
     subheading: (
       <>
-        By staking LQTY you can vote on incentives for ${WHITE_LABEL_CONFIG.branding.appName}, while still earning ${WHITE_LABEL_CONFIG.branding.brandName} V1 fees.
+        By staking ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} you can vote on incentives for ${WHITE_LABEL_CONFIG.branding.appName}, while still earning ${WHITE_LABEL_CONFIG.branding.brandName} V1 fees.
       </>
     ),
     learnMore: [
@@ -442,7 +442,7 @@ export default {
       votingPower: "Voting power",
       votingPowerHelp: (
         <>
-          Voting power is the percentage of the total staked LQTY that you own.
+          Voting power is the percentage of the total staked {WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} that you own.
         </>
       ),
       unclaimed: "Unclaimed rewards",
@@ -484,13 +484,13 @@ export default {
       ],
       votingShare: (
         <>
-          Your voting share is the amount of LQTY you have staked and that is available to vote, divided by the total
-          amount of LQTY staked via the governance contract.
+          Your voting share is the amount of {WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} you have staked and that is available to vote, divided by the total
+          amount of {WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} staked via the governance contract.
         </>
       ),
       votingPower: (
         <>
-          Your relative voting power changes over time, depending on your and others allocations of LQTY.
+          Your relative voting power changes over time, depending on your and others allocations of {WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}.
         </>
       ),
     },

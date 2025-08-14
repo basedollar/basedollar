@@ -72,7 +72,7 @@ export const WHITE_LABEL_CONFIG = {
       name: "LQTY",
       symbol: "LQTY" as const,
       ticker: "LQTY",
-      icon: "lqty",
+      icon: "governance-token",
       // Contract addresses per chain
       deployments: {
         1: { // Mainnet
@@ -166,13 +166,13 @@ export const WHITE_LABEL_CONFIG = {
       lusd: {
         symbol: "LUSD" as const,
         name: "LUSD",
-        icon: "lusd",
+        icon: "legacy-stablecoin",
       },
       // Staked version of main token
       staked: {
         symbol: "SBOLD" as const,
         name: "sLOL", // s + mainToken symbol
-        icon: "sbold",
+        icon: "staked-main-token",
       },
     },
   },

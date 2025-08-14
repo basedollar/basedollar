@@ -10,6 +10,7 @@ import { TransactionDetailsRow } from "@/src/screens/TransactionsScreen/Transact
 import { TransactionStatus } from "@/src/screens/TransactionsScreen/TransactionStatus";
 import { vVoteAllocations } from "@/src/valibot-utils";
 import { css } from "@/styled-system/css";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { IconDownvote, IconStake, IconUpvote } from "@liquity2/uikit";
 import * as dn from "dnum";
 import * as v from "valibot";
@@ -66,7 +67,7 @@ export const allocateVotingPower: FlowDeclaration<AllocateVotingPowerRequest> = 
           })}
         >
           <h1
-            title="LQTY Stake"
+            title={`${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} Stake`}
             className={css({
               display: "flex",
               alignItems: "center",
@@ -92,7 +93,7 @@ export const allocateVotingPower: FlowDeclaration<AllocateVotingPowerRequest> = 
               >
                 <IconStake size={16} />
               </div>
-              LQTY Stake
+              {WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} Stake
             </div>
           </h1>
           <div
@@ -132,7 +133,7 @@ export const allocateVotingPower: FlowDeclaration<AllocateVotingPowerRequest> = 
                   value={totalLqtyAllocation}
                   format={2}
                 />{" "}
-                LQTY
+                {WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}
               </div>
             </div>
             <div
@@ -294,7 +295,7 @@ function VoteAllocation({
             alignItems: "center",
           })}
         >
-          {vote.vote === "for" ? "Upvote" : "Downvote"} with <Amount value={lqtyAllocation} /> LQTY
+          {vote.vote === "for" ? "Upvote" : "Downvote"} with <Amount value={lqtyAllocation} /> {WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}
         </div>,
       ]}
     />

@@ -12,13 +12,14 @@ import { usePrice } from "@/src/services/Prices";
 import { infoTooltipProps } from "@/src/uikit-utils";
 import { useAccount, useBalance } from "@/src/wagmi-utils";
 import { css } from "@/styled-system/css";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { HFlex, InfoTooltip, InputField, Tabs, TextButton, TokenIcon } from "@liquity2/uikit";
 import * as dn from "dnum";
 import { useState } from "react";
 
 export function PanelStaking() {
   const account = useAccount();
-  const lqtyPrice = usePrice("LQTY");
+  const lqtyPrice = usePrice(WHITE_LABEL_CONFIG.tokens.governanceToken.symbol);
 
   const [mode, setMode] = useState<"deposit" | "withdraw">("deposit");
   const [value, setValue] = useState("");
@@ -63,7 +64,7 @@ export function PanelStaking() {
     ? dnumMax(dn.add(stakedLqty, depositDifference), DNUM_0)
     : DNUM_0;
 
-  const lqtyBalance = useBalance(account.address, "LQTY");
+  const lqtyBalance = useBalance(account.address, WHITE_LABEL_CONFIG.tokens.governanceToken.symbol);
   const isDepositFilled = parsedValue && dn.gt(parsedValue, 0);
   const hasDeposit = stakedLqty && dn.gt(stakedLqty, 0);
 
@@ -95,7 +96,7 @@ export function PanelStaking() {
             drawer={insufficientBalance
               ? {
                 mode: "error",
-                message: `Insufficient balance. You have ${fmtnum(lqtyBalance.data ?? 0, 2)} LQTY.`,
+                message: `Insufficient balance. You have ${fmtnum(lqtyBalance.data ?? 0, 2)} ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}.`,
               }
               : withdrawOutOfRange
               ? {
@@ -106,8 +107,8 @@ export function PanelStaking() {
             contextual={
               <InputTokenBadge
                 background={false}
-                icon={<TokenIcon symbol="LQTY" />}
-                label="LQTY"
+                icon={<TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} />}
+                label={WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}
               />
             }
             label={{
@@ -152,7 +153,7 @@ export function PanelStaking() {
                   lqtyBalance.data && dn.gt(lqtyBalance.data, 0) && (
                     <TextButton
                       className="button-max"
-                      label={`Max. ${(fmtnum(lqtyBalance.data, 2))} LQTY`}
+                      label={`Max. ${(fmtnum(lqtyBalance.data, 2))} ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}`}
                       onClick={() => {
                         if (lqtyBalance.data) {
                           setValue(dn.toString(lqtyBalance.data));
@@ -165,7 +166,7 @@ export function PanelStaking() {
                   stakePosition.data?.deposit && dn.gt(stakePosition.data?.deposit, 0) && (
                     <TextButton
                       className="button-max"
-                      label={`Max. ${fmtnum(stakePosition.data.deposit, 2)} LQTY`}
+                      label={`Max. ${fmtnum(stakePosition.data.deposit, 2)} ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}`}
                       onClick={() => {
                         if (stakePosition.data) {
                           setValue(dn.toString(stakePosition.data.deposit));

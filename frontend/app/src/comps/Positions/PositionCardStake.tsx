@@ -4,6 +4,7 @@ import { Amount } from "@/src/comps/Amount/Amount";
 import { fmtnum } from "@/src/formatting";
 import { useVotingPower } from "@/src/liquity-governance";
 import { css } from "@/styled-system/css";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { HFlex, IconStake, TokenIcon } from "@liquity2/uikit";
 import { useRef } from "react";
 import { PositionCard } from "./PositionCard";
@@ -49,7 +50,7 @@ export function PositionCardStake({
             color: "positionContent",
           })}
         >
-          LQTY stake
+          {WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} stake
         </div>,
       ]}
       contextual={
@@ -65,12 +66,12 @@ export function PositionCardStake({
         value: (
           <HFlex gap={8} alignItems="center" justifyContent="flex-start">
             <Amount value={deposit} format={2} />
-            <TokenIcon size="medium" symbol="LQTY" />
+            <TokenIcon size="medium" symbol={WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} />
           </HFlex>
         ),
         label: (
           <HFlex gap={4} justifyContent="flex-start">
-            Staked LQTY
+            Staked {WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}
           </HFlex>
         ),
       }}

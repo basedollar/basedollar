@@ -6,6 +6,7 @@ import { Amount } from "@/src/comps/Amount/Amount";
 import { Tag } from "@/src/comps/Tag/Tag";
 import { TagPreview } from "@/src/comps/TagPreview/TagPreview";
 import content from "@/src/content";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { dnum18 } from "@/src/dnum-utils";
 import { fmtnum } from "@/src/formatting";
 import { useGovernanceStats, useGovernanceUser, useVotingPower } from "@/src/liquity-governance";
@@ -96,7 +97,7 @@ export function StakePositionSummary({
         })}
       >
         <h1
-          title="LQTY Stake"
+          title={`${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} Stake`}
           className={css({
             display: "flex",
             alignItems: "center",
@@ -122,7 +123,7 @@ export function StakePositionSummary({
             >
               <IconStake size={16} />
             </div>
-            LQTY Stake
+            {WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} Stake
           </div>
         </h1>
         <div
@@ -182,7 +183,7 @@ export function StakePositionSummary({
                         value={stakePosition?.deposit ?? 0}
                       />
                     </div>
-                    <TokenIcon symbol="LQTY" size={32} />
+                    <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} size={32} />
                   </a.div>
                 )
               ))}
@@ -191,7 +192,7 @@ export function StakePositionSummary({
                 && !dn.eq(prevStakePosition.deposit, stakePosition.deposit)
                 && (
                   <div
-                    title={`${fmtnum(prevStakePosition.deposit, "full")} LQTY`}
+                    title={`${fmtnum(prevStakePosition.deposit, "full")} ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}`}
                     className={css({
                       color: "contentAlt",
                       textDecoration: "line-through",
@@ -342,10 +343,10 @@ export function StakePositionSummary({
                                         fixed
                                         value={stakedLqty}
                                         fallback="−"
-                                        suffix=" LQTY"
+                                        suffix=" ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}"
                                         title={fmtnum(stakedLqty, {
                                           preset: "full",
-                                          suffix: " LQTY",
+                                          suffix: " ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}",
                                         })}
                                       />
                                     }
@@ -357,10 +358,10 @@ export function StakePositionSummary({
                                         fallback="−"
                                         fixed
                                         format="2z"
-                                        suffix=" LQTY"
+                                        suffix=" ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}"
                                         title={fmtnum(totalStakedLqty, {
                                           preset: "full",
-                                          suffix: " LQTY",
+                                          suffix: " ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}",
                                         })}
                                         value={totalStakedLqty}
                                       />
@@ -468,7 +469,7 @@ export function StakePositionSummary({
                 Allocated
               </div>
               <div
-                title={`${fmtnum(allocatedLqty ?? 0, "full")} LQTY allocated`}
+                title={`${fmtnum(allocatedLqty ?? 0, "full")} ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} allocated`}
                 className={css({
                   display: "flex",
                   alignItems: "center",
@@ -482,7 +483,7 @@ export function StakePositionSummary({
                 />
                 <TokenIcon
                   title={null}
-                  symbol="LQTY"
+                  symbol={WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}
                   size="mini"
                 />
                 {stakedLqty
@@ -491,7 +492,7 @@ export function StakePositionSummary({
                   && dn.lt(allocatedLqty, stakedLqty)
                   && (
                     <Tag
-                      title="Partial allocation: some of your staked LQTY is not allocated"
+                      title={`Partial allocation: some of your staked ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} is not allocated`}
                       size="mini"
                       css={{
                         color: "warningAltContent",

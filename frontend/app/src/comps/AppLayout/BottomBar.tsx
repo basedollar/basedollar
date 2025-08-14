@@ -15,7 +15,7 @@ import { blo } from "blo";
 import Image from "next/image";
 import { AboutButton } from "./AboutButton";
 
-const DISPLAYED_PRICES = ["LQTY", WHITE_LABEL_CONFIG.tokens.mainToken.symbol, "ETH"] as const;
+const DISPLAYED_PRICES = [WHITE_LABEL_CONFIG.tokens.governanceToken.symbol, WHITE_LABEL_CONFIG.tokens.mainToken.symbol, "ETH"] as const;
 
 export function BottomBar() {
   const account = useAccount();
@@ -212,7 +212,7 @@ export function BottomBar() {
 }
 
 function getTokenAddress(symbol: TokenSymbol) {
-  if (symbol === "LQTY") {
+  if (symbol === WHITE_LABEL_CONFIG.tokens.governanceToken.symbol) {
     return CONTRACT_LQTY_TOKEN;
   }
   if (symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol) {

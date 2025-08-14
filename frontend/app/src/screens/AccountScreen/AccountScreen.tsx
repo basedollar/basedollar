@@ -113,10 +113,10 @@ export function AccountScreen({
                 tokenSymbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
               />
             </GridItem>
-            <GridItem label="LQTY balance">
+            <GridItem label={`${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} balance`}>
               <Balance
                 address={address}
-                tokenSymbol="LQTY"
+                tokenSymbol={WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}
                 tapButton={tapEnabled
                   && account.address
                   && addressesEqual(address, account.address)}
@@ -216,7 +216,7 @@ function Balance({
               return;
             }
 
-            if (tokenSymbol === "LQTY") {
+            if (tokenSymbol === WHITE_LABEL_CONFIG.tokens.governanceToken.symbol) {
               writeContract({
                 abi: LqtyToken.abi,
                 address: LqtyToken.address,

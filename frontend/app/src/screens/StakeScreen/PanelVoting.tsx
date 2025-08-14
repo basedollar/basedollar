@@ -688,7 +688,7 @@ export function PanelVoting() {
       <FlowButton
         disabled={!allowSubmit}
         footnote={!allowSubmit && dn.eq(stakedLQTY, 0)
-          ? "You have no voting power to allocate. Please stake LQTY before voting."
+          ? `You have no voting power to allocate. Please stake ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} before voting.`
           : !allowSubmit && hasAnyAllocations
           ? "You can reset your votes by allocating 0% to all initiatives."
           : allowSubmit && dn.eq(remainingVotingPower, 1)

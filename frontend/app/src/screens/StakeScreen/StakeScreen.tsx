@@ -50,7 +50,7 @@ export function StakeScreen() {
               gap: "0 8px",
             })}
           >
-            {content.stakeScreen.headline(<TokenIcon size={24} symbol="LQTY" />)}
+            {content.stakeScreen.headline(<TokenIcon size={24} symbol={WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} />)}
           </div>
         ),
         subtitle: (

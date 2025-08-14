@@ -9,6 +9,7 @@ import { TransactionStatus } from "@/src/screens/TransactionsScreen/TransactionS
 import { usePrice } from "@/src/services/Prices";
 import { vDnum, vPositionStake } from "@/src/valibot-utils";
 import { useAccount } from "@/src/wagmi-utils";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import * as dn from "dnum";
 import * as v from "valibot";
 import { encodeFunctionData, maxUint256 } from "viem";
@@ -40,14 +41,14 @@ export const stakeDeposit: FlowDeclaration<StakeDepositRequest> = {
   },
 
   Details({ request }) {
-    const lqtyPrice = usePrice("LQTY");
+    const lqtyPrice = usePrice(WHITE_LABEL_CONFIG.tokens.governanceToken.symbol);
     return (
       <TransactionDetailsRow
         label="You deposit"
         value={[
           <Amount
             key="start"
-            suffix=" LQTY"
+            suffix={` ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}`}
             value={request.lqtyAmount}
           />,
           <Amount
@@ -76,7 +77,7 @@ export const stakeDeposit: FlowDeclaration<StakeDepositRequest> = {
     },
 
     approve: {
-      name: () => "Approve LQTY",
+      name: () => `Approve ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}`,
       Status: (props) => {
         const account = useAccount();
         return (
@@ -130,7 +131,7 @@ export const stakeDeposit: FlowDeclaration<StakeDepositRequest> = {
       },
     },
 
-    // reset allocations + deposit LQTY in a single transaction
+    // reset allocations + deposit governance tokens in a single transaction
     deposit: {
       name: () => "Stake",
       Status: TransactionStatus,
@@ -141,7 +142,7 @@ export const stakeDeposit: FlowDeclaration<StakeDepositRequest> = {
         const approveStep = ctx.steps?.find((step) => step.id === "approve");
         const isPermit = approveStep?.artifact?.startsWith("permit:") === true;
 
-        // deposit LQTY via permit
+        // deposit governance tokens via permit
         if (isPermit) {
           const { userProxyAddress, ...permit } = JSON.parse(
             approveStep?.artifact?.replace(/^permit:/, "") ?? "{}",
@@ -173,10 +174,10 @@ export const stakeDeposit: FlowDeclaration<StakeDepositRequest> = {
           });
 
           if (dn.gt(ctx.request.lqtyAmount, dnum18(lqtyAllowance))) {
-            throw new Error("LQTY allowance is not enough");
+            throw new Error(`${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} allowance is not enough`);
           }
 
-          // deposit approved LQTY
+          // deposit approved governance tokens
           inputs.push(encodeFunctionData({
             abi: Governance.abi,
             functionName: "depositLQTY",

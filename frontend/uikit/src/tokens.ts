@@ -12,9 +12,9 @@ import tokenWsteth from "./token-icons/wsteth.svg";
 // Map of available token icons by icon name from config
 const tokenIconMap: Record<string, string> = {
   "main-token": tokenMainToken,
-  "lqty": tokenLqty,
-  "lusd": tokenLusd,
-  "sbold": tokenSbold,
+  "governance-token": tokenLqty,
+  "legacy-stablecoin": tokenLusd,
+  "staked-main-token": tokenSbold,
   "eth": tokenEth,
   "reth": tokenReth,
   "wsteth": tokenWsteth,

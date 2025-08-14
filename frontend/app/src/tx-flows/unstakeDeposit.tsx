@@ -9,6 +9,7 @@ import { usePrice } from "@/src/services/Prices";
 import { vDnum, vPositionStake } from "@/src/valibot-utils";
 import * as dn from "dnum";
 import * as v from "valibot";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { encodeFunctionData } from "viem";
 import { createRequestSchema, verifyTransaction } from "./shared";
 
@@ -37,7 +38,7 @@ export const unstakeDeposit: FlowDeclaration<UnstakeDepositRequest> = {
   },
 
   Details({ request }) {
-    const lqtyPrice = usePrice("LQTY");
+    const lqtyPrice = usePrice(WHITE_LABEL_CONFIG.tokens.governanceToken.symbol);
     return (
       <TransactionDetailsRow
         label={[
@@ -47,7 +48,7 @@ export const unstakeDeposit: FlowDeclaration<UnstakeDepositRequest> = {
         value={[
           <Amount
             key="start"
-            suffix=" LQTY"
+            suffix={` ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}`}
             value={request.lqtyAmount}
           />,
           <Amount
@@ -82,7 +83,7 @@ export const unstakeDeposit: FlowDeclaration<UnstakeDepositRequest> = {
           }));
         }
 
-        // withdraw LQTY
+        // withdraw governance tokens
         inputs.push(encodeFunctionData({
           abi: Governance.abi,
           functionName: "withdrawLQTY",
