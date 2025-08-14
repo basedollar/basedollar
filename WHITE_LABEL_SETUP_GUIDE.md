@@ -122,3 +122,19 @@ When you change the config:
 ✅ Routing for collateral and earn pool pages
 
 Just update the config and rebuild - everything else is dynamic.
+
+## What Does NOT Change (And Why)
+
+❌ **Smart Contract References** - These are immutable and must stay as-is:
+- Field names: `stakedLQTY`, `voteLQTY`, `vetoLQTY` (actual blockchain data fields)
+- Function names: `depositLQTY`, `withdrawLQTY` (deployed contract functions)  
+- Contract addresses: `CONTRACT_LQTY_TOKEN` (actual deployed addresses)
+
+❌ **API/Backend Integration** - These match the blockchain layer:
+- GraphQL queries: `govUser.data?.stakedLQTY` (subgraph field names)
+- Variable names: `const lqtyBalance =` (internal code variables)
+- Type definitions: Interface fields that match contracts
+
+**Why?** The smart contracts are deployed with LQTY field names. Changing these would break the blockchain integration. This is standard practice - you customize the UI layer while preserving the data layer contracts.
+
+**Architecture:** UI shows "Stake MYTOKEN" to users, but code still calls `depositLQTY()` on the contract.
