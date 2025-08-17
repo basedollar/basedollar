@@ -20,7 +20,7 @@ import { StabilityPool } from "@/src/abi/StabilityPool";
 import { TroveManager } from "@/src/abi/TroveManager";
 import { TroveNFT } from "@/src/abi/TroveNFT";
 import {
-  CONTRACT_BOLD_TOKEN,
+  CONTRACT_MAIN_TOKEN,
   CONTRACT_COLLATERAL_REGISTRY,
   CONTRACT_EXCHANGE_HELPERS,
   CONTRACT_GOVERNANCE,
@@ -112,7 +112,7 @@ export type Contracts = ProtocolContractMap & {
 };
 
 export const CONTRACTS: Contracts = {
-  BoldToken: { abi: abis.BoldToken, address: CONTRACT_BOLD_TOKEN },
+  BoldToken: { abi: abis.BoldToken, address: CONTRACT_MAIN_TOKEN },
   CollateralRegistry: {
     abi: abis.CollateralRegistry,
     address: CONTRACT_COLLATERAL_REGISTRY,

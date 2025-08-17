@@ -266,7 +266,7 @@ export function StakePositionSummary({
                   format="2diff"
                   value={stakePosition?.rewards.lusd ?? 0}
                 />
-                <TokenIcon symbol="LUSD" size="mini" />
+                <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.symbol} size="mini" />
               </HFlex>
               <HFlex
                 gap={4}

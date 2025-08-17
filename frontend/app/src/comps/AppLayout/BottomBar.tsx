@@ -4,7 +4,7 @@ import { Amount } from "@/src/comps/Amount/Amount";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { LinkTextButton } from "@/src/comps/LinkTextButton/LinkTextButton";
 import { Logo } from "@/src/comps/Logo/Logo";
-import { ACCOUNT_SCREEN, CHAIN_BLOCK_EXPLORER, CONTRACT_BOLD_TOKEN, CONTRACT_LQTY_TOKEN } from "@/src/env";
+import { ACCOUNT_SCREEN, CHAIN_BLOCK_EXPLORER, CONTRACT_MAIN_TOKEN, CONTRACT_LQTY_TOKEN } from "@/src/env";
 import { fmtnum } from "@/src/formatting";
 import { useLiquityStats } from "@/src/liquity-utils";
 import { usePrice } from "@/src/services/Prices";
@@ -216,7 +216,7 @@ function getTokenAddress(symbol: TokenSymbol) {
     return CONTRACT_LQTY_TOKEN;
   }
   if (symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol) {
-    return CONTRACT_BOLD_TOKEN;
+    return CONTRACT_MAIN_TOKEN;
   }
   return null;
 }

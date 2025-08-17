@@ -2,7 +2,7 @@ import type { Dnum, Token } from "@/src/types";
 import type { Address } from "@liquity2/uikit";
 
 import { dnum18 } from "@/src/dnum-utils";
-import { CONTRACT_BOLD_TOKEN, CONTRACT_LQTY_TOKEN, CONTRACT_LUSD_TOKEN } from "@/src/env";
+import { CONTRACT_MAIN_TOKEN, CONTRACT_LQTY_TOKEN, CONTRACT_LUSD_TOKEN } from "@/src/env";
 import { getBranch } from "@/src/liquity-utils";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { getSafeStatus } from "@/src/safe-utils";
@@ -40,7 +40,7 @@ export function useBalances(
         },
       )
       .with("LUSD", () => CONTRACT_LUSD_TOKEN)
-      .with(WHITE_LABEL_CONFIG.tokens.mainToken.symbol, () => CONTRACT_BOLD_TOKEN)
+      .with(WHITE_LABEL_CONFIG.tokens.mainToken.symbol, () => CONTRACT_MAIN_TOKEN)
       .with("LQTY", () => CONTRACT_LQTY_TOKEN)
       .otherwise(() => null);
 
