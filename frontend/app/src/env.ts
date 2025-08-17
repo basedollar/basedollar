@@ -31,7 +31,11 @@ function isIcStrategyList(value: unknown): value is IcStrategy[] {
 export const CollateralSymbolSchema = v.union([
   v.literal("ETH"),
   v.literal("RETH"),
-  v.literal("WSTETH"),
+  v.literal("TBTC"),
+  v.literal("FBTC"),
+  v.literal("SAGA"),
+  v.literal("SUI"),
+  v.literal("KING"),
 ]);
 
 function isCollateralSymbol(value: unknown) {

@@ -40,72 +40,92 @@ export const WHITE_LABEL_CONFIG = {
   tokens: {
     // Main protocol stablecoin
     mainToken: {
-      name: "LOL",
-      symbol: "LOL" as const, 
-      ticker: "LOL",
+      name: "Mustang",
+      symbol: "MUST" as const, 
+      ticker: "MUST",
       decimals: 18,
-      description: "USD-pegged stablecoin",
+      description: "USD-pegged stablecoin by Saga Protocol",
       icon: "main-token",
-      // Core protocol contracts
+      // Core protocol contracts (Saga deployment addresses TBD)
       deployments: {
-        1: { // Mainnet
-          token: "0xb01dd87b29d187f3e3a4bf6cdaebfb97f3d9ab98",
-          collateralRegistry: "0xd99de73b95236f69a559117ecd6f519af780f3f7",
-          governance: "0x636deb767cd7d0f15ca4ab8ea9a9b26e98b426ac",
-          hintHelpers: "0xbbdbf5e15e81e5a3e8f973d4551d20e87e60b53a",
-          multiTroveGetter: "0xedf6eb3fa7ae48ddb0c0d97bd526b0738c6dd860",
-          exchangeHelpers: "0xbc47901f4d2a20b96d61e8198a2e88a8c4b9dda6",
+        646: { // Ronin
+          token: "0x0000000000000000000000000000000000000000", // TBD - MUST deployment
+          collateralRegistry: "0x0000000000000000000000000000000000000000", // TBD
+          governance: "0x0000000000000000000000000000000000000000", // TBD
+          hintHelpers: "0x0000000000000000000000000000000000000000", // TBD
+          multiTroveGetter: "0x0000000000000000000000000000000000000000", // TBD
+          exchangeHelpers: "0x0000000000000000000000000000000000000000", // TBD
         },
-        11155111: { // Sepolia
-          token: "0xb01d32c05f4aa066eef2bfd4d461833fddd56d0a",
-          collateralRegistry: "0x55cefb9c04724ba3c67d92df5e386c6f1585a83b",
-          governance: "0xe3f9ca5398cc3d0099c3ad37d3252e37431555b8",
-          hintHelpers: "0xc3adf59a37ce2332bb0e21093a56e5b4e8c91f7a",
-          multiTroveGetter: "0x907a56ebb7798f8c2771ad15be3ffd32c3cf4ae9",
-          exchangeHelpers: "0x814b5e9dac30f2df8794bbef8a10e8a6e1ca3c03",
+        // Placeholder for build compatibility (remove after deployment)
+        1: { // Mainnet (placeholder)
+          token: "0x0000000000000000000000000000000000000000",
+          collateralRegistry: "0x0000000000000000000000000000000000000000",
+          governance: "0x0000000000000000000000000000000000000000",
+          hintHelpers: "0x0000000000000000000000000000000000000000",
+          multiTroveGetter: "0x0000000000000000000000000000000000000000",
+          exchangeHelpers: "0x0000000000000000000000000000000000000000",
+        },
+        11155111: { // Sepolia (placeholder)
+          token: "0x0000000000000000000000000000000000000000",
+          collateralRegistry: "0x0000000000000000000000000000000000000000",
+          governance: "0x0000000000000000000000000000000000000000",
+          hintHelpers: "0x0000000000000000000000000000000000000000",
+          multiTroveGetter: "0x0000000000000000000000000000000000000000",
+          exchangeHelpers: "0x0000000000000000000000000000000000000000",
         },
       },
     },
 
     // Governance token
     governanceToken: {
-      name: "LQTY",
-      symbol: "LQTY" as const,
-      ticker: "LQTY",
+      name: "SAGA",
+      symbol: "SAGA" as const,
+      ticker: "SAGA",
       icon: "governance-token",
       // Contract addresses per chain
       deployments: {
-        1: { // Mainnet
-          token: "0x6dea81c8171d0ba574754ef6f8b412f2ed88c54d",
-          staking: "0x4f9fbb3f1e99b56e0fe2892e623ed36a76fc605d",
+        646: { // Ronin mainnet
+          token: "0xA19377761FED745723B90993988E04d641c2CfFE",
+          staking: "0x0000000000000000000000000000000000000000", // TBD - needs deployment
         },
-        11155111: { // Sepolia
-          token: "0x3b7f247f68ff5b18fcd4a87c7e669b46dd1ad4a5",
-          staking: "0x9f80c885f8d9e8b3e9ca3e1c9e1c6e3e3e3e3e3e", // Example address
+        // Placeholder for build compatibility (remove after deployment)
+        1: { // Mainnet (placeholder)
+          token: "0x0000000000000000000000000000000000000000",
+          staking: "0x0000000000000000000000000000000000000000",
         },
+        11155111: { // Sepolia (placeholder)
+          token: "0x0000000000000000000000000000000000000000",
+          staking: "0x0000000000000000000000000000000000000000",
+        },
+        // SagaEVM deployment TBD
       },
     },
 
-    // Collateral tokens (for borrowing)
+    // Collateral tokens (for borrowing) - Multi-chain: Ronin + SagaEVM
     collaterals: [
+      // === ETH-based collaterals (110% MCR, 90.91% max LTV) ===
       {
         symbol: "ETH" as const,
         name: "ETH",
         icon: "eth",
-        collateralRatio: 1.1,
-        // Protocol limits
-        maxDeposit: "100000000", // 100M ETH
-        maxLTV: 0.916, // 91.6% max LTV
+        collateralRatio: 1.1, // 110% MCR
+        maxDeposit: "100000000", // $100M initial debt limit
+        maxLTV: 0.9091, // 90.91% max LTV
         // Deployment info (per chain)
         deployments: {
-          // Mainnet
+          646: { // Ronin (TBD - needs actual WETH deployment)
+            collToken: "0xeb41D53F14Cb9a67907f2b8b5DBc223944158cCb", // From your data
+            leverageZapper: "0x0000000000000000000000000000000000000000", // TBD
+            stabilityPool: "0x0000000000000000000000000000000000000000", // TBD
+            troveManager: "0x0000000000000000000000000000000000000000", // TBD
+          },
+          // Placeholder deployments for build compatibility
           1: {
             collToken: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
             leverageZapper: "0x978d7188ae01881d254ad7e94874653b0c268004",
             stabilityPool: "0xf69eb8c0d95d4094c16686769460f678727393cf",
             troveManager: "0x81d78814df42da2cab0e8870c477bc3ed861de66",
           },
-          // Sepolia
           11155111: {
             collToken: "0x8116d0a0e8d4f0197b428c520953f302adca0b50",
             leverageZapper: "0x482bf4d6a2e61d259a7f97ef6aac8b3ce5dd9f99",
@@ -116,12 +136,19 @@ export const WHITE_LABEL_CONFIG = {
       },
       {
         symbol: "RETH" as const,
-        name: "rETH", 
+        name: "Rocket Pool ETH", 
         icon: "reth",
-        collateralRatio: 1.2,
-        maxDeposit: "100000000",
-        maxLTV: 0.916,
+        collateralRatio: 1.1, // 110% MCR for LSTs
+        maxDeposit: "25000000", // $25M initial debt limit
+        maxLTV: 0.9091, // 90.91% max LTV
         deployments: {
+          646: { // Ronin (TBD - needs actual rETH deployment)
+            collToken: "0xae78736Cd615f374D3085123A210448E74Fc6393", // From your data
+            leverageZapper: "0x0000000000000000000000000000000000000000", // TBD
+            stabilityPool: "0x0000000000000000000000000000000000000000", // TBD
+            troveManager: "0x0000000000000000000000000000000000000000", // TBD
+          },
+          // Placeholder deployments for build compatibility
           1: {
             collToken: "0xae78736cd615f374d3085123a210448e74fc6393",
             leverageZapper: "0x7d5f19a1e48479a95c4eb40fd1a534585026e7e5",
@@ -136,14 +163,22 @@ export const WHITE_LABEL_CONFIG = {
           },
         },
       },
+      // === BTC-based collaterals (110% MCR, 90.91% max LTV) ===
       {
-        symbol: "WSTETH" as const,
-        name: "wstETH",
-        icon: "wsteth",
-        collateralRatio: 1.2,
-        maxDeposit: "100000000",
-        maxLTV: 0.916,
+        symbol: "TBTC" as const,
+        name: "tBTC",
+        icon: "btc", // Need to add BTC icon
+        collateralRatio: 1.1, // 110% MCR
+        maxDeposit: "100000000", // $100M initial debt limit
+        maxLTV: 0.9091, // 90.91% max LTV
         deployments: {
+          646: { // Ronin (TBD - needs actual tBTC deployment)
+            collToken: "0x8dAEBADE922dF735c38C80C7eBD708Af50815fAa", // From your data
+            leverageZapper: "0x0000000000000000000000000000000000000000", // TBD
+            stabilityPool: "0x0000000000000000000000000000000000000000", // TBD
+            troveManager: "0x0000000000000000000000000000000000000000", // TBD
+          },
+          // Placeholder deployments for build compatibility
           1: {
             collToken: "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
             leverageZapper: "0xc3d864adc2a9b49d52e640b697241408d896179f",
@@ -155,6 +190,120 @@ export const WHITE_LABEL_CONFIG = {
             leverageZapper: "0xea7fb1919bf9bae007df10ad8b748ee75fd5971d",
             stabilityPool: "0x68320bd4bbc16fe14f91501380edaa9ffe5890e1",
             troveManager: "0xa7b57913b5643025a15c80ca3a56eb6fb59d095d",
+          },
+        },
+      },
+      {
+        symbol: "FBTC" as const,
+        name: "FBTC",
+        icon: "btc", // Reuse BTC icon
+        collateralRatio: 1.1, // 110% MCR
+        maxDeposit: "100000000", // $100M initial debt limit
+        maxLTV: 0.9091, // 90.91% max LTV
+        deployments: {
+          646: { // Ronin
+            collToken: "0xC96dE26018A54D51c097160568752c4E3BD6C364",
+            leverageZapper: "0x0000000000000000000000000000000000000000", // TBD
+            stabilityPool: "0x0000000000000000000000000000000000000000", // TBD
+            troveManager: "0x0000000000000000000000000000000000000000", // TBD
+          },
+          1: { // Placeholder
+            collToken: "0x0000000000000000000000000000000000000000",
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+          11155111: { // Placeholder
+            collToken: "0x0000000000000000000000000000000000000000",
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
+      // === Native/Platform tokens (higher collateral ratios) ===
+      {
+        symbol: "SAGA" as const,
+        name: "SAGA",
+        icon: "saga", // Need to add SAGA icon
+        collateralRatio: 1.4, // 140% MCR
+        maxDeposit: "5000000", // $5M initial debt limit
+        maxLTV: 0.7143, // 71.43% max LTV
+        deployments: {
+          646: { // Ronin
+            collToken: "0xA19377761FED745723B90993988E04d641c2CfFE",
+            leverageZapper: "0x0000000000000000000000000000000000000000", // TBD
+            stabilityPool: "0x0000000000000000000000000000000000000000", // TBD
+            troveManager: "0x0000000000000000000000000000000000000000", // TBD
+          },
+          1: { // Placeholder
+            collToken: "0x0000000000000000000000000000000000000000",
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+          11155111: { // Placeholder
+            collToken: "0x0000000000000000000000000000000000000000",
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
+      {
+        symbol: "SUI" as const,
+        name: "SUI",
+        icon: "sui", // Need to add SUI icon
+        collateralRatio: 1.4, // 140% MCR
+        maxDeposit: "5000000", // $5M initial debt limit
+        maxLTV: 0.7143, // 71.43% max LTV
+        deployments: {
+          646: { // Ronin (TBD - SUI bridge/wrapper)
+            collToken: "0x0000000000000000000000000000000000000002::sui::SUI", // From your data (needs bridge)
+            leverageZapper: "0x0000000000000000000000000000000000000000", // TBD
+            stabilityPool: "0x0000000000000000000000000000000000000000", // TBD
+            troveManager: "0x0000000000000000000000000000000000000000", // TBD
+          },
+          // Placeholder deployments for build compatibility
+          1: { // Placeholder
+            collToken: "0x0000000000000000000000000000000000000000",
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+          11155111: { // Placeholder
+            collToken: "0x0000000000000000000000000000000000000000",
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
+      {
+        symbol: "KING" as const,
+        name: "KING",
+        icon: "king", // Need to add KING icon
+        collateralRatio: 2.0, // 200% MCR (high volatility asset)
+        maxDeposit: "500000", // $500K initial debt limit
+        maxLTV: 0.5, // 50% max LTV
+        deployments: {
+          646: { // Ronin
+            collToken: "0x8f08b70456eb22f6109f57b8fafe862ed28e6040",
+            leverageZapper: "0x0000000000000000000000000000000000000000", // TBD
+            stabilityPool: "0x0000000000000000000000000000000000000000", // TBD
+            troveManager: "0x0000000000000000000000000000000000000000", // TBD
+          },
+          1: { // Placeholder
+            collToken: "0x0000000000000000000000000000000000000000",
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+          11155111: { // Placeholder
+            collToken: "0x0000000000000000000000000000000000000000",
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
           },
         },
       },
@@ -170,9 +319,15 @@ export const WHITE_LABEL_CONFIG = {
       },
       // Staked version of main token
       staked: {
-        symbol: "SBOLD" as const,
-        name: "sLOL", // s + mainToken symbol
+        symbol: "sSAGA" as const,
+        name: "Staked SAGA",
         icon: "staked-main-token",
+      },
+      // ETH for V1 staking rewards display
+      eth: {
+        symbol: "ETH" as const,
+        name: "ETH",
+        icon: "eth",
       },
     },
   },
@@ -182,28 +337,28 @@ export const WHITE_LABEL_CONFIG = {
   // ===========================
   branding: {
     // Core app identity
-    appName: "NEW NAME V2",        // Full app name for titles, about pages
-    brandName: "New Name",         // Core brand name for protocol/version references
-    appTagline: "Next-gen borrowing protocol",
-    appDescription: "A new borrowing protocol that lets users deposit ETH or LSTs as collateral",
-    appUrl: "https://www.newname.org/",
+    appName: "Saga Protocol",        // Full app name for titles, about pages
+    brandName: "Saga",              // Core brand name for protocol/version references
+    appTagline: "Multi-chain stablecoin protocol",
+    appDescription: "Borrow MUST against multiple collateral types on Ronin",
+    appUrl: "https://saga.finance/",
     
     // External links
     links: {
       docs: {
-        base: "https://docs.liquity.org/v2-faq/",
-        redemptions: "https://docs.liquity.org/v2-faq/redemptions-and-delegation",
-        liquidations: "https://docs.liquity.org/v2-faq/liquidations",
-        delegation: "https://docs.liquity.org/v2-faq/batch-managers-and-delegation",
-        interestRates: "https://docs.liquity.org/v2-faq/interest-rates",
-        earn: "https://docs.liquity.org/v2-faq/bold-and-earn",
-        staking: "https://docs.liquity.org/v2-faq/lqty-staking",
+        base: "https://docs.saga.finance/",
+        redemptions: "https://docs.saga.finance/redemptions",
+        liquidations: "https://docs.saga.finance/liquidations",
+        delegation: "https://docs.saga.finance/delegation",
+        interestRates: "https://docs.saga.finance/interest-rates",
+        earn: "https://docs.saga.finance/earn",
+        staking: "https://docs.saga.finance/staking",
       },
-      dune: "https://dune.com/liquity/liquity-v2",
-      discord: "https://discord.gg/liquity",
-      github: "https://github.com/liquity/liquity-v2",
-      x: "https://x.com/liquityprotocol",
-      friendlyForkProgram: "https://www.liquity.org/friendly-fork-program",
+      dune: "https://dune.com/saga/saga-protocol",
+      discord: "https://discord.gg/saga",
+      github: "https://github.com/NeriteOrg/saga",
+      x: "https://x.com/sagaprotocol",
+      friendlyForkProgram: "https://saga.finance/ecosystem",
     },
     
     // Feature flags and descriptions
@@ -222,11 +377,11 @@ export const WHITE_LABEL_CONFIG = {
       },
     },
     
-    // Navigation configuration
+    // Navigation configuration  
     navigation: {
       showBorrow: true,
       showEarn: true,
-      showStake: false,
+      showStake: true, // Enable staking for SAGA governance
     },
     
     // Menu labels (can be customized per deployment)
