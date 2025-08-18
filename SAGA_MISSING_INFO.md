@@ -24,9 +24,6 @@ NEXT_PUBLIC_CONTRACT_GOVERNANCE=
 NEXT_PUBLIC_CONTRACT_HINT_HELPERS=
 NEXT_PUBLIC_CONTRACT_MULTI_TROVE_GETTER=
 NEXT_PUBLIC_CONTRACT_EXCHANGE_HELPERS=
-NEXT_PUBLIC_CONTRACT_LQTY_STAKING=
-NEXT_PUBLIC_CONTRACT_LQTY_TOKEN=0xA19377761FED745723B90993988E04d641c2CfFE
-NEXT_PUBLIC_CONTRACT_LUSD_TOKEN=
 NEXT_PUBLIC_CONTRACT_WETH=
 ```
 
@@ -168,5 +165,5 @@ EMERGENCY_MULTISIG=
 
 - **SUI Token**: Needs bridge/wrapper contract since SUI is from Sui blockchain
 - **Oracle Feeds**: Each PRICE_FEED contract should aggregate multiple oracle sources
-- **LUSD Token**: Can be set to zero address if V1 compatibility not needed
-- **LQTY Staking**: Should be replaced with SAGA staking contract
+- **No Staking/Governance**: No staking or governance functionality at launch
+- **Removed Contracts**: LQTY_STAKING, LQTY_TOKEN, LUSD_TOKEN not needed (removed from deployment)

@@ -76,28 +76,24 @@ export const WHITE_LABEL_CONFIG = {
       },
     },
 
-    // Governance token
+    // Governance token (exists but no functionality at launch)
     governanceToken: {
       name: "SAGA",
       symbol: "SAGA" as const,
       ticker: "SAGA",
       icon: "governance-token",
-      // Contract addresses per chain
+      // Only used as collateral, no governance features
       deployments: {
         646: { // Ronin mainnet
           token: "0xA19377761FED745723B90993988E04d641c2CfFE",
-          staking: "0x0000000000000000000000000000000000000000", // TBD - needs deployment
         },
         // Placeholder for build compatibility (remove after deployment)
-        1: { // Mainnet (placeholder)
+        1: {
           token: "0x0000000000000000000000000000000000000000",
-          staking: "0x0000000000000000000000000000000000000000",
         },
-        11155111: { // Sepolia (placeholder)
+        11155111: {
           token: "0x0000000000000000000000000000000000000000",
-          staking: "0x0000000000000000000000000000000000000000",
         },
-        // SagaEVM deployment TBD
       },
     },
 
@@ -311,19 +307,7 @@ export const WHITE_LABEL_CONFIG = {
 
     // Other tokens in the protocol
     otherTokens: {
-      // Legacy Liquity USD token
-      lusd: {
-        symbol: "LUSD" as const,
-        name: "LUSD",
-        icon: "legacy-stablecoin",
-      },
-      // Staked version of main token
-      staked: {
-        symbol: "sSAGA" as const,
-        name: "Staked SAGA",
-        icon: "staked-main-token",
-      },
-      // ETH for V1 staking rewards display
+      // ETH for display purposes
       eth: {
         symbol: "ETH" as const,
         name: "ETH",
@@ -352,7 +336,6 @@ export const WHITE_LABEL_CONFIG = {
         delegation: "https://docs.saga.finance/delegation",
         interestRates: "https://docs.saga.finance/interest-rates",
         earn: "https://docs.saga.finance/earn",
-        staking: "https://docs.saga.finance/staking",
       },
       dune: "https://dune.com/saga/saga-protocol",
       discord: "https://discord.gg/saga",
@@ -363,17 +346,11 @@ export const WHITE_LABEL_CONFIG = {
     
     // Feature flags and descriptions
     features: {
-      showV1Legacy: true, // Show legacy V1 related content
+      showV1Legacy: false, // No V1 legacy content for Saga
       friendlyFork: {
         enabled: true,
         title: "Learn more about the Friendly Fork Program",
         description: "A program for collaborative protocol development",
-      },
-      staking: {
-        enabled: true,
-        title: "Direct protocol incentives", 
-        description: "Direct protocol incentives with governance token while earning from V1",
-        showV1Earnings: true,
       },
     },
     
@@ -381,7 +358,7 @@ export const WHITE_LABEL_CONFIG = {
     navigation: {
       showBorrow: true,
       showEarn: true,
-      showStake: true, // Enable staking for SAGA governance
+      showStake: false,
     },
     
     // Menu labels (can be customized per deployment)
@@ -390,7 +367,6 @@ export const WHITE_LABEL_CONFIG = {
       borrow: "Borrow",
       multiply: "Multiply", 
       earn: "Earn",
-      stake: "Stake",
     },
     
     // Common UI text
@@ -406,8 +382,7 @@ export const WHITE_LABEL_CONFIG = {
   // EARN POOLS CONFIGURATION
   // ===========================
   earnPools: {
-    // Enable/disable the staked main token pool (sSBOLD/etc)
-    enableStakedMainToken: true,
+    enableStakedMainToken: false,
     
     // Enable/disable stability pools for collaterals
     enableStabilityPools: true,
@@ -436,15 +411,6 @@ export function getAvailableEarnPools() {
         name: `${collateral.name} Stability Pool`,
         type: 'stability',
       });
-    });
-  }
-  
-  // Add staked main token pool
-  if (WHITE_LABEL_CONFIG.earnPools.enableStakedMainToken) {
-    pools.push({
-      symbol: WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol.toLowerCase(),
-      name: `${WHITE_LABEL_CONFIG.tokens.otherTokens.staked.name} Pool`,
-      type: 'staked',
     });
   }
   

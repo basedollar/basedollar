@@ -48,8 +48,6 @@ type ConfigCollateralSymbol = typeof WHITE_LABEL_CONFIG.tokens.collaterals[numbe
 export type TokenSymbol =
   | typeof WHITE_LABEL_CONFIG.tokens.mainToken.symbol
   | typeof WHITE_LABEL_CONFIG.tokens.governanceToken.symbol
-  | typeof WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.symbol
-  | typeof WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol
   | typeof WHITE_LABEL_CONFIG.tokens.otherTokens.eth.symbol
   | ConfigCollateralSymbol;
 
@@ -59,8 +57,6 @@ export function isTokenSymbol(symbolOrUrl: string): symbolOrUrl is TokenSymbol {
   return (
     symbolOrUrl === WHITE_LABEL_CONFIG.tokens.mainToken.symbol
     || symbolOrUrl === WHITE_LABEL_CONFIG.tokens.governanceToken.symbol
-    || symbolOrUrl === WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.symbol
-    || symbolOrUrl === WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol
     || symbolOrUrl === WHITE_LABEL_CONFIG.tokens.otherTokens.eth.symbol
     || WHITE_LABEL_CONFIG.tokens.collaterals.some(c => c.symbol === symbolOrUrl)
   );
@@ -88,17 +84,6 @@ const GOVERNANCE_TOKEN: Token = {
   symbol: WHITE_LABEL_CONFIG.tokens.governanceToken.symbol,
 } as const;
 
-const LUSD: Token = {
-  icon: tokenIconMap[WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.icon],
-  name: WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.name,
-  symbol: WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.symbol,
-} as const;
-
-const STAKED_TOKEN: Token = {
-  icon: tokenIconMap[WHITE_LABEL_CONFIG.tokens.otherTokens.staked.icon],
-  name: WHITE_LABEL_CONFIG.tokens.otherTokens.staked.name,
-  symbol: WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol,
-} as const;
 
 const ETH_TOKEN: Token = {
   icon: tokenIconMap[WHITE_LABEL_CONFIG.tokens.otherTokens.eth.icon],
@@ -124,8 +109,6 @@ export const COLLATERALS: CollateralToken[] = WHITE_LABEL_CONFIG.tokens.collater
 const tokensMap: Record<string, Token | CollateralToken> = {
   [WHITE_LABEL_CONFIG.tokens.mainToken.symbol]: MAIN_TOKEN,
   [WHITE_LABEL_CONFIG.tokens.governanceToken.symbol]: GOVERNANCE_TOKEN,
-  [WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.symbol]: LUSD,
-  [WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol]: STAKED_TOKEN,
   [WHITE_LABEL_CONFIG.tokens.otherTokens.eth.symbol]: ETH_TOKEN,
 };
 

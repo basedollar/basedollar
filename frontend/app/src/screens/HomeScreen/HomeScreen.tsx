@@ -21,7 +21,6 @@ import {
   useEarnPool,
 } from "@/src/liquity-utils";
 import { getAvailableEarnPools } from "@/src/white-label.config";
-import { useSboldStats } from "@/src/sbold";
 import { useAccount } from "@/src/wagmi-utils";
 import { css } from "@/styled-system/css";
 import { IconBorrow, IconEarn, TokenIcon } from "@liquity2/uikit";
@@ -167,20 +166,19 @@ function EarnTable({
           subtitle={content.home.earnTable.subtitle}
           icon={<IconEarn />}
           columns={columns}
-          rows={getAvailableEarnPools().map((pool) => {
-            // Convert pool symbol back to the format expected by the component
-            const symbol = pool.type === 'staked' 
-              ? WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol
-              : pool.symbol.toUpperCase();
-            
-            return (
-              <EarnRewardsRow
-                key={pool.symbol}
-                compact={compact}
-                symbol={symbol as any}
-              />
-            );
-          })}
+          rows={getAvailableEarnPools()
+            .filter(pool => pool.type !== 'staked')
+            .map((pool) => {
+              const symbol = pool.symbol.toUpperCase();
+              
+              return (
+                <EarnRewardsRow
+                  key={pool.symbol}
+                  compact={compact}
+                  symbol={symbol as CollateralSymbol}
+                />
+              );
+            })}
         />
       </div>
       <div
@@ -384,13 +382,11 @@ function EarnRewardsRow({
   symbol,
 }: {
   compact: boolean;
-  symbol: CollateralSymbol | typeof WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol;
+  symbol: CollateralSymbol;
 }) {
-  const stakedSymbol = WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol;
-  const branch = symbol === stakedSymbol ? null : getBranch(symbol);
+  const branch = getBranch(symbol);
   const token = getToken(symbol);
   const earnPool = useEarnPool(branch?.id ?? null);
-  const sboldStats = useSboldStats();
   return (
     <tr>
       <td>
@@ -402,25 +398,21 @@ function EarnRewardsRow({
           })}
         >
           <TokenIcon symbol={symbol} size="mini" />
-          <span>{symbol === stakedSymbol ? `${WHITE_LABEL_CONFIG.tokens.otherTokens.staked.name} by K3 Capital` : token?.name}</span>
+          <span>{token?.name}</span>
         </div>
       </td>
       <td>
         <Amount
           fallback="…"
           percentage
-          value={symbol === stakedSymbol
-            ? sboldStats.data?.apr
-            : earnPool.data?.apr}
+          value={earnPool.data?.apr}
         />
       </td>
       <td>
         <Amount
           fallback="…"
           percentage
-          value={symbol === stakedSymbol
-            ? sboldStats.data?.apr7d
-            : earnPool.data?.apr7d}
+          value={earnPool.data?.apr7d}
         />
       </td>
       <td>
@@ -428,9 +420,7 @@ function EarnRewardsRow({
           fallback="…"
           format="compact"
           prefix="$"
-          value={symbol === stakedSymbol
-            ? sboldStats.data?.totalBold
-            : earnPool.data?.totalDeposited}
+          value={earnPool.data?.totalDeposited}
         />
       </td>
       {!compact && (
@@ -449,15 +439,7 @@ function EarnRewardsRow({
                 Earn
                 <TokenIcon.Group size="mini">
                   <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />
-                  {symbol === stakedSymbol
-                    ? (
-                      <div
-                        className={css({
-                          width: 16,
-                        })}
-                      />
-                    )
-                    : <TokenIcon symbol={symbol} />}
+                  <TokenIcon symbol={symbol} />
                 </TokenIcon.Group>
               </div>
             }
