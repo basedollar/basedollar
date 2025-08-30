@@ -7,6 +7,7 @@ import { CHAIN_ID } from "@/src/env";
 import { usePrice } from "@/src/services/Prices";
 import { useVotingStateContext } from "@/src/screens/StakeScreen/components/PanelVoting/providers/PanelVotingProvider/hooks";
 import { TokenIcon } from "@liquity2/uikit";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 import type { FC } from "react";
 import type { Address } from "@liquity2/uikit";
@@ -18,7 +19,7 @@ interface BribeInfoProps {
 export const BribeInfo: FC<BribeInfoProps> = ({ initiativeAddress }) => {
   const { currentBribesData } = useVotingStateContext();
   const bribe = currentBribesData?.[initiativeAddress];
-  const boldPrice = usePrice(bribe ? "BOLD" : null);
+  const boldPrice = usePrice(bribe ? WHITE_LABEL_CONFIG.tokens.mainToken.symbol : null);
   const bribeTokenPrice = usePrice(bribe ? bribe.tokenSymbol : null);
 
   if (!bribe || (gt(bribe.boldAmount, 0) && gt(bribe.tokenAmount, 0))) {
@@ -48,14 +49,14 @@ export const BribeInfo: FC<BribeInfoProps> = ({ initiativeAddress }) => {
       >
         {gt(bribe.boldAmount, 0) && (
           <div
-            title={`${fmtnum(bribe.boldAmount)} BOLD`}
+            title={`${fmtnum(bribe.boldAmount)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
             className={css({
               display: "flex",
               alignItems: "center",
               gap: 4,
             })}
           >
-            <TokenIcon symbol="BOLD" size={12} title={null} />
+            <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} size={12} title={null} />
             <Amount format="compact" title={null} value={bribe.boldAmount} />
             {boldPrice.data && (
               <Amount

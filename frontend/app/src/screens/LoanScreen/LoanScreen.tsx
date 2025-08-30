@@ -8,6 +8,7 @@ import { Field } from "@/src/comps/Field/Field";
 import { LinkTextButton } from "@/src/comps/LinkTextButton/LinkTextButton";
 import { Screen } from "@/src/comps/Screen/Screen";
 import content from "@/src/content";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { getBranchContract } from "@/src/contracts";
 import { dnum18 } from "@/src/dnum-utils";
 import { TROVE_EXPLORER_0, TROVE_EXPLORER_1 } from "@/src/env";
@@ -270,9 +271,9 @@ export function LoanScreen() {
                                 </time>.
                                 <br />
                                 <InlineTokenAmount
-                                  symbol="BOLD"
+                                  symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
                                   value={loan.data.redeemedDebt}
-                                  suffix=" BOLD"
+                                  suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                                 />{" "}
                                 repaid in exchange for{" "}
                                 <InlineTokenAmount

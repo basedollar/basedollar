@@ -5,6 +5,7 @@ import { match, P } from "ts-pattern";
 import { Spinner } from "@/src/comps/Spinner/Spinner.tsx";
 import { token } from "@/styled-system/tokens";
 import { IconBorrow, IconLeverage, Button } from "@liquity2/uikit";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 import type { FC, PropsWithChildren } from "react";
 import type { LoadingState } from "@/src/screens/TransactionsScreen/TransactionsScreen.tsx";
@@ -25,7 +26,7 @@ export const LoadingCard: FC<LoadingCardProps> = ({
   onRetry,
   children,
 }) => {
-  const title = leverage ? "Multiply" : "BOLD loan";
+  const title = leverage ? "Multiply" : `${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} loan`;
 
   const spring = useSpring({
     to: match(loadingState)

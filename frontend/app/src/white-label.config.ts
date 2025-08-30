@@ -86,13 +86,15 @@ export const WHITE_LABEL_CONFIG = {
       deployments: {
         646: { // Ronin mainnet
           token: "0xA19377761FED745723B90993988E04d641c2CfFE",
+          staking: "0x0"
         },
-        // Placeholder for build compatibility (remove after deployment)
         1: {
           token: "0x0000000000000000000000000000000000000000",
+          staking: "0x0"
         },
         11155111: {
           token: "0x0000000000000000000000000000000000000000",
+          staking: "0x0"
         },
       },
     },
@@ -313,6 +315,23 @@ export const WHITE_LABEL_CONFIG = {
         name: "ETH",
         icon: "eth",
       },
+      // SBOLD - yield-bearing version of the main token
+      sbold: {
+        symbol: "SBOLD" as const,
+        name: "SBOLD",
+        icon: "sbold",
+      },
+      // Staked version of main token
+      staked: {
+        symbol: "sSAGA" as const,
+        name: "Staked SAGA",
+        icon: "staked-main-token",
+      },
+      lusd: {
+        symbol: "LUSD" as const,
+        name: "LUSD",
+        icon: "legacy-stablecoin",
+      },
     },
   },
 
@@ -336,6 +355,7 @@ export const WHITE_LABEL_CONFIG = {
         delegation: "https://docs.saga.finance/delegation",
         interestRates: "https://docs.saga.finance/interest-rates",
         earn: "https://docs.saga.finance/earn",
+        staking: "https://docs.saga.finance/staking",
       },
       dune: "https://dune.com/saga/saga-protocol",
       discord: "https://discord.gg/saga",
@@ -367,6 +387,7 @@ export const WHITE_LABEL_CONFIG = {
       borrow: "Borrow",
       multiply: "Multiply", 
       earn: "Earn",
+      stake: "Stake"
     },
     
     // Common UI text
