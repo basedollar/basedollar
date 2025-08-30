@@ -28,6 +28,7 @@ import * as dn from "dnum";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { HomeTable } from "./HomeTable";
+import { YieldSourceTable } from "./YieldSourceTable";
 
 type ForkInfo = (typeof FORKS_INFO)[number];
 
@@ -62,12 +63,22 @@ export function HomeScreen() {
             base: "1fr",
             large: "1fr 1fr",
           },
+          gridTemplateAreas: {
+            base: `
+              "borrow"
+              "earn"
+              "yield"
+            `,
+            large: `
+              "borrow earn"
+              "borrow yield"
+            `,
+          },
         })}
       >
-        <div>
-          <BorrowTable compact={compact} />
-        </div>
+        <BorrowTable compact={compact} />
         <EarnTable compact={compact} />
+        <YieldSourceTable compact={compact} />
       </div>
     </div>
   );
@@ -105,19 +116,17 @@ function BorrowTable({
   }
 
   return (
-    <HomeTable
-      title={`Borrow ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} against ETH and staked ETH`}
-      subtitle="You can adjust your loans, including your interest rate, at any time"
-      icon={<IconBorrow />}
-      columns={columns}
-      rows={getBranches().map(({ symbol }) => (
-        <BorrowingRow
-          key={symbol}
-          compact={compact}
-          symbol={symbol}
-        />
-      ))}
-    />
+    <div className={css({ gridArea: "borrow" })}>
+      <HomeTable
+        title={`Borrow ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} against ETH and staked ETH`}
+        subtitle="You can adjust your loans, including your interest rate, at any time"
+        icon={<IconBorrow />}
+        columns={columns}
+        rows={getBranches().map(({ symbol }) => (
+          <BorrowingRow key={symbol} compact={compact} symbol={symbol} />
+        ))}
+      />
+    </div>
   );
 }
 
@@ -150,9 +159,7 @@ function EarnTable({
   return (
     <div
       className={css({
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
+        gridArea: "earn",
       })}
     >
       <div

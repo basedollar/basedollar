@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import type { LoanLoadingState } from "./LoanScreen";
 
 import { useFlashTransition } from "@/src/anim-utils";
-import { useBreakpoint } from "@/src/breakpoints";
 import { INFINITY } from "@/src/characters";
 import { ScreenCard } from "@/src/comps/Screen/ScreenCard";
 import { LoanStatusTag } from "@/src/comps/Tag/LoanStatusTag";
@@ -37,7 +36,6 @@ import { a, useTransition } from "@react-spring/web";
 import { blo } from "blo";
 import * as dn from "dnum";
 import Image from "next/image";
-import { useState } from "react";
 import { match, P } from "ts-pattern";
 
 type LoanMode = "borrow" | "multiply";
@@ -341,11 +339,6 @@ function LoanCard(props: {
   nftUrl: string | null;
   onLeverageModeChange: (mode: LoanMode) => void;
 }) {
-  const [compactMode, setCompactMode] = useState(false);
-  useBreakpoint(({ medium }) => {
-    setCompactMode(!medium);
-  });
-
   const cardTransition = useTransition(props, {
     keys: (props) => props.mode,
     initial: {
@@ -449,8 +442,14 @@ function LoanCard(props: {
                     titleFull={`${title}: ${troveId}`}
                     statusTag={loan.status === "liquidated"
                       ? <LoanStatusTag status="liquidated" />
-                      : loan.status === "redeemed"
-                      ? <LoanStatusTag status="redeemed" />
+                      : loan.status === "redeemed" && "indexedDebt" in loan
+                      ? (
+                        <LoanStatusTag
+                          status={dn.eq(loan.indexedDebt, 0)
+                            ? "fully-redeemed"
+                            : "partially-redeemed"}
+                        />
+                      )
                       : null}
                   />
                   <div
@@ -668,7 +667,7 @@ function LoanCard(props: {
                   gap: 12,
                 })}
                 style={{
-                  gridTemplateColumns: `repeat(${compactMode ? 2 : 3}, 1fr)`,
+                  gridTemplateColumns: 'repeat(2, 1fr)',
                 }}
               >
                 {fullyRedeemed

@@ -16,6 +16,7 @@ import Image from "next/image";
 import { AboutButton } from "./AboutButton";
 
 const DISPLAYED_PRICES = [WHITE_LABEL_CONFIG.tokens.governanceToken.symbol, WHITE_LABEL_CONFIG.tokens.mainToken.symbol, "ETH"] as const;
+const ENABLE_REDEEM = false;
 
 export function BottomBar() {
   const account = useAccount();
@@ -137,28 +138,30 @@ export function BottomBar() {
                 )}
               </span>
             </div>
-            <LinkTextButton
-              id="footer-redeem-button"
-              href="/redeem"
-              label={
-                <div
-                  className={css({
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    whiteSpace: "nowrap",
-                  })}
-                >
-                  Redeem {WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
-                </div>
-              }
-              className={css({
-                color: "content",
-                borderRadius: 4,
-                _focusVisible: { outline: "2px solid token(colors.focused)" },
-                _active: { translate: "0 1px" },
-              })}
-            />
+            {ENABLE_REDEEM && (
+              <LinkTextButton
+                id="footer-redeem-button"
+                href="/redeem"
+                label={
+                  <div
+                    className={css({
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      whiteSpace: "nowrap",
+                    })}
+                  >
+                    Redeem {WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
+                  </div>
+                }
+                className={css({
+                  color: "content",
+                  borderRadius: 4,
+                  _focusVisible: { outline: "2px solid token(colors.focused)" },
+                  _active: { translate: "0 1px" },
+                })}
+              />
+            )}
           </div>
           <div
             className={css({

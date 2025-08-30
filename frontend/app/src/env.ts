@@ -80,6 +80,26 @@ function vBranchEnvVars(branchId: BranchId) {
   });
 }
 
+const vOptionalTroveExplorer = v.pipe(
+  v.optional(v.string()),
+  v.transform((x) => {
+    if (!x) return null;
+    const [name, url] = x.split("|");
+    return {
+      name: v.parse(v.string(), name),
+      url: v.parse(
+        v.pipe(
+          v.string(),
+          v.url(),
+          v.includes("{branch}", "Trove explorer URL must contain {branch}"),
+          v.includes("{troveId}", "Trove explorer URL must contain {troveId}"),
+        ),
+        url,
+      ),
+    };
+  }),
+);
+
 export const EnvSchema = v.pipe(
   v.object({
     ACCOUNT_SCREEN: v.optional(vEnvFlag(), "false"),
@@ -163,8 +183,8 @@ export const EnvSchema = v.pipe(
     LEGACY_CHECK: v.optional(vEnvLegacyCheck(), "true"),
     LIQUITY_STATS_URL: v.optional(v.pipe(v.string(), v.url())),
     LIQUITY_GOVERNANCE_URL: v.optional(v.union([v.pipe(v.string(), v.url()), v.literal("")])),
-    SAFE_API_URL: v.optional(v.pipe(v.string(), v.url())),
-    SBOLD: v.optional(v.union([vAddress(), v.null()]), null),
+    SAFE_API_URL: v.optional(v.union([v.pipe(v.string(), v.url()), v.literal("")])),
+    SBOLD: v.optional(v.union([vAddress(), v.literal("")])),
     SUBGRAPH_URL: v.pipe(v.string(), v.url()),
     VERCEL_ANALYTICS: v.optional(vEnvFlag(), "false"),
     WALLET_CONNECT_PROJECT_ID: v.pipe(
@@ -175,9 +195,12 @@ export const EnvSchema = v.pipe(
         "WALLET_CONNECT_PROJECT_ID must be set",
       ),
     ),
+    TROVE_EXPLORER_0: vOptionalTroveExplorer,
+    TROVE_EXPLORER_1: vOptionalTroveExplorer,
 
     CONTRACT_MAIN_TOKEN: vAddress(),
     CONTRACT_COLLATERAL_REGISTRY: vAddress(),
+    CONTRACT_DEBT_IN_FRONT_HELPER: vAddress(),
     CONTRACT_EXCHANGE_HELPERS: vAddress(),
     CONTRACT_GOVERNANCE: vAddress(),
     CONTRACT_HINT_HELPERS: vAddress(),
@@ -329,9 +352,12 @@ const parsedEnv = v.safeParse(EnvSchema, {
   SUBGRAPH_URL: process.env.NEXT_PUBLIC_SUBGRAPH_URL,
   VERCEL_ANALYTICS: process.env.NEXT_PUBLIC_VERCEL_ANALYTICS,
   WALLET_CONNECT_PROJECT_ID: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID,
+  TROVE_EXPLORER_0: process.env.NEXT_PUBLIC_TROVE_EXPLORER_0,
+  TROVE_EXPLORER_1: process.env.NEXT_PUBLIC_TROVE_EXPLORER_1,
 
   CONTRACT_MAIN_TOKEN: process.env.NEXT_PUBLIC_CONTRACT_MAIN_TOKEN,
   CONTRACT_COLLATERAL_REGISTRY: process.env.NEXT_PUBLIC_CONTRACT_COLLATERAL_REGISTRY,
+  CONTRACT_DEBT_IN_FRONT_HELPER: process.env.NEXT_PUBLIC_CONTRACT_DEBT_IN_FRONT_HELPER,
   CONTRACT_EXCHANGE_HELPERS: process.env.NEXT_PUBLIC_CONTRACT_EXCHANGE_HELPERS,
   CONTRACT_GOVERNANCE: process.env.NEXT_PUBLIC_CONTRACT_GOVERNANCE,
   CONTRACT_HINT_HELPERS: process.env.NEXT_PUBLIC_CONTRACT_HINT_HELPERS,
@@ -421,6 +447,7 @@ export const {
   CONTRACTS_COMMIT_URL,
   CONTRACT_MAIN_TOKEN,
   CONTRACT_COLLATERAL_REGISTRY,
+  CONTRACT_DEBT_IN_FRONT_HELPER,
   CONTRACT_EXCHANGE_HELPERS,
   CONTRACT_GOVERNANCE,
   CONTRACT_HINT_HELPERS,
@@ -439,4 +466,6 @@ export const {
   SUBGRAPH_URL,
   VERCEL_ANALYTICS,
   WALLET_CONNECT_PROJECT_ID,
+  TROVE_EXPLORER_0,
+  TROVE_EXPLORER_1,
 } = parsedEnv.output;

@@ -608,6 +608,7 @@ export type InterestBatch = {
   debt: Scalars['BigInt']['output'];
   id: Scalars['ID']['output'];
   troves: Array<Trove>;
+  updatedAt: Scalars['BigInt']['output'];
 };
 
 
@@ -696,6 +697,14 @@ export type InterestBatch_Filter = {
   id_not_in?: InputMaybe<Array<Scalars['ID']['input']>>;
   or?: InputMaybe<Array<InputMaybe<InterestBatch_Filter>>>;
   troves_?: InputMaybe<Trove_Filter>;
+  updatedAt?: InputMaybe<Scalars['BigInt']['input']>;
+  updatedAt_gt?: InputMaybe<Scalars['BigInt']['input']>;
+  updatedAt_gte?: InputMaybe<Scalars['BigInt']['input']>;
+  updatedAt_in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+  updatedAt_lt?: InputMaybe<Scalars['BigInt']['input']>;
+  updatedAt_lte?: InputMaybe<Scalars['BigInt']['input']>;
+  updatedAt_not?: InputMaybe<Scalars['BigInt']['input']>;
+  updatedAt_not_in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
 };
 
 export enum InterestBatch_OrderBy {
@@ -709,15 +718,19 @@ export enum InterestBatch_OrderBy {
   CollateralMinCollRatio = 'collateral__minCollRatio',
   Debt = 'debt',
   Id = 'id',
-  Troves = 'troves'
+  Troves = 'troves',
+  UpdatedAt = 'updatedAt'
 }
 
 export type InterestRateBracket = {
   __typename?: 'InterestRateBracket';
   collateral: Collateral;
   id: Scalars['ID']['output'];
+  pendingDebtTimesOneYearD36: Scalars['BigInt']['output'];
   rate: Scalars['BigInt']['output'];
+  sumDebtTimesRateD36: Scalars['BigInt']['output'];
   totalDebt: Scalars['BigInt']['output'];
+  updatedAt: Scalars['BigInt']['output'];
 };
 
 export type InterestRateBracket_Filter = {
@@ -754,6 +767,14 @@ export type InterestRateBracket_Filter = {
   id_not?: InputMaybe<Scalars['ID']['input']>;
   id_not_in?: InputMaybe<Array<Scalars['ID']['input']>>;
   or?: InputMaybe<Array<InputMaybe<InterestRateBracket_Filter>>>;
+  pendingDebtTimesOneYearD36?: InputMaybe<Scalars['BigInt']['input']>;
+  pendingDebtTimesOneYearD36_gt?: InputMaybe<Scalars['BigInt']['input']>;
+  pendingDebtTimesOneYearD36_gte?: InputMaybe<Scalars['BigInt']['input']>;
+  pendingDebtTimesOneYearD36_in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+  pendingDebtTimesOneYearD36_lt?: InputMaybe<Scalars['BigInt']['input']>;
+  pendingDebtTimesOneYearD36_lte?: InputMaybe<Scalars['BigInt']['input']>;
+  pendingDebtTimesOneYearD36_not?: InputMaybe<Scalars['BigInt']['input']>;
+  pendingDebtTimesOneYearD36_not_in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
   rate?: InputMaybe<Scalars['BigInt']['input']>;
   rate_gt?: InputMaybe<Scalars['BigInt']['input']>;
   rate_gte?: InputMaybe<Scalars['BigInt']['input']>;
@@ -762,6 +783,14 @@ export type InterestRateBracket_Filter = {
   rate_lte?: InputMaybe<Scalars['BigInt']['input']>;
   rate_not?: InputMaybe<Scalars['BigInt']['input']>;
   rate_not_in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+  sumDebtTimesRateD36?: InputMaybe<Scalars['BigInt']['input']>;
+  sumDebtTimesRateD36_gt?: InputMaybe<Scalars['BigInt']['input']>;
+  sumDebtTimesRateD36_gte?: InputMaybe<Scalars['BigInt']['input']>;
+  sumDebtTimesRateD36_in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+  sumDebtTimesRateD36_lt?: InputMaybe<Scalars['BigInt']['input']>;
+  sumDebtTimesRateD36_lte?: InputMaybe<Scalars['BigInt']['input']>;
+  sumDebtTimesRateD36_not?: InputMaybe<Scalars['BigInt']['input']>;
+  sumDebtTimesRateD36_not_in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
   totalDebt?: InputMaybe<Scalars['BigInt']['input']>;
   totalDebt_gt?: InputMaybe<Scalars['BigInt']['input']>;
   totalDebt_gte?: InputMaybe<Scalars['BigInt']['input']>;
@@ -770,6 +799,14 @@ export type InterestRateBracket_Filter = {
   totalDebt_lte?: InputMaybe<Scalars['BigInt']['input']>;
   totalDebt_not?: InputMaybe<Scalars['BigInt']['input']>;
   totalDebt_not_in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+  updatedAt?: InputMaybe<Scalars['BigInt']['input']>;
+  updatedAt_gt?: InputMaybe<Scalars['BigInt']['input']>;
+  updatedAt_gte?: InputMaybe<Scalars['BigInt']['input']>;
+  updatedAt_in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+  updatedAt_lt?: InputMaybe<Scalars['BigInt']['input']>;
+  updatedAt_lte?: InputMaybe<Scalars['BigInt']['input']>;
+  updatedAt_not?: InputMaybe<Scalars['BigInt']['input']>;
+  updatedAt_not_in?: InputMaybe<Array<Scalars['BigInt']['input']>>;
 };
 
 export enum InterestRateBracket_OrderBy {
@@ -778,8 +815,11 @@ export enum InterestRateBracket_OrderBy {
   CollateralId = 'collateral__id',
   CollateralMinCollRatio = 'collateral__minCollRatio',
   Id = 'id',
+  PendingDebtTimesOneYearD36 = 'pendingDebtTimesOneYearD36',
   Rate = 'rate',
-  TotalDebt = 'totalDebt'
+  SumDebtTimesRateD36 = 'sumDebtTimesRateD36',
+  TotalDebt = 'totalDebt',
+  UpdatedAt = 'updatedAt'
 }
 
 /** Defines the order direction, either ascending or descending */
@@ -1240,6 +1280,7 @@ export enum Trove_OrderBy {
   InterestBatchColl = 'interestBatch__coll',
   InterestBatchDebt = 'interestBatch__debt',
   InterestBatchId = 'interestBatch__id',
+  InterestBatchUpdatedAt = 'interestBatch__updatedAt',
   InterestRate = 'interestRate',
   LastUserActionAt = 'lastUserActionAt',
   MightBeLeveraged = 'mightBeLeveraged',
@@ -1306,14 +1347,14 @@ export type TrovesByAccountQueryVariables = Exact<{
 }>;
 
 
-export type TrovesByAccountQuery = { __typename?: 'Query', troves: Array<{ __typename?: 'Trove', id: string, closedAt?: string | null, createdAt: string, mightBeLeveraged: boolean, status: TroveStatus, debt: string }> };
+export type TrovesByAccountQuery = { __typename?: 'Query', troves: Array<{ __typename?: 'Trove', id: string, closedAt?: string | null, createdAt: string, lastUserActionAt: string, mightBeLeveraged: boolean, status: TroveStatus, debt: string, redemptionCount: number, redeemedColl: string, redeemedDebt: string }> };
 
 export type TroveByIdQueryVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
 
 
-export type TroveByIdQuery = { __typename?: 'Query', trove?: { __typename?: 'Trove', id: string, borrower: string, closedAt?: string | null, createdAt: string, mightBeLeveraged: boolean, previousOwner: string, status: TroveStatus, debt: string } | null };
+export type TroveByIdQuery = { __typename?: 'Query', trove?: { __typename?: 'Trove', id: string, borrower: string, closedAt?: string | null, createdAt: string, lastUserActionAt: string, mightBeLeveraged: boolean, previousOwner: string, status: TroveStatus, debt: string, redemptionCount: number, redeemedColl: string, redeemedDebt: string } | null };
 
 export type InterestBatchesQueryVariables = Exact<{
   ids: Array<Scalars['ID']['input']> | Scalars['ID']['input'];
@@ -1327,10 +1368,10 @@ export type AllInterestRateBracketsQueryVariables = Exact<{ [key: string]: never
 
 export type AllInterestRateBracketsQuery = { __typename?: 'Query', interestRateBrackets: Array<{ __typename?: 'InterestRateBracket', rate: string, totalDebt: string, collateral: { __typename?: 'Collateral', collIndex: number } }> };
 
-export type GovernanceInitiativesQueryVariables = Exact<{ [key: string]: never; }>;
+export type GovernanceGlobalDataQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GovernanceInitiativesQuery = { __typename?: 'Query', governanceInitiatives: Array<{ __typename?: 'GovernanceInitiative', id: string }> };
+export type GovernanceGlobalDataQuery = { __typename?: 'Query', governanceInitiatives: Array<{ __typename?: 'GovernanceInitiative', id: string }>, governanceVotingPower?: { __typename?: 'GovernanceVotingPower', allocatedLQTY: string, allocatedOffset: string, unallocatedLQTY: string, unallocatedOffset: string } | null };
 
 export type UserAllocationHistoryQueryVariables = Exact<{
   user?: InputMaybe<Scalars['String']['input']>;
@@ -1391,9 +1432,13 @@ export const TrovesByAccountDocument = new TypedDocumentString(`
     id
     closedAt
     createdAt
+    lastUserActionAt
     mightBeLeveraged
     status
     debt
+    redemptionCount
+    redeemedColl
+    redeemedDebt
   }
 }
     `) as unknown as TypedDocumentString<TrovesByAccountQuery, TrovesByAccountQueryVariables>;
@@ -1404,10 +1449,14 @@ export const TroveByIdDocument = new TypedDocumentString(`
     borrower
     closedAt
     createdAt
+    lastUserActionAt
     mightBeLeveraged
     previousOwner
     status
     debt
+    redemptionCount
+    redeemedColl
+    redeemedDebt
   }
 }
     `) as unknown as TypedDocumentString<TroveByIdQuery, TroveByIdQueryVariables>;
@@ -1436,13 +1485,19 @@ export const AllInterestRateBracketsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AllInterestRateBracketsQuery, AllInterestRateBracketsQueryVariables>;
-export const GovernanceInitiativesDocument = new TypedDocumentString(`
-    query GovernanceInitiatives {
+export const GovernanceGlobalDataDocument = new TypedDocumentString(`
+    query GovernanceGlobalData {
   governanceInitiatives {
     id
   }
+  governanceVotingPower(id: "total") {
+    allocatedLQTY
+    allocatedOffset
+    unallocatedLQTY
+    unallocatedOffset
+  }
 }
-    `) as unknown as TypedDocumentString<GovernanceInitiativesQuery, GovernanceInitiativesQueryVariables>;
+    `) as unknown as TypedDocumentString<GovernanceGlobalDataQuery, GovernanceGlobalDataQueryVariables>;
 export const UserAllocationHistoryDocument = new TypedDocumentString(`
     query UserAllocationHistory($user: String) {
   governanceAllocations(

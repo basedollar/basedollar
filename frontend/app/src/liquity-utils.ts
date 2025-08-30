@@ -158,6 +158,24 @@ export function getBranch(
   return branch;
 }
 
+export type BoldYield = {
+  asset: string;
+  weeklyApr: Dnum;
+  tvl: Dnum;
+  link: string;
+  protocol: string;
+};
+
+export function useBoldYieldSources() {
+  const { data, isLoading, error } = useLiquityStats();
+
+  return {
+    data: data?.boldYield as BoldYield[],
+    isLoading,
+    error,
+  };
+}
+
 type EarnPool = {
   apr: Dnum | null;
   apr7d: Dnum | null;
@@ -658,7 +676,15 @@ export async function getTroveOperationHints({
   return { upperHint, lowerHint };
 }
 
-const StatsSchema = v.pipe(
+const BoldYieldItem = v.object({
+  asset: v.string(),
+  weekly_apr: v.union([v.number(), v.string()]),
+  tvl: v.union([v.number(), v.string()]),
+  link: v.string(),
+  protocol: v.string(),
+});
+
+export const StatsSchema = v.pipe(
   v.object({
     total_bold_supply: v.string(),
     total_debt_pending: v.string(),
@@ -670,6 +696,7 @@ const StatsSchema = v.pipe(
       v.string(),
       v.string(),
     ),
+    boldYield: v.optional(v.nullable(v.array(BoldYieldItem))),
     // TODO: phase out in the future, once all frontends update to the "safe" (losely-typed) `prices` schema
     otherPrices: v.optional(v.record(
       v.string(),
@@ -732,6 +759,13 @@ const StatsSchema = v.pipe(
         dnumOrNull(price, 18),
       ]),
     ),
+    boldYield: (value.boldYield ?? []).map((i) => ({
+      asset: i.asset,
+      weeklyApr: dnumOrNull(i.weekly_apr, 18),
+      tvl: dnumOrNull(i.tvl, 18),
+      link: i.link,
+      protocol: i.protocol,
+    })),
   })),
 );
 
@@ -962,12 +996,16 @@ export async function fetchLoanById(
     borrower: indexedTrove.borrower,
     branchId,
     createdAt: indexedTrove.createdAt,
+    lastUserActionAt: indexedTrove.lastUserActionAt,
     indexedDebt: indexedTrove.debt,
     deposit: dnum18(troveData.entireColl),
     interestRate: dnum18(troveData.annualInterestRate),
     status: indexedTrove.status,
     troveId,
     isZombie: troveStatus === TROVE_STATUS_ZOMBIE,
+    redemptionCount: indexedTrove.redemptionCount,
+    redeemedColl: indexedTrove.redeemedColl,
+    redeemedDebt: indexedTrove.redeemedDebt,
   };
 }
 

@@ -105,13 +105,8 @@ export const InterestRateField = memo(
       setDelegatePicker(null);
       onDelegateChange(null);
       onModeChange("manual");
-      if (averageInterestRate.data) {
-        onChange(averageInterestRate.data);
-      }
     }, [
-      averageInterestRate.data,
       branchId,
-      onChange,
       onDelegateChange,
       onModeChange,
     ]);

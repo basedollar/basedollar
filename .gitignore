@@ -2,3 +2,5 @@ node_modules/
 /.vercel
 
 CLAUDE.md
+/.idea/
+package-lock.json
