@@ -6,6 +6,7 @@
   "version": "1.7.0",
   "type": "module",
   "scripts": {
+    "start": "next start",
     "build": "pnpm build-deps && pnpm clean && next build",
     "build-analyze": "ANALYZE=true pnpm build",
     "build-banner": "test -f ./Banner.tsx || cp ./Banner.example.tsx ./Banner.tsx",

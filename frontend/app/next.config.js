@@ -16,7 +16,7 @@ const CONTRACTS_COMMIT_HASH_FROM_BUILD = String(execSync(
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export",
+  // output: "export",
   reactStrictMode: false,
   images: { unoptimized: true },
   trailingSlash: flag(process.env.NEXT_TRAILING_SLASH),

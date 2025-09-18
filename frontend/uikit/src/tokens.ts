@@ -8,10 +8,6 @@ import { WHITE_LABEL_CONFIG } from "../../app/src/white-label.config";
 import tokenEth from "./token-icons/eth.svg";
 import tokenReth from "./token-icons/reth.svg";
 import tokenWsteth from "./token-icons/wsteth.svg";
-import tokenBtc from "./token-icons/btc.svg";
-import tokenSaga from "./token-icons/saga.svg";
-import tokenSui from "./token-icons/sui.svg";
-import tokenKing from "./token-icons/king.svg";
 
 // Map of available token icons by icon name from config
 const tokenIconMap: Record<string, string> = {
@@ -22,10 +18,6 @@ const tokenIconMap: Record<string, string> = {
   "eth": tokenEth,
   "reth": tokenReth,
   "wsteth": tokenWsteth,
-  "btc": tokenBtc,
-  "saga": tokenSaga,
-  "sui": tokenSui,
-  "king": tokenKing,
 };
 
 // any external token, without a known symbol
