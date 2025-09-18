@@ -40,16 +40,16 @@ export const WHITE_LABEL_CONFIG = {
   tokens: {
     // Main protocol stablecoin
     mainToken: {
-      name: "Mustang",
-      symbol: "MUST" as const, 
-      ticker: "MUST",
+      name: "Your Stablecoin",
+      symbol: "YOUR" as const, 
+      ticker: "YOUR",
       decimals: 18,
-      description: "USD-pegged stablecoin by Saga Protocol",
+      description: "USD-pegged stablecoin by Your Protocol",
       icon: "main-token",
-      // Core protocol contracts (Saga deployment addresses TBD)
+      // Core protocol contracts (deployment addresses TBD)
       deployments: {
         646: { // Ronin
-          token: "0x0000000000000000000000000000000000000000", // TBD - MUST deployment
+          token: "0x0000000000000000000000000000000000000000", // TBD - YOUR deployment
           collateralRegistry: "0x0000000000000000000000000000000000000000", // TBD
           governance: "0x0000000000000000000000000000000000000000", // TBD
           hintHelpers: "0x0000000000000000000000000000000000000000", // TBD
@@ -78,14 +78,14 @@ export const WHITE_LABEL_CONFIG = {
 
     // Governance token (exists but no functionality at launch)
     governanceToken: {
-      name: "SAGA",
-      symbol: "SAGA" as const,
-      ticker: "SAGA",
+      name: "Your Governance Token",
+      symbol: "GOV" as const,
+      ticker: "GOV",
       icon: "governance-token",
       // Only used as collateral, no governance features
       deployments: {
         646: { // Ronin mainnet
-          token: "0xA19377761FED745723B90993988E04d641c2CfFE",
+          token: "0x0000000000000000000000000000000000000000",
           staking: "0x0"
         },
         1: {
@@ -99,7 +99,7 @@ export const WHITE_LABEL_CONFIG = {
       },
     },
 
-    // Collateral tokens (for borrowing) - Multi-chain: Ronin + SagaEVM
+    // Collateral tokens (for borrowing) - Multi-chain support
     collaterals: [
       // === ETH-based collaterals (110% MCR, 90.91% max LTV) ===
       {
@@ -111,8 +111,8 @@ export const WHITE_LABEL_CONFIG = {
         maxLTV: 0.9091, // 90.91% max LTV
         // Deployment info (per chain)
         deployments: {
-          646: { // Ronin (TBD - needs actual WETH deployment)
-            collToken: "0xeb41D53F14Cb9a67907f2b8b5DBc223944158cCb", // From your data
+          646: { // Your chain ID (TBD - needs actual deployment)
+            collToken: "0x0000000000000000000000000000000000000000", // TBD
             leverageZapper: "0x0000000000000000000000000000000000000000", // TBD
             stabilityPool: "0x0000000000000000000000000000000000000000", // TBD
             troveManager: "0x0000000000000000000000000000000000000000", // TBD
@@ -140,8 +140,8 @@ export const WHITE_LABEL_CONFIG = {
         maxDeposit: "25000000", // $25M initial debt limit
         maxLTV: 0.9091, // 90.91% max LTV
         deployments: {
-          646: { // Ronin (TBD - needs actual rETH deployment)
-            collToken: "0xae78736Cd615f374D3085123A210448E74Fc6393", // From your data
+          646: { // Your chain ID (TBD - needs actual rETH deployment)
+            collToken: "0x0000000000000000000000000000000000000000", // TBD
             leverageZapper: "0x0000000000000000000000000000000000000000", // TBD
             stabilityPool: "0x0000000000000000000000000000000000000000", // TBD
             troveManager: "0x0000000000000000000000000000000000000000", // TBD
@@ -174,13 +174,13 @@ export const WHITE_LABEL_CONFIG = {
       // SBOLD - yield-bearing version of the main token
       sbold: {
         symbol: "SBOLD" as const,
-        name: "SBOLD",
+        name: "sYOUR Token",
         icon: "sbold",
       },
       // Staked version of main token
       staked: {
-        symbol: "sSAGA" as const,
-        name: "Staked SAGA",
+        symbol: "sYOUR" as const,
+        name: "Staked YOUR",
         icon: "staked-main-token",
       },
       lusd: {
@@ -196,33 +196,33 @@ export const WHITE_LABEL_CONFIG = {
   // ===========================
   branding: {
     // Core app identity
-    appName: "Saga Protocol",        // Full app name for titles, about pages
-    brandName: "Saga",              // Core brand name for protocol/version references
+    appName: "Your Protocol V2",        // Full app name for titles, about pages
+    brandName: "Your Protocol",         // Core brand name for protocol/version references
     appTagline: "Multi-chain stablecoin protocol",
-    appDescription: "Borrow MUST against multiple collateral types on Ronin",
-    appUrl: "https://saga.finance/",
+    appDescription: "Borrow YOUR against multiple collateral types",
+    appUrl: "https://yourprotocol.com/",
     
     // External links
     links: {
       docs: {
-        base: "https://docs.saga.finance/",
-        redemptions: "https://docs.saga.finance/redemptions",
-        liquidations: "https://docs.saga.finance/liquidations",
-        delegation: "https://docs.saga.finance/delegation",
-        interestRates: "https://docs.saga.finance/interest-rates",
-        earn: "https://docs.saga.finance/earn",
-        staking: "https://docs.saga.finance/staking",
+        base: "https://docs.yourprotocol.com/",
+        redemptions: "https://docs.yourprotocol.com/redemptions",
+        liquidations: "https://docs.yourprotocol.com/liquidations",
+        delegation: "https://docs.yourprotocol.com/delegation",
+        interestRates: "https://docs.yourprotocol.com/interest-rates",
+        earn: "https://docs.yourprotocol.com/earn",
+        staking: "https://docs.yourprotocol.com/staking",
       },
-      dune: "https://dune.com/saga/saga-protocol",
-      discord: "https://discord.gg/saga",
-      github: "https://github.com/NeriteOrg/saga",
-      x: "https://x.com/sagaprotocol",
-      friendlyForkProgram: "https://saga.finance/ecosystem",
+      dune: "https://dune.com/yourprotocol",
+      discord: "https://discord.gg/yourprotocol",
+      github: "https://github.com/yourorg/yourprotocol",
+      x: "https://x.com/yourprotocol",
+      friendlyForkProgram: "https://yourprotocol.com/ecosystem",
     },
     
     // Feature flags and descriptions
     features: {
-      showV1Legacy: false, // No V1 legacy content for Saga
+      showV1Legacy: false, // No V1 legacy content
       friendlyFork: {
         enabled: true,
         title: "Learn more about the Friendly Fork Program",
