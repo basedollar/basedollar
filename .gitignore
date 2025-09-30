@@ -4,3 +4,5 @@ node_modules/
 CLAUDE.md
 /.idea/
 package-lock.json
+
+.env
