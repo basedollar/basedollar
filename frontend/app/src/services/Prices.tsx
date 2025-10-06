@@ -44,15 +44,13 @@ export function usePrice(symbol: string | null): UseQueryResult<Dnum | null> {
         return null;
       }
 
-      // Collateral token = PriceFeed price
-      if (isCollateralSymbol(symbol)) {
-        return fetchCollateralPrice(symbol, config);
-      }
-
-      // Stats API prices (CoinGecko)
       const priceFromStats = statsPrices?.[symbol] ?? null;
       if (priceFromStats !== null) {
         return priceFromStats;
+      }
+
+      if (isCollateralSymbol(symbol)) {
+        return fetchCollateralPrice(symbol, config);
       }
 
       throw new Error(`The price for ${symbol} could not be found.`);
