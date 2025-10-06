@@ -8,6 +8,8 @@ import { SUBGRAPH_URL } from "@/src/env";
 import { graphql } from "@/src/graphql";
 import { subgraphIndicator } from "@/src/indicators/subgraph-indicator";
 import { getPrefixedTroveId } from "@/src/liquity-utils";
+import { getTrovesByAccount, getTroveById, getAllDebtPerInterestRate } from "./contract-read-calls";
+import { TroveStatus as TroveStatusEnum } from "./types";
 
 export type IndexedTrove = {
   id: string;
@@ -93,11 +95,18 @@ export async function getNextOwnerIndex(
   branchId: BranchId,
   borrower: Address,
 ): Promise<number> {
-  const { borrowerInfo } = await graphQuery(
-    NextOwnerIndexesByBorrowerQuery,
-    { id: borrower.toLowerCase() },
-  );
-  return Number(borrowerInfo?.nextOwnerIndexes[branchId] ?? 0);
+  try {
+    const { borrowerInfo } = await graphQuery(
+      NextOwnerIndexesByBorrowerQuery,
+      { id: borrower.toLowerCase() },
+    );
+    return Number(borrowerInfo?.nextOwnerIndexes[branchId] ?? 0);
+  } catch (error) {
+    // For fallback, we'd need to iterate through all troves to find the next index
+    // This is expensive on-chain, so we'll just return 0 as a safe default
+    console.warn("Subgraph query failed for getNextOwnerIndex, returning default:", error);
+    return 0;
+  }
 }
 
 const TrovesByAccountQuery = graphql(`
@@ -127,24 +136,64 @@ const TrovesByAccountQuery = graphql(`
 `);
 
 export async function getIndexedTrovesByAccount(account: Address): Promise<IndexedTrove[]> {
-  const { troves } = await graphQuery(TrovesByAccountQuery, {
-    account: account.toLowerCase(),
-  });
-  return troves.map((trove) => ({
-    id: trove.id,
-    borrower: account,
-    closedAt: trove.closedAt === null || trove.closedAt === undefined
-      ? null
-      : Number(trove.closedAt) * 1000,
-    createdAt: Number(trove.createdAt) * 1000,
-    lastUserActionAt: Number(trove.lastUserActionAt) * 1000,
-    mightBeLeveraged: trove.mightBeLeveraged,
-    status: trove.status,
-    debt: dnum18(trove.debt),
-    redemptionCount: trove.redemptionCount,
-    redeemedColl: dnum18(trove.redeemedColl),
-    redeemedDebt: dnum18(trove.redeemedDebt),
-  }));
+  try {
+    const { troves } = await graphQuery(TrovesByAccountQuery, {
+      account: account.toLowerCase(),
+    });
+    return troves.map((trove) => ({
+      id: trove.id,
+      borrower: account,
+      closedAt: trove.closedAt === null || trove.closedAt === undefined
+        ? null
+        : Number(trove.closedAt) * 1000,
+      createdAt: Number(trove.createdAt) * 1000,
+      lastUserActionAt: Number(trove.lastUserActionAt) * 1000,
+      mightBeLeveraged: trove.mightBeLeveraged,
+      status: trove.status,
+      debt: dnum18(trove.debt),
+      redemptionCount: trove.redemptionCount,
+      redeemedColl: dnum18(trove.redeemedColl),
+      redeemedDebt: dnum18(trove.redeemedDebt),
+    }));
+  } catch (error) {
+    console.warn("Subgraph query failed, attempting backup read calls:", error);
+    
+    try {
+      const readCallTroves = await getTrovesByAccount(account);
+      
+      return readCallTroves.map((trove) => {
+        let status: TroveStatus;
+        if (trove.status === TroveStatusEnum.active) {
+          status = "active" as TroveStatus;
+        } else if (trove.status === TroveStatusEnum.closedByOwner) {
+          status = "closed" as TroveStatus;
+        } else if (trove.status === TroveStatusEnum.closedByLiquidation) {
+          status = "liquidated" as TroveStatus;
+        } else if (trove.status === TroveStatusEnum.zombie) {
+          status = "redeemed" as TroveStatus;
+        } else {
+          status = "closed" as TroveStatus;
+        }
+        
+        return {
+          id: trove.id,
+          borrower: account,
+          closedAt: status === "active" ? null : 0,
+          createdAt: 0,
+          lastUserActionAt: 0,
+          mightBeLeveraged: false,
+          status,
+          debt: dnum18(trove.debt),
+          redemptionCount: 0,
+          redeemedColl: dnum18(0),
+          redeemedDebt: dnum18(0),
+        };
+      });
+    } catch (fallbackError) {
+      console.error("Backup read calls also failed:", fallbackError);
+      return [];
+    }
+  }
 }
 
 const TroveByIdQuery = graphql(`
@@ -171,24 +220,67 @@ export async function getIndexedTroveById(
   troveId: TroveId,
 ): Promise<IndexedTrove | null> {
   const prefixedTroveId = getPrefixedTroveId(branchId, troveId);
-  const { trove } = await graphQuery(TroveByIdQuery, { id: prefixedTroveId });
-  return !trove ? null : {
-    id: trove.id,
-    borrower: (
-      trove.status === "liquidated" ? trove.previousOwner : trove.borrower
-    ) as Address,
-    closedAt: trove.closedAt === null || trove.closedAt === undefined
-      ? null
-      : Number(trove.closedAt) * 1000,
-    createdAt: Number(trove.createdAt) * 1000,
-    lastUserActionAt: Number(trove.lastUserActionAt) * 1000,
-    mightBeLeveraged: trove.mightBeLeveraged,
-    status: trove.status,
-    debt: dnum18(trove.debt),
-    redemptionCount: trove.redemptionCount,
-    redeemedColl: dnum18(trove.redeemedColl),
-    redeemedDebt: dnum18(trove.redeemedDebt),
-  };
+  
+  try {
+    const { trove } = await graphQuery(TroveByIdQuery, { id: prefixedTroveId });
+    return !trove ? null : {
+      id: trove.id,
+      borrower: (
+        trove.status === "liquidated" ? trove.previousOwner : trove.borrower
+      ) as Address,
+      closedAt: trove.closedAt === null || trove.closedAt === undefined
+        ? null
+        : Number(trove.closedAt) * 1000,
+      createdAt: Number(trove.createdAt) * 1000,
+      lastUserActionAt: Number(trove.lastUserActionAt) * 1000,
+      mightBeLeveraged: trove.mightBeLeveraged,
+      status: trove.status,
+      debt: dnum18(trove.debt),
+      redemptionCount: trove.redemptionCount,
+      redeemedColl: dnum18(trove.redeemedColl),
+      redeemedDebt: dnum18(trove.redeemedDebt),
+    };
+  } catch (error) {
+    console.warn("Subgraph query failed for getTroveById, attempting backup read calls:", error);
+    
+    try {
+      const readCallTrove = await getTroveById(prefixedTroveId);
+      
+      if (!readCallTrove) {
+        return null;
+      }
+      
+      let status: TroveStatus;
+      if (readCallTrove.status === TroveStatusEnum.active) {
+        status = "active" as TroveStatus;
+      } else if (readCallTrove.status === TroveStatusEnum.closedByOwner) {
+        status = "closed" as TroveStatus;
+      } else if (readCallTrove.status === TroveStatusEnum.closedByLiquidation) {
+        status = "liquidated" as TroveStatus;
+      } else if (readCallTrove.status === TroveStatusEnum.zombie) {
+        status = "redeemed" as TroveStatus;
+      } else {
+        status = "closed" as TroveStatus;
+      }
+      
+      return {
+        id: prefixedTroveId,
+        borrower: readCallTrove.borrower,
+        closedAt: status === "active" ? null : 0,
+        createdAt: 0,
+        lastUserActionAt: 0,
+        mightBeLeveraged: false,
+        status,
+        debt: dnum18(readCallTrove.debt),
+        redemptionCount: 0,
+        redeemedColl: dnum18(0),
+        redeemedDebt: dnum18(0),
+      };
+    } catch (fallbackError) {
+      console.error("Backup read calls also failed:", fallbackError);
+      return null;
+    }
+  }
 }
 
 const InterestBatchesQuery = graphql(`
@@ -240,14 +332,34 @@ const AllInterestRateBracketsQuery = graphql(`
 `);
 
 export async function getAllInterestRateBrackets() {
-  const { interestRateBrackets } = await graphQuery(AllInterestRateBracketsQuery);
-  return interestRateBrackets
-    .map((bracket) => ({
-      branchId: bracket.collateral.collIndex,
-      rate: dnum18(bracket.rate),
-      totalDebt: dnum18(bracket.totalDebt),
-    }))
-    .sort((a, b) => dn.cmp(a.rate, b.rate));
+  try {
+    const { interestRateBrackets } = await graphQuery(AllInterestRateBracketsQuery);
+    return interestRateBrackets
+      .map((bracket) => ({
+        branchId: bracket.collateral.collIndex,
+        rate: dnum18(bracket.rate),
+        totalDebt: dnum18(bracket.totalDebt),
+      }))
+      .sort((a, b) => dn.cmp(a.rate, b.rate));
+  } catch (error) {
+    console.warn("Subgraph query failed for getAllInterestRateBrackets, attempting backup read calls:", error);
+    
+    try {
+      const debtPerInterestRate = await getAllDebtPerInterestRate();
+      
+      // Convert read call format to subgraph format
+      return Object.entries(debtPerInterestRate).flatMap(([branchId, rates]) => {
+        return rates.map((data) => ({
+          branchId: Number(branchId) as BranchId,
+          rate: dnum18(data.interestRate),
+          totalDebt: dnum18(data.debt),
+        }));
+      }).sort((a, b) => dn.cmp(a.rate, b.rate));
+    } catch (fallbackError) {
+      console.error("Backup read calls also failed:", fallbackError);
+      return [];
+    }
+  }
 }
 
 const GovernanceGlobalDataQuery = graphql(`

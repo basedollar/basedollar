@@ -262,13 +262,19 @@ export function LoanScreen() {
                               <p>
                                 {loan.data.redemptionCount}{" "}
                                 {loan.data.redemptionCount === 1 ? <>redemption</> : <>redemptions</>}{" "}
-                                since last user action on{" "}
-                                <time
-                                  dateTime={formatDate(new Date(loan.data.lastUserActionAt), "iso")}
-                                  title={formatDate(new Date(loan.data.lastUserActionAt), "iso")}
-                                >
-                                  {formatDate(new Date(loan.data.lastUserActionAt), "short")}
-                                </time>.
+                                {loan.data.lastUserActionAt > 0 ? (
+                                  <>
+                                    since last user action on{" "}
+                                    <time
+                                      dateTime={formatDate(new Date(loan.data.lastUserActionAt), "iso")}
+                                      title={formatDate(new Date(loan.data.lastUserActionAt), "iso")}
+                                    >
+                                      {formatDate(new Date(loan.data.lastUserActionAt), "short")}
+                                    </time>.
+                                  </>
+                                ) : (
+                                  <>since opening.</>
+                                )}
                                 <br />
                                 <InlineTokenAmount
                                   symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
