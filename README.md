@@ -4,20 +4,19 @@
 1. Stablecoin renamed to $BD
 2. Superfluid streaming added directly into BD. Update tests which use memory layout `deal()` function of BOLD token
 3. "Redemption Protected" branches, which can't be redeemed against but have other requirements
-4. Multi-collateral branches
-5. Debt limits for each collateral branch, can be raised or lowered by governance. 
-6. Administrative features: Governance can now update
-7. Maximized AERO synergy: 
+4. Debt limits for each collateral branch, can be raised or lowered by governance. 
+5. Administrative features: Governance can now update
+6. Maximized AERO synergy: 
   - Selected vAMM and sAMM LP tokens can be borrowed against
   - LP tokens are staked to earn $AERO
   - A percent of $AERO (percentage is governed) earned from staking goes to the protocol timelock treasury to be used to direct more incentives to BD pools
   - Withdrawal queue and liquidation system updates for staked assets
-8. Updated pricefeeds for all collaterals
-9. Ability for governance to add new collateral branches in the future, or safely wind down existing ones
-10. Raised cap on limit of numbers of total collateral branches possible, and redemption optimization that allows this
-11. 25% of revenue is streamed to a timelocked treasury at launch, instead of directed by gauges which is the default for Liquity itself. This can be updated to gauges, as Liquity V2 uses, in the future.
-12. New normal branch collateral types, deployment script updates, and OEV pricefeeds: ETH, wstETH, rETH, superOETHb, cbBTC, AERO
-13. Updated launch parameters for safety and Base specific parameter changes: gas deposit requirement, minimum redemption size, etc..
+7. Updated pricefeeds for all collaterals
+8. Ability for governance to add new collateral branches in the future, or safely wind down existing ones
+9. Raised cap on limit of numbers of total collateral branches possible, and redemption optimization that allows this
+10. 25% of revenue is streamed to a timelocked treasury at launch, instead of directed by gauges which is the default for Liquity itself. This can be updated to gauges, as Liquity V2 uses, in the future.
+11. New normal branch collateral types, deployment script updates, and OEV pricefeeds: ETH, wstETH, rETH, superOETHb, cbBTC, AERO
+12. Updated launch parameters for safety and Base specific parameter changes: gas deposit requirement, minimum redemption size, etc..
 
 
 <img width="830" alt="Liquity V2" src="https://github.com/user-attachments/assets/d9eb5b2a-d437-4472-94d6-07fa537e689a" />
