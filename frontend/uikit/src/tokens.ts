@@ -95,12 +95,6 @@ const SBOLD_TOKEN: Token = {
   symbol: WHITE_LABEL_CONFIG.tokens.otherTokens.sbold.symbol,
 } as const;
 
-const STAKED_TOKEN: Token = {
-  icon: tokenIconMap[WHITE_LABEL_CONFIG.tokens.otherTokens.staked.icon],
-  name: WHITE_LABEL_CONFIG.tokens.otherTokens.staked.name,
-  symbol: WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol,
-} as const;
-
 const LUSD_TOKEN: Token = {
   icon: tokenIconMap[WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.icon],
   name: WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.name,
@@ -127,7 +121,6 @@ const tokensMap: Record<string, Token | CollateralToken> = {
   [WHITE_LABEL_CONFIG.tokens.governanceToken.symbol]: GOVERNANCE_TOKEN,
   [WHITE_LABEL_CONFIG.tokens.otherTokens.eth.symbol]: ETH_TOKEN,
   [WHITE_LABEL_CONFIG.tokens.otherTokens.sbold.symbol]: SBOLD_TOKEN,
-  [WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol]: STAKED_TOKEN,
   [WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.symbol]: LUSD_TOKEN,
 };
 
