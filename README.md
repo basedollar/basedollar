@@ -14,7 +14,7 @@
 7. Updated pricefeeds for all collaterals
 8. Ability for governance to add new collateral branches in the future, or safely wind down existing ones
 9. Raised cap on limit of numbers of total collateral branches possible, and redemption optimization that allows this
-10. 25% of revenue is streamed to a timelocked treasury at launch, instead of directed by gauges which is the default for Liquity itself. This can be updated to gauges, as Liquity V2 uses, in the future.
+10. 25% of revenue is sent to a timelocked treasury at launch, instead of directed by gauges which is the default for Liquity itself. This can be updated to gauges, as Liquity V2 uses, in the future.
 11. New normal branch collateral types, deployment script updates, and OEV pricefeeds: ETH, wstETH, rETH, superOETHb, cbBTC, AERO
 12. Updated launch parameters for safety and Base specific parameter changes: gas deposit requirement, minimum redemption size, etc..
 
