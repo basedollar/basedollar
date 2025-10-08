@@ -42,6 +42,7 @@ import {
   PillButton,
   TextButton,
   TokenIcon,
+  CollateralIcon,
 } from "@liquity2/uikit";
 import * as dn from "dnum";
 import { useParams, useRouter } from "next/navigation";
@@ -215,7 +216,7 @@ export function BorrowScreen() {
             contextual={
               <Dropdown
                 items={collaterals.map(({ symbol, name }) => ({
-                  icon: <TokenIcon symbol={symbol} />,
+                  icon: <CollateralIcon symbol={symbol} />,
                   label: name,
                   value: account.isConnected
                     ? fmtnum(balances[symbol]?.data ?? 0)

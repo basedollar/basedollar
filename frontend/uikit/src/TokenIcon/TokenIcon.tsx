@@ -112,3 +112,10 @@ export function TokenIconGroup<
 }
 
 TokenIcon.Group = TokenIconGroup;
+
+// Re-export TokenPairIcon and CollateralIcon for convenience
+export { TokenPairIcon } from "./TokenPairIcon";
+export { CollateralIcon } from "./CollateralIcon";
+export { CollateralSectionHeader } from "./CollateralSectionHeader";
+export { groupCollaterals } from "./collateral-grouping";
+export type { CollateralGroup } from "./collateral-grouping";

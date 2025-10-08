@@ -4,92 +4,92 @@ import type { ReactNode } from "react";
 
 import { createContext, useContext, useState } from "react";
 
-// Base color palette, adapted to match your design system
+// Base Chain color palette - backward compatible with existing token names
 export const colors = {
-  // Blue (keeping existing as accent colors)
-  "blue:50": "#F0F3FE",
-  "blue:100": "#DEE4FB",
-  "blue:200": "#C4D0F9",
-  "blue:300": "#9CB1F4",
-  "blue:400": "#6D8AED",
-  "blue:500": "#405AE5",
-  "blue:600": "#3544DB",
-  "blue:700": "#2D33C8",
-  "blue:800": "#2A2BA3",
-  "blue:900": "#272A81",
-  "blue:950": "#1C1D4F",
+  // Blue - Updated to Base/Coinbase blue (#0052FF)
+  "blue:50": "#E6EDFF",
+  "blue:100": "#C2D4FF",
+  "blue:200": "#99B8FF",
+  "blue:300": "#709CFF",
+  "blue:400": "#4D80FF",
+  "blue:500": "#0052FF", // Base primary blue
+  "blue:600": "#0047DB",
+  "blue:700": "#003CB7",
+  "blue:800": "#003193",
+  "blue:900": "#00266F",
+  "blue:950": "#001B4B",
 
-  // Gray - Updated to match "Ancestral Snowberry" palette
+  // Gray - Clean, modern neutrals
   "gray:50": "#FAFAFA",
   "gray:100": "#F5F5F5",
-  "gray:200": "#EEEEEE",
-  "gray:300": "#E0E0E0",
-  "gray:400": "#BDBDBD",
-  "gray:500": "#9E9E9E",
-  "gray:600": "#757575",
-  "gray:700": "#616161",
-  "gray:800": "#424242",
-  "gray:900": "#212121",
-  "gray:950": "#121212",
+  "gray:200": "#E5E5E5",
+  "gray:300": "#D4D4D4",
+  "gray:400": "#A3A3A3",
+  "gray:500": "#737373",
+  "gray:600": "#525252",
+  "gray:700": "#404040",
+  "gray:800": "#262626",
+  "gray:900": "#171717",
+  "gray:950": "#0A0A0A",
 
   // Yellow
-  "yellow:50": "#FDFBE9",
-  "yellow:100": "#FCF8C5",
-  "yellow:200": "#FAEE8E",
-  "yellow:300": "#F5D93A",
-  "yellow:400": "#F1C91E",
-  "yellow:500": "#E1B111",
-  "yellow:600": "#C2890C",
-  "yellow:700": "#9B620D",
-  "yellow:800": "#804E13",
-  "yellow:900": "#6D4016",
-  "yellow:950": "#402108",
+  "yellow:50": "#FEFCE8",
+  "yellow:100": "#FEF9C3",
+  "yellow:200": "#FEF08A",
+  "yellow:300": "#FDE047",
+  "yellow:400": "#FACC15",
+  "yellow:500": "#EAB308",
+  "yellow:600": "#CA8A04",
+  "yellow:700": "#A16207",
+  "yellow:800": "#854D0E",
+  "yellow:900": "#713F12",
+  "yellow:950": "#422006",
 
   // Green
-  "green:50": "#F1FAF1",
-  "green:100": "#E8F5E8",
-  "green:200": "#D4EAD4",
-  "green:300": "#B8DBB8",
-  "green:400": "#9DCC9D",
-  "green:500": "#81C784",
-  "green:600": "#66BB6A",
-  "green:700": "#4CAF50",
-  "green:800": "#43A047",
-  "green:900": "#388E3C",
-  "green:950": "#2E7D32",
+  "green:50": "#ECFDF5",
+  "green:100": "#D1FAE5",
+  "green:200": "#A7F3D0",
+  "green:300": "#6EE7B7",
+  "green:400": "#34D399",
+  "green:500": "#10B981",
+  "green:600": "#059669",
+  "green:700": "#047857",
+  "green:800": "#065F46",
+  "green:900": "#064E3B",
+  "green:950": "#022C22",
 
   // Red
-  "red:50": "#FFEBEE",
-  "red:100": "#FFCDD2",
-  "red:200": "#EF9A9A",
-  "red:300": "#E57373",
-  "red:400": "#EF5350",
-  "red:500": "#F44336",
-  "red:600": "#E53935",
-  "red:700": "#D32F2F",
-  "red:800": "#C62828",
-  "red:900": "#B71C1C",
-  "red:950": "#8B0000",
+  "red:50": "#FEF2F2",
+  "red:100": "#FEE2E2",
+  "red:200": "#FECACA",
+  "red:300": "#FCA5A5",
+  "red:400": "#F87171",
+  "red:500": "#EF4444",
+  "red:600": "#DC2626",
+  "red:700": "#B91C1C",
+  "red:800": "#991B1B",
+  "red:900": "#7F1D1D",
+  "red:950": "#450A0A",
 
-  // Black - Updated to match "Optophobia Black" and "Eerie Rider"
+  // Black - Updated to Woodsmoke (#0A0B0D)
   "black:50": "#2A2A2A",
   "black:100": "#1F1F1F",
   "black:200": "#1A1A1A",
   "black:300": "#141414",
   "black:400": "#0F0F0F",
-  "black:500": "#0A0A0A",
-  "black:600": "#050505",
+  "black:500": "#0A0B0D", // Coinbase Woodsmoke
+  "black:600": "#080809",
   "black:700": "#000000",
 
-  // Hydargyrum (Mercury/Silver)
+  // Silver
   "silver:100": "#B8B8B8",
   "silver:200": "#A0A0A0",
   "silver:300": "#888888",
 
-  // brown
+  // Brown
   "brown:50": "#F8F6F4",
 
-  // desert
+  // Desert
   "desert:50": "#FAF9F7",
   "desert:100": "#EFECE5",
   "desert:950": "#2C231E",
@@ -97,18 +97,18 @@ export const colors = {
   // White
   "white": "#FFFFFF",
 
-  // Brand colors
-  "brand:blue": "#405AE5",
-  "brand:lightBlue": "#6D8AED",
-  "brand:darkBlue": "#121B44",
-  "brand:green": "#81C784",
-  "brand:golden": "#F5D93A",
-  "brand:cyan": "#95CBF3",
-  "brand:coral": "#FB7C59",
-  "brand:brown": "#DBB79B",
+  // Brand colors - Updated for Base
+  "brand:blue": "#0052FF",
+  "brand:lightBlue": "#709CFF",
+  "brand:darkBlue": "#001B4B",
+  "brand:green": "#10B981",
+  "brand:golden": "#FACC15",
+  "brand:cyan": "#00D4FF",
+  "brand:coral": "#F97316",
+  "brand:brown": "#A16207",
 };
 
-// The light theme with updated colors
+// The light theme with Base branding
 export const lightTheme = {
   name: "light" as const,
   colors: {
@@ -192,11 +192,11 @@ export const lightTheme = {
     brandGreenContent: "green:950",
     brandGreenContentAlt: "green:800",
 
-    riskGradient1: "#81C784", // green:500
-    riskGradient2: "#B8E549",
-    riskGradient3: "#F1C91E", // yellow:400
-    riskGradient4: "#FF7043",
-    riskGradient5: "#E57373", // red:300
+    riskGradient1: "#10B981", // green:500
+    riskGradient2: "#84CC16",
+    riskGradient3: "#FACC15", // yellow:400
+    riskGradient4: "#F97316",
+    riskGradient5: "#F87171", // red:400
 
     riskGradientDimmed1: "red:100",
     riskGradientDimmed2: "yellow:100",
