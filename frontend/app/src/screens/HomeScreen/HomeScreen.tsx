@@ -13,7 +13,6 @@ import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { DNUM_1 } from "@/src/dnum-utils";
 import {
   getBranch,
-  getBranches,
   getCollToken,
   getToken,
   useAverageInterestRate,
@@ -21,9 +20,19 @@ import {
   useEarnPool,
 } from "@/src/liquity-utils";
 import { getAvailableEarnPools } from "@/src/white-label.config";
+import { infoTooltipProps } from "@/src/uikit-utils";
 import { useAccount } from "@/src/wagmi-utils";
 import { css } from "@/styled-system/css";
-import { IconBorrow, IconEarn, TokenIcon } from "@liquity2/uikit";
+import { 
+  IconBorrow, 
+  IconEarn, 
+  IconExternal,
+  InfoTooltip,
+  TokenIcon, 
+  CollateralIcon,
+  CollateralSectionHeader,
+  groupCollaterals
+} from "@liquity2/uikit";
 import * as dn from "dnum";
 import Image from "next/image";
 import { useMemo, useState } from "react";
@@ -115,6 +124,8 @@ function BorrowTable({
     columns.push(null);
   }
 
+  const groupedCollaterals = useMemo(() => groupCollaterals(), []);
+  
   return (
     <div className={css({ gridArea: "borrow" })}>
       <HomeTable
@@ -122,9 +133,17 @@ function BorrowTable({
         subtitle="You can adjust your loans, including your interest rate, at any time"
         icon={<IconBorrow />}
         columns={columns}
-        rows={getBranches().map(({ symbol }) => (
-          <BorrowingRow key={symbol} compact={compact} symbol={symbol} />
-        ))}
+        rows={groupedCollaterals.flatMap((group, groupIndex) => [
+          <CollateralSectionHeader 
+            key={`section-${group.title}`} 
+            title={group.title} 
+            isFirst={groupIndex === 0}
+            colSpan={compact ? 4 : 5}
+          />,
+          ...group.collaterals.map(({ symbol }) => (
+            <BorrowingRow key={symbol} compact={compact} symbol={symbol} />
+          ))
+        ])}
       />
     </div>
   );
@@ -156,6 +175,18 @@ function EarnTable({
     columns.push(null);
   }
 
+  const earnGroupedCollaterals = useMemo(() => {
+    const earnPools = getAvailableEarnPools().filter(pool => pool.type !== 'staked');
+    const earnCollaterals = earnPools.map(pool => pool.symbol.toUpperCase() as CollateralSymbol);
+    
+    // Group only the earn collaterals
+    const allGroups = groupCollaterals();
+    return allGroups.map(group => ({
+      ...group,
+      collaterals: group.collaterals.filter(c => earnCollaterals.includes(c.symbol))
+    })).filter(group => group.collaterals.length > 0);
+  }, []);
+
   return (
     <div
       className={css({
@@ -173,19 +204,21 @@ function EarnTable({
           subtitle={content.home.earnTable.subtitle}
           icon={<IconEarn />}
           columns={columns}
-          rows={getAvailableEarnPools()
-            .filter(pool => pool.type !== 'staked')
-            .map((pool) => {
-              const symbol = pool.symbol.toUpperCase();
-              
-              return (
-                <EarnRewardsRow
-                  key={pool.symbol}
-                  compact={compact}
-                  symbol={symbol as CollateralSymbol}
-                />
-              );
-            })}
+          rows={earnGroupedCollaterals.flatMap((group, groupIndex) => [
+            <CollateralSectionHeader 
+              key={`earn-section-${group.title}`} 
+              title={group.title} 
+              isFirst={groupIndex === 0}
+              colSpan={compact ? 4 : 5}
+            />,
+            ...group.collaterals.map(({ symbol }) => (
+              <EarnRewardsRow
+                key={symbol}
+                compact={compact}
+                symbol={symbol}
+              />
+            ))
+          ])}
         />
       </div>
       <div
@@ -316,6 +349,10 @@ function BorrowingRow({
     ? dn.div(DNUM_1, collateral.collateralRatio)
     : null;
 
+  // Find the collateral config to check for aerodrome pool link
+  const collateralConfig = WHITE_LABEL_CONFIG.tokens.collaterals.find(c => c.symbol === symbol);
+  const aerodromePoolLink = collateralConfig?.poolData?.aerodromePoolLink;
+
   return (
     <tr>
       <td>
@@ -326,8 +363,25 @@ function BorrowingRow({
             gap: 8,
           })}
         >
-          <TokenIcon symbol={symbol} size="mini" />
-          <span>{collateral?.name}</span>
+          <CollateralIcon symbol={symbol} size="mini" />
+          <div className={css({ display: "flex", alignItems: "center", gap: 4 })}>
+            <span>{collateral?.name}</span>
+            {aerodromePoolLink && (
+              <a
+                href={aerodromePoolLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  color: "contentAlt",
+                  _hover: { color: "content" },
+                })}
+              >
+                <IconExternal size={12} />
+              </a>
+            )}
+          </div>
         </div>
       </td>
       <td>
@@ -394,6 +448,12 @@ function EarnRewardsRow({
   const branch = getBranch(symbol);
   const token = getToken(symbol);
   const earnPool = useEarnPool(branch?.id ?? null);
+  
+  // Find the collateral config to check for aerodrome pool link and token type
+  const collateralConfig = WHITE_LABEL_CONFIG.tokens.collaterals.find(c => c.symbol === symbol);
+  const aerodromePoolLink = collateralConfig?.poolData?.aerodromePoolLink;
+  const isLPToken = collateralConfig?.type === "samm" || collateralConfig?.type === "vamm";
+  
   return (
     <tr>
       <td>
@@ -404,8 +464,25 @@ function EarnRewardsRow({
             gap: 8,
           })}
         >
-          <TokenIcon symbol={symbol} size="mini" />
-          <span>{token?.name}</span>
+          <CollateralIcon symbol={symbol} size="mini" />
+          <div className={css({ display: "flex", alignItems: "center", gap: 4 })}>
+            <span>{token?.name}</span>
+            {aerodromePoolLink && (
+              <a
+                href={aerodromePoolLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  color: "contentAlt",
+                  _hover: { color: "content" },
+                })}
+              >
+                <IconExternal size={12} />
+              </a>
+            )}
+          </div>
         </div>
       </td>
       <td>
@@ -433,7 +510,7 @@ function EarnRewardsRow({
       {!compact && (
         <td>
           <LinkTextButton
-            href={`/earn/${symbol.toLowerCase()}`}
+            href={isLPToken ? `/earn/fsbased` : `/earn/${symbol.toLowerCase()}`}
             label={
               <div
                 className={css({
@@ -444,13 +521,58 @@ function EarnRewardsRow({
                 })}
               >
                 Earn
-                <TokenIcon.Group size="mini">
-                  <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />
-                  <TokenIcon symbol={symbol} />
-                </TokenIcon.Group>
+                {isLPToken ? (
+                  <div className={css({ display: "flex", alignItems: "center", gap: 2 })}>
+                    <TokenIcon.Group size="mini">
+                      <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />
+                      <TokenIcon symbol="AERO" />
+                    </TokenIcon.Group>
+                    <div
+                      className={css({ 
+                        width: 16,
+                        height: 16,
+                        borderRadius: "50%",
+                        backgroundColor: "white",
+                        border: "1px solid token(colors.border)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 8,
+                        color: "contentAlt",
+                        cursor: "help",
+                        position: "relative",
+                        marginLeft: "-6px",
+                        zIndex: 1
+                      })}
+                    >
+                      <span>•••</span>
+                      <div
+                        className={css({
+                          position: "absolute",
+                          left: 0,
+                          top: 0,
+                          width: "100%",
+                          height: "100%",
+                          opacity: 0
+                        })}
+                      >
+                        <InfoTooltip
+                          {...infoTooltipProps(content.generalInfotooltips.mixedLiquidationRewards)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <TokenIcon.Group size="mini">
+                    <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />
+                    <TokenIcon symbol={symbol} />
+                  </TokenIcon.Group>
+                )}
               </div>
             }
-            title={`Earn ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} with ${token?.name}`}
+            title={isLPToken 
+              ? `Deposit ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} to earn AERO + mixed LP liquidation rewards`
+              : `Earn ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} with ${token?.name}`}
           />
         </td>
       )}

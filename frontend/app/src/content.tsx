@@ -81,6 +81,13 @@ export default {
         adjustment, there is a fee.
       </>,
     ],
+    
+    mixedLiquidationRewards: [
+      "Mixed Liquidation Rewards",
+      <>
+        You earn a combination of liquidated LP tokens from all supported pairs (wETH/msETH, USDC/AERO, etc.) when depositing in the FsBaseD pool.
+      </>,
+    ],
     redeemedLoan: {
       heading: "Your collateral and debt are reduced by the same value.",
       body: (

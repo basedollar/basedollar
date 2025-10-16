@@ -9,7 +9,7 @@ export type RiskLevel = "low" | "medium" | "high";
 
 export type ChainId = number;
 
-export type BranchId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+export type BranchId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19;
 
 export type TroveId = `0x${string}`;
 export type PrefixedTroveId = `${BranchId}:${TroveId}`;
@@ -25,7 +25,7 @@ export type Branch = {
 export type EnvBranch = Omit<Branch, "contracts">;
 
 export function isBranchId(value: unknown): value is BranchId {
-  return typeof value === "number" && value >= 0 && value <= 9;
+  return typeof value === "number" && value >= 0 && value <= 19;
 }
 
 export function isTroveId(value: unknown): value is TroveId {

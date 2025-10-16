@@ -15,9 +15,9 @@ export const WHITE_LABEL_CONFIG = {
     secondaryContent: "black:700" as const,
     secondaryContentAlt: "black:400" as const,
     
-    accent1: "red:500" as const,  
+    accent1: "blue:500" as const,  
     accent1Content: "white" as const,
-    accent1ContentAlt: "red:100" as const,
+    accent1ContentAlt: "blue:100" as const,
     
     accent2: "green:500" as const,
     accent2Content: "black:700" as const,
@@ -40,9 +40,9 @@ export const WHITE_LABEL_CONFIG = {
   tokens: {
     // Main protocol stablecoin
     mainToken: {
-      name: "Basedollar",
-      symbol: "BD" as const, 
-      ticker: "BD",
+      name: "BaseD",
+      symbol: "BaseD" as const, 
+      ticker: "BaseD",
       decimals: 18,
       description: "USD-pegged stablecoin on Base",
       icon: "main-token",
@@ -129,7 +129,7 @@ export const WHITE_LABEL_CONFIG = {
       {
         symbol: "SUPEROETHB" as const,
         name: "superOETHb",
-        icon: "oseth",
+        icon: "superoethb",
         collateralRatio: 1.176, // 85% LTV
         maxDeposit: "25000000", // $25M initial debt limit
         maxLTV: 0.85,
@@ -176,6 +176,360 @@ export const WHITE_LABEL_CONFIG = {
           },
         },
       },
+      {
+        symbol: "SAMM_WETH_MSETH" as const,
+        name: "wETH/msETH",
+        icon: "samm-lp",
+        collateralRatio: 1.212, // 82.5% LTV
+        maxDeposit: "18500000", // $18.5M TVL
+        maxLTV: 0.825,
+        type: "samm" as const,
+        token1: { 
+          symbol: "wETH", 
+          name: "wETH",
+          address: "0x4200000000000000000000000000000000000006"
+        },
+        token2: { 
+          symbol: "msETH", 
+          name: "msETH",
+          address: "0x7Ba6F01772924a82D9626c126347A28299E98c98"
+        },
+        poolData: { 
+          tvl: "$18.5M", 
+          apr: "10.64%",
+          aerodromePoolLink: "https://aerodrome.finance/pools?token0=0x4200000000000000000000000000000000000006&chain0=8453&token1=0x7Ba6F01772924a82D9626c126347A28299E98c98&chain1=8453"
+        },
+        deployments: {
+          8453: {
+            collToken: "0x0000000000000000000000000000000000000000", // TBD - Aerodrome LP token address (the pair itself)
+            leverageZapper: "0x0000000000000000000000000000000000000000", // TBD
+            stabilityPool: "0x0000000000000000000000000000000000000000", // TBD
+            troveManager: "0x0000000000000000000000000000000000000000", // TBD
+          },
+        },
+      },
+      {
+        symbol: "SAMM_MSUSD_USDC" as const,
+        name: "msUSD/USDC",
+        icon: "samm-lp",
+        collateralRatio: 1.212,
+        maxDeposit: "10000000",
+        maxLTV: 0.825,
+        type: "samm" as const,
+        token1: { 
+          symbol: "msUSD", 
+          name: "msUSD",
+          address: "0x526728dbc96689597f85ae4cd716d4f7fccbae9d"
+        },
+        token2: { 
+          symbol: "USDC", 
+          name: "USDC",
+          address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+        },
+        poolData: { 
+          tvl: "$10M", 
+          apr: "12.71%",
+          aerodromePoolLink: "https://aerodrome.finance/pools?token0=0x526728dbc96689597f85ae4cd716d4f7fccbae9d&chain0=8453&token1=0x833589fcd6edb6e08f4c7c32d4f71b54bda02913&chain1=8453"
+        },
+        deployments: {
+          8453: {
+            collToken: "0x0000000000000000000000000000000000000000", // TBD - LP token
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
+      {
+        symbol: "SAMM_BD_USDC" as const,
+        name: "BaseD/USDC",
+        icon: "samm-lp",
+        collateralRatio: 1.212,
+        maxDeposit: "4000000",
+        maxLTV: 0.825,
+        type: "samm" as const,
+        token1: { 
+          symbol: "BaseD", 
+          name: "BaseD",
+          address: "0x0000000000000000000000000000000000000000" // TBD - Your token
+        },
+        token2: { 
+          symbol: "USDC", 
+          name: "USDC",
+          address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+        },
+        poolData: { 
+          tvl: "$4M", 
+          apr: "8.5%",
+          // aerodromePoolLink: "https://aerodrome.finance/pools?token0=TBD&chain0=8453&token1=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&chain1=8453" // TODO: Enable when BaseD token is deployed
+        },
+        deployments: {
+          8453: {
+            collToken: "0x0000000000000000000000000000000000000000", // TBD - LP token
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
+      {
+        symbol: "SAMM_BD_LUSD" as const,
+        name: "BaseD/LUSD",
+        icon: "samm-lp",
+        collateralRatio: 1.212,
+        maxDeposit: "2000000",
+        maxLTV: 0.825,
+        type: "samm" as const,
+        token1: { 
+          symbol: "BaseD", 
+          name: "BaseD",
+          address: "0x0000000000000000000000000000000000000000" // TBD - Your token
+        },
+        token2: { 
+          symbol: "LUSD", 
+          name: "LUSD",
+          address: "0x368181499736d0c0cc614dbb145e2ec1ac86b8c6"
+        },
+        poolData: { 
+          tvl: "$2M", 
+          apr: "9.8%",
+          // aerodromePoolLink: "https://aerodrome.finance/pools?token0=TBD&chain0=8453&token1=0x368181499736d0c0cc614dbb145e2ec1ac86b8c6&chain1=8453" // TODO: Enable when BaseD token is deployed
+        },
+        deployments: {
+          8453: {
+            collToken: "0x0000000000000000000000000000000000000000", // TBD - LP token
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
+      
+      // === vAMM LP Tokens (70% LTV) ===
+      {
+        symbol: "VAMM_USDC_AERO" as const,
+        name: "USDC/AERO",
+        icon: "vamm-lp",
+        collateralRatio: 1.429,
+        maxDeposit: "62000000",
+        maxLTV: 0.70,
+        type: "vamm" as const,
+        token1: { 
+          symbol: "USDC", 
+          name: "USDC",
+          address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+        },
+        token2: { 
+          symbol: "AERO", 
+          name: "AERO",
+          address: "0x940181a94A35A4569E4529a3CDfB74e38FD98631"
+        },
+        poolData: { 
+          tvl: "$62M", 
+          apr: "40%",
+          aerodromePoolLink: "https://aerodrome.finance/pools?token0=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&chain0=8453&token1=0x940181a94A35A4569E4529a3CDfB74e38FD98631&chain1=8453"
+        },
+        deployments: {
+          8453: {
+            collToken: "0x0000000000000000000000000000000000000000", // TBD - LP token
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
+      {
+        symbol: "VAMM_USDC_ETH" as const,
+        name: "USDC/ETH",
+        icon: "vamm-lp",
+        collateralRatio: 1.429,
+        maxDeposit: "22300000",
+        maxLTV: 0.70,
+        type: "vamm" as const,
+        token1: { 
+          symbol: "USDC", 
+          name: "USDC",
+          address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+        },
+        token2: { 
+          symbol: "ETH", 
+          name: "ETH",
+          address: "0x4200000000000000000000000000000000000006" // WETH
+        },
+        poolData: { 
+          tvl: "$22.3M", 
+          apr: "11.5%",
+          aerodromePoolLink: "https://aerodrome.finance/pools?token0=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&chain0=8453&token1=0x4200000000000000000000000000000000000006&chain1=8453"
+        },
+        deployments: {
+          8453: {
+            collToken: "0x0000000000000000000000000000000000000000", // TBD - LP token
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
+      {
+        symbol: "VAMM_WETH_WELL" as const,
+        name: "wETH/WELL",
+        icon: "vamm-lp",
+        collateralRatio: 1.429,
+        maxDeposit: "11300000",
+        maxLTV: 0.70,
+        type: "vamm" as const,
+        token1: { 
+          symbol: "wETH", 
+          name: "wETH",
+          address: "0x4200000000000000000000000000000000000006"
+        },
+        token2: { 
+          symbol: "WELL", 
+          name: "WELL",
+          address: "0xA88594D404727625A9437C3f886C7643872296AE"
+        },
+        poolData: { 
+          tvl: "$11.3M", 
+          apr: "9.1%",
+          aerodromePoolLink: "https://aerodrome.finance/pools?token0=0x4200000000000000000000000000000000000006&chain0=8453&token1=0xA88594D404727625A9437C3f886C7643872296AE&chain1=8453"
+        },
+        deployments: {
+          8453: {
+            collToken: "0x0000000000000000000000000000000000000000", // TBD - LP token
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
+      {
+        symbol: "VAMM_VIRTUAL_WETH" as const,
+        name: "VIRTUAL/wETH",
+        icon: "vamm-lp",
+        collateralRatio: 1.429,
+        maxDeposit: "8800000",
+        maxLTV: 0.70,
+        type: "vamm" as const,
+        token1: { 
+          symbol: "VIRTUAL", 
+          name: "VIRTUAL",
+          address: "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b"
+        },
+        token2: { 
+          symbol: "wETH", 
+          name: "wETH",
+          address: "0x4200000000000000000000000000000000000006"
+        },
+        poolData: { 
+          tvl: "$8.8M", 
+          apr: "28.8%",
+          aerodromePoolLink: "https://aerodrome.finance/pools?token0=0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b&chain0=8453&token1=0x4200000000000000000000000000000000000006&chain1=8453"
+        },
+        deployments: {
+          8453: {
+            collToken: "0x0000000000000000000000000000000000000000", // TBD - LP token
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
+      {
+        symbol: "VAMM_WETH_CBBTC" as const,
+        name: "wETH/cbBTC",
+        icon: "vamm-lp",
+        collateralRatio: 1.429,
+        maxDeposit: "5000000",
+        maxLTV: 0.70,
+        type: "vamm" as const,
+        token1: { 
+          symbol: "wETH", 
+          name: "wETH",
+          address: "0x4200000000000000000000000000000000000006"
+        },
+        token2: { 
+          symbol: "cbBTC", 
+          name: "cbBTC",
+          address: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf"
+        },
+        poolData: { 
+          tvl: "$5M", 
+          apr: "4.2%",
+          aerodromePoolLink: "https://aerodrome.finance/pools?token0=0x4200000000000000000000000000000000000006&chain0=8453&token1=0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf&chain1=8453"
+        },
+        deployments: {
+          8453: {
+            collToken: "0x0000000000000000000000000000000000000000", // TBD - LP token
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
+      {
+        symbol: "VAMM_WETH_AERO" as const,
+        name: "wETH/AERO",
+        icon: "vamm-lp",
+        collateralRatio: 1.429,
+        maxDeposit: "5000000",
+        maxLTV: 0.70,
+        type: "vamm" as const,
+        token1: { 
+          symbol: "wETH", 
+          name: "wETH",
+          address: "0x4200000000000000000000000000000000000006"
+        },
+        token2: { 
+          symbol: "AERO", 
+          name: "AERO",
+          address: "0x940181a94A35A4569E4529a3CDfB74e38FD98631"
+        },
+        poolData: { 
+          tvl: "$5M", 
+          apr: "27.9%",
+          aerodromePoolLink: "https://aerodrome.finance/pools?token0=0x4200000000000000000000000000000000000006&chain0=8453&token1=0x940181a94A35A4569E4529a3CDfB74e38FD98631&chain1=8453"
+        },
+        deployments: {
+          8453: {
+            collToken: "0x0000000000000000000000000000000000000000", // TBD - LP token
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
+      {
+        symbol: "VAMM_VIRTUAL_CBBTC" as const,
+        name: "VIRTUAL/cbBTC",
+        icon: "vamm-lp",
+        collateralRatio: 1.429,
+        maxDeposit: "4400000",
+        maxLTV: 0.70,
+        type: "vamm" as const,
+        token1: { 
+          symbol: "VIRTUAL", 
+          name: "VIRTUAL",
+          address: "0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b"
+        },
+        token2: { 
+          symbol: "cbBTC", 
+          name: "cbBTC",
+          address: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf"
+        },
+        poolData: { 
+          tvl: "$4.4M", 
+          apr: "28%",
+          aerodromePoolLink: "https://aerodrome.finance/pools?token0=0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b&chain0=8453&token1=0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf&chain1=8453"
+        },
+        deployments: {
+          8453: {
+            collToken: "0x0000000000000000000000000000000000000000", // TBD - LP token (get this from Aerodrome after pool is created)
+            leverageZapper: "0x0000000000000000000000000000000000000000",
+            stabilityPool: "0x0000000000000000000000000000000000000000",
+            troveManager: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      },
     ],
 
     // Other tokens in the protocol
@@ -202,6 +556,48 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "LUSD" as const,
         name: "LUSD",
         icon: "legacy-stablecoin",
+      },
+      
+      // Additional tokens needed for AMM pairs
+      usdc: {
+        symbol: "USDC" as const,
+        name: "USDC",
+        icon: "usdc",
+      },
+      weth: {
+        symbol: "wETH" as const,
+        name: "wETH",
+        icon: "weth",
+      },
+      mseth: {
+        symbol: "msETH" as const,
+        name: "msETH",
+        icon: "mseth",
+      },
+      msusd: {
+        symbol: "msUSD" as const,
+        name: "msUSD",
+        icon: "msusd",
+      },
+      well: {
+        symbol: "WELL" as const,
+        name: "WELL",
+        icon: "well",
+      },
+      virtual: {
+        symbol: "VIRTUAL" as const,
+        name: "VIRTUAL",
+        icon: "virtual",
+      },
+      cbbtc: {
+        symbol: "cbBTC" as const,
+        name: "cbBTC",
+        icon: "cbbtc",
+      },
+      bold: {
+        symbol: "BOLD" as const,
+        name: "BOLD",
+        icon: "bold",
       },
     },
   },
@@ -299,6 +695,12 @@ export const WHITE_LABEL_CONFIG = {
   // BASEDOLLAR SPECIFIC FEATURES
   // ===========================
   basedollarFeatures: {
+    // Governance configuration
+    governance: {
+      // Dummy governor address for now (will be Aragon DAO later)
+      governorAddress: "0x0000000000000000000000000000000000000000",
+    },
+    
     // AERO synergy configuration
     aeroSynergy: {
       enabled: true,

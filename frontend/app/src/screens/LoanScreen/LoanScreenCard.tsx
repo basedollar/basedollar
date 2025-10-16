@@ -30,6 +30,7 @@ import {
   shortenAddress,
   StatusDot,
   TokenIcon,
+  CollateralIcon,
   VFlex,
 } from "@liquity2/uikit";
 import { a, useTransition } from "@react-spring/web";
@@ -608,7 +609,7 @@ function LoanCard(props: {
                           })}
                         >
                           <div>{fmtnum(loan.deposit)}</div>
-                          <TokenIcon symbol={collateral.symbol} size={24} />
+                          <CollateralIcon symbol={collateral.symbol} size={24} />
                           <div
                             className={css({
                               display: "flex",
