@@ -15,6 +15,7 @@ import { IndicatorManager } from "@/src/services/IndicatorManager";
 import { ReactQuery } from "@/src/services/ReactQuery";
 import { StoredState } from "@/src/services/StoredState";
 import { TransactionFlow } from "@/src/services/TransactionFlow";
+import { SubgraphStatus } from "@/src/services/SubgraphStatus";
 import { UiKit } from "@liquity2/uikit";
 import { Analytics } from "@vercel/analytics/react";
 import { GeistSans } from "geist/font/sans";
@@ -45,15 +46,17 @@ export default function Layout({
               <BreakpointName>
                 <Ethereum>
                   <IndicatorManager>
-                    <Blocking>
-                      <TransactionFlow>
-                        <About>
-                          <AppLayout>
-                            {children}
-                          </AppLayout>
-                        </About>
-                      </TransactionFlow>
-                    </Blocking>
+                    <SubgraphStatus>
+                      <Blocking>
+                        <TransactionFlow>
+                          <About>
+                            <AppLayout>
+                              {children}
+                            </AppLayout>
+                          </About>
+                        </TransactionFlow>
+                      </Blocking>
+                    </SubgraphStatus>
                   </IndicatorManager>
                 </Ethereum>
               </BreakpointName>

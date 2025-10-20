@@ -430,6 +430,20 @@ export function PanelUpdateBorrowPosition({
       </VFlex>
       <FlowButton
         disabled={!allowSubmit}
+        disabledReason={
+          !account.isConnected
+            ? "Please connect your wallet"
+            : isBelowMinDebt
+            ? `Minimum loan amount is ${fmtnum(MIN_DEBT, 2)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`
+            : isAboveMaxLtv
+            ? "Loan-to-value ratio is too high"
+            : insufficientBold
+            ? `Insufficient ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} balance`
+            : (!dn.eq(loanDetails.deposit ?? dnum18(0), newLoanDetails.deposit ?? dnum18(0))
+                || !dn.eq(loanDetails.debt ?? dnum18(0), newLoanDetails.debt ?? dnum18(0)))
+            ? undefined
+            : "No changes to apply"
+        }
         label="Update position"
         request={{
           flowId: "updateBorrowPosition",

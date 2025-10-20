@@ -4,6 +4,7 @@ import type { Dnum, PositionLoanCommitted } from "@/src/types";
 
 import { useBreakpoint } from "@/src/breakpoints";
 import { InlineTokenAmount } from "@/src/comps/Amount/InlineTokenAmount";
+import { ErrorBox } from "@/src/comps/ErrorBox/ErrorBox";
 import { Field } from "@/src/comps/Field/Field";
 import { LinkTextButton } from "@/src/comps/LinkTextButton/LinkTextButton";
 import { Screen } from "@/src/comps/Screen/Screen";
@@ -20,7 +21,7 @@ import { useTransactionFlow } from "@/src/services/TransactionFlow";
 import { isPrefixedtroveId } from "@/src/types";
 import { useAccount } from "@/src/wagmi-utils";
 import { css } from "@/styled-system/css";
-import { addressesEqual, Button, IconExternal, InfoTooltip, Tabs, TokenIcon } from "@liquity2/uikit";
+import { addressesEqual, Button, HFlex, IconExternal, InfoTooltip, Tabs, TextButton, TokenIcon, Tooltip, VFlex } from "@liquity2/uikit";
 import { a, useTransition } from "@react-spring/web";
 import * as dn from "dnum";
 import { notFound, useRouter, useSearchParams, useSelectedLayoutSegment } from "next/navigation";
@@ -199,8 +200,121 @@ export function LoanScreen() {
         />
       }
     >
-      {contentTransition((style, contentStatus) =>
-        contentStatus === "success" && (
+      {contentTransition((style, contentStatus) => {
+        if (contentStatus === "error") {
+          return (
+            <div
+              className={css({
+                display: "flex",
+                flexDirection: "column",
+                gap: 32,
+                width: "100%",
+                padding: "32px 0",
+              })}
+            >
+              <ErrorBox title="Failed to load loan data">
+                <VFlex gap={16}>
+                  <div>
+                    We encountered an error while loading the loan position details.
+                    This could be due to network issues or temporary service unavailability.
+                  </div>
+                  <div>
+                    Please try the following:
+                  </div>
+                  <ul className={css({ paddingLeft: 20, listStyleType: "disc" })}>
+                    <li>Check your internet connection</li>
+                    <li>Refresh the page</li>
+                    <li>Try again in a few moments</li>
+                  </ul>
+                  <HFlex gap={8}>
+                    <TextButton
+                      label="Retry"
+                      onClick={() => {
+                        loan.refetch();
+                        if (isLiquidated) {
+                          collSurplus.refetch();
+                        }
+                      }}
+                    />
+                    <TextButton
+                      label="Go back"
+                      onClick={() => router.push("/")}
+                    />
+                  </HFlex>
+                </VFlex>
+              </ErrorBox>
+            </div>
+          );
+        }
+
+        if (contentStatus === "not-found") {
+          return (
+            <div
+              className={css({
+                display: "flex",
+                flexDirection: "column",
+                gap: 32,
+                width: "100%",
+                padding: "32px 0",
+              })}
+            >
+              <ErrorBox title="Loan position not found">
+                <VFlex gap={16}>
+                  <div>
+                    The loan position you're looking for doesn't exist or may have been closed.
+                  </div>
+                  <div>
+                    Possible reasons:
+                  </div>
+                  <ul className={css({ paddingLeft: 20, listStyleType: "disc" })}>
+                    <li>The loan has been fully repaid and closed</li>
+                    <li>The position ID is incorrect</li>
+                    <li>The position was liquidated</li>
+                  </ul>
+                  <HFlex gap={8}>
+                    <Button
+                      label="Go to dashboard"
+                      mode="primary"
+                      size="medium"
+                      onClick={() => router.push("/")}
+                    />
+                  </HFlex>
+                </VFlex>
+              </ErrorBox>
+            </div>
+          );
+        }
+
+        if (contentStatus === "loading") {
+          return (
+            <div
+              className={css({
+                display: "flex",
+                flexDirection: "column",
+                gap: 32,
+                width: "100%",
+                padding: "32px 0",
+              })}
+            >
+              <div
+                className={css({
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 16,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 200,
+                })}
+              >
+                <div className={css({ fontSize: 18, color: "contentAlt" })}>
+                  Loading loan position...
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        return contentStatus === "success" && (
           // this <div> is only needed to prevent a warning when contentTransition
           // would otherwise try to pass a ref to a fragment (for internal tracking),
           // which is not allowed
@@ -262,13 +376,19 @@ export function LoanScreen() {
                               <p>
                                 {loan.data.redemptionCount}{" "}
                                 {loan.data.redemptionCount === 1 ? <>redemption</> : <>redemptions</>}{" "}
-                                since last user action on{" "}
-                                <time
-                                  dateTime={formatDate(new Date(loan.data.lastUserActionAt), "iso")}
-                                  title={formatDate(new Date(loan.data.lastUserActionAt), "iso")}
-                                >
-                                  {formatDate(new Date(loan.data.lastUserActionAt), "short")}
-                                </time>.
+                                {loan.data.lastUserActionAt > 0 ? (
+                                  <>
+                                    since last user action on{" "}
+                                    <time
+                                      dateTime={formatDate(new Date(loan.data.lastUserActionAt), "iso")}
+                                      title={formatDate(new Date(loan.data.lastUserActionAt), "iso")}
+                                    >
+                                      {formatDate(new Date(loan.data.lastUserActionAt), "short")}
+                                    </time>.
+                                  </>
+                                ) : (
+                                  <>since opening.</>
+                                )}
                                 <br />
                                 <InlineTokenAmount
                                   symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
@@ -354,8 +474,8 @@ export function LoanScreen() {
               ))
             )}
           </div>
-        )
-      )}
+        );
+      })}
     </Screen>
   );
 }
@@ -474,30 +594,51 @@ function ClaimCollateralSurplus({
           ),
         }}
       />
-      {isOwner && (
-        <Button
-          disabled={!collSurplus || dn.eq(collSurplus, 0) || !isOwner}
-          mode="primary"
-          size="large"
-          label="Claim remaining collateral"
-          onClick={() => {
-            if (accountAddress) {
-              txFlow.start({
-                flowId: "claimCollateralSurplus",
-                backLink: [
-                  `/loan?id=${loan.branchId}:${loan.troveId}`,
-                  "Back to the loan",
-                ],
-                successLink: ["/", "Go to the dashboard"],
-                successMessage: "The loan position has been closed successfully.",
-                borrower: loan.borrower,
-                branchId: loan.branchId,
-                collSurplus: collSurplus ?? dnum18(0),
-              });
-            }
-          }}
-        />
-      )}
+      {isOwner && (() => {
+        const shouldShowTooltip = !collSurplus || dn.eq(collSurplus, 0);
+        const button = (
+          <Button
+            disabled={!collSurplus || dn.eq(collSurplus, 0) || !isOwner}
+            mode="primary"
+            size="large"
+            label="Claim remaining collateral"
+            onClick={() => {
+              if (accountAddress) {
+                txFlow.start({
+                  flowId: "claimCollateralSurplus",
+                  backLink: [
+                    `/loan?id=${loan.branchId}:${loan.troveId}`,
+                    "Back to the loan",
+                  ],
+                  successLink: ["/", "Go to the dashboard"],
+                  successMessage: "The loan position has been closed successfully.",
+                  borrower: loan.borrower,
+                  branchId: loan.branchId,
+                  collSurplus: collSurplus ?? dnum18(0),
+                });
+              }
+            }}
+          />
+        );
+
+        return shouldShowTooltip ? (
+          <Tooltip
+            opener={({ buttonProps, setReference }) => (
+              <span ref={setReference} {...buttonProps}>
+                {button}
+              </span>
+            )}
+          >
+            <div style={{ padding: "8px", fontSize: 14 }}>
+              {!collSurplus
+                ? "No collateral surplus available"
+                : dn.eq(collSurplus, 0)
+                ? "All collateral has been claimed"
+                : ""}
+            </div>
+          </Tooltip>
+        ) : button;
+      })()}
     </div>
   );
 }
