@@ -38,6 +38,11 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
     // the protocol triggers the shutdown of the borrow market and permanently disables all borrowing operations except for closing Troves.
     uint256 internal immutable SCR;
 
+    // Maximum debt allowed on this branch
+    //Current debt on this branch is tracked via getEntireBranchDebt() in LiquityBase.sol
+    uint256 public debtLimit;
+    uint256 public initalDebtLimit;
+
     // Liquidation penalty for troves offset to the SP
     uint256 internal immutable LIQUIDATION_PENALTY_SP;
     // Liquidation penalty for troves redistributed
@@ -190,6 +195,8 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
         CCR = _addressesRegistry.CCR();
         MCR = _addressesRegistry.MCR();
         SCR = _addressesRegistry.SCR();
+        debtLimit = _addressesRegistry.debtLimit();
+        initalDebtLimit = debtLimit;
         LIQUIDATION_PENALTY_SP = _addressesRegistry.LIQUIDATION_PENALTY_SP();
         LIQUIDATION_PENALTY_REDISTRIBUTION = _addressesRegistry.LIQUIDATION_PENALTY_REDISTRIBUTION();
 
@@ -2002,5 +2009,18 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
 
         Troves[_troveId].interestBatchManager = address(0);
         Troves[_troveId].batchDebtShares = 0;
+    }
+
+    function getDebtLimit() external view returns (uint256){
+        return debtLimit;
+    }
+
+    function getInitalDebtLimit() external view returns (uint256){
+        return initalDebtLimit;
+    }
+
+    function setDebtLimit(uint256 _newDebtLimit) external {
+        _requireCallerIsCollateralRegistry();
+        debtLimit = _newDebtLimit;
     }
 }

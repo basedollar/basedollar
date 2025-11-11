@@ -95,6 +95,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     address internal stakingV1;
     address internal lusd;
 
+    address public GOVERNOR_ADDRESS;
+
     // Curve
     ICurveStableswapNGFactory curveStableswapFactory;
     // https://docs.curve.fi/deployments/amm/#stableswap-ng
@@ -192,6 +194,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         uint256 MCR;
         uint256 SCR;
         uint256 BCR;
+        uint256 debtLimit;
         uint256 LIQUIDATION_PENALTY_SP;
         uint256 LIQUIDATION_PENALTY_REDISTRIBUTION;
     }
@@ -332,6 +335,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             MCR: MCR_WETH,
             SCR: SCR_WETH,
             BCR: BCR_ALL,
+            debtLimit: WETH_DEBT_LIMIT,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_WETH,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_WETH
         });
@@ -342,6 +346,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             MCR: MCR_SETH,
             SCR: SCR_SETH,
             BCR: BCR_ALL,
+            debtLimit: SETH_DEBT_LIMIT,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_SETH,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_SETH
         });
@@ -608,7 +613,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             vars.troveManagers[vars.i] = ITroveManager(troveManagerAddress);
         }
 
-        r.collateralRegistry = new CollateralRegistry(r.boldToken, vars.collaterals, vars.troveManagers);
+        r.collateralRegistry = new CollateralRegistry(r.boldToken, vars.collaterals, vars.troveManagers, GOVERNOR_ADDRESS);
         r.hintHelpers = new HintHelpers(r.collateralRegistry);
         r.multiTroveGetter = new MultiTroveGetter(r.collateralRegistry);
         r.debtInFrontHelper = new DebtInFrontHelper(r.collateralRegistry, r.hintHelpers);
@@ -654,6 +659,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             _troveManagerParams.MCR,
             _troveManagerParams.BCR,
             _troveManagerParams.SCR,
+            _troveManagerParams.debtLimit,
             _troveManagerParams.LIQUIDATION_PENALTY_SP,
             _troveManagerParams.LIQUIDATION_PENALTY_REDISTRIBUTION
         );
