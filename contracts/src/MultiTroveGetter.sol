@@ -55,6 +55,47 @@ contract MultiTroveGetter is IMultiTroveGetter {
         }
     }
 
+    function getMultipleSortedNonRedeemableTroves(uint256 _collIndex, int256 _startIdx, uint256 _count)
+        external
+        view
+        returns (CombinedTroveData[] memory _troves)
+    {
+        ITroveManager troveManager = collateralRegistry.getNonRedeemableTroveManager(_collIndex);
+        require(address(troveManager) != address(0), "Invalid collateral index");
+
+        ISortedTroves sortedTroves = troveManager.sortedTroves();
+        assert(address(sortedTroves) != address(0));
+
+        uint256 startIdx;
+        bool descend;
+
+        if (_startIdx >= 0) {
+            startIdx = uint256(_startIdx);
+            descend = true;
+        } else {
+            startIdx = uint256(-(_startIdx + 1));
+            descend = false;
+        }
+
+        uint256 sortedTrovesSize = sortedTroves.getSize();
+
+        if (startIdx >= sortedTrovesSize) {
+            _troves = new CombinedTroveData[](0);
+        } else {
+            uint256 maxCount = sortedTrovesSize - startIdx;
+
+            if (_count > maxCount) {
+                _count = maxCount;
+            }
+
+            if (descend) {
+                _troves = _getMultipleSortedTrovesFromHead(troveManager, sortedTroves, startIdx, _count);
+            } else {
+                _troves = _getMultipleSortedTrovesFromTail(troveManager, sortedTroves, startIdx, _count);
+            }
+        }
+    }
+
     function _getOneTrove(ITroveManager _troveManager, uint256 _id, CombinedTroveData memory _out) internal view {
         _out.id = _id;
 
@@ -131,6 +172,33 @@ contract MultiTroveGetter is IMultiTroveGetter {
         returns (DebtPerInterestRate[] memory data, uint256 currId)
     {
         ITroveManager troveManager = collateralRegistry.getTroveManager(_collIndex);
+        require(address(troveManager) != address(0), "Invalid collateral index");
+
+        ISortedTroves sortedTroves = troveManager.sortedTroves();
+        assert(address(sortedTroves) != address(0));
+
+        data = new DebtPerInterestRate[](_maxIterations);
+        currId = _startId == 0 ? sortedTroves.getLast() : _startId;
+
+        for (uint256 i = 0; i < _maxIterations; ++i) {
+            if (currId == 0) break;
+
+            (, uint256 prevId, BatchId interestBatchManager,) = sortedTroves.nodes(currId);
+            LatestTroveData memory trove = troveManager.getLatestTroveData(currId);
+            data[i].interestBatchManager = BatchId.unwrap(interestBatchManager);
+            data[i].interestRate = trove.annualInterestRate;
+            data[i].debt = trove.entireDebt;
+
+            currId = prevId;
+        }
+    }
+
+    function getNonRedeemableDebtPerInterestRateAscending(uint256 _collIndex, uint256 _startId, uint256 _maxIterations)
+        external
+        view
+        returns (DebtPerInterestRate[] memory data, uint256 currId)
+    {
+        ITroveManager troveManager = collateralRegistry.getNonRedeemableTroveManager(_collIndex);
         require(address(troveManager) != address(0), "Invalid collateral index");
 
         ISortedTroves sortedTroves = troveManager.sortedTroves();

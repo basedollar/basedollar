@@ -15,31 +15,19 @@ contract CollateralRegistry is ICollateralRegistry {
     // See: https://github.com/ethereum/solidity/issues/12587
     uint256 public immutable totalCollaterals;
 
-    IERC20Metadata internal immutable token0;
-    IERC20Metadata internal immutable token1;
-    IERC20Metadata internal immutable token2;
-    IERC20Metadata internal immutable token3;
-    IERC20Metadata internal immutable token4;
-    IERC20Metadata internal immutable token5;
-    IERC20Metadata internal immutable token6;
-    IERC20Metadata internal immutable token7;
-    IERC20Metadata internal immutable token8;
-    IERC20Metadata internal immutable token9;
+    //standard, redeemable branches are capped at 10 total
+    IERC20Metadata[] internal redeemableBranchesTokens;
+    ITroveManager[] internal redeemableBranchesTroveManagers;
 
-    ITroveManager internal immutable troveManager0;
-    ITroveManager internal immutable troveManager1;
-    ITroveManager internal immutable troveManager2;
-    ITroveManager internal immutable troveManager3;
-    ITroveManager internal immutable troveManager4;
-    ITroveManager internal immutable troveManager5;
-    ITroveManager internal immutable troveManager6;
-    ITroveManager internal immutable troveManager7;
-    ITroveManager internal immutable troveManager8;
-    ITroveManager internal immutable troveManager9;
+    //special, non-redeemable branches
+    IERC20Metadata[] internal nonRedeemableBranchesTokens;
+    ITroveManager[] internal nonRedeemableBranchesTroveManagers;
 
     IBoldToken public immutable boldToken;
 
     uint256 public baseRate;
+
+    address public collateralGovernor;
 
     // The timestamp of the latest fee operation (redemption or new Bold issuance)
     uint256 public lastFeeOperationTime = block.timestamp;
@@ -47,7 +35,7 @@ contract CollateralRegistry is ICollateralRegistry {
     event BaseRateUpdated(uint256 _baseRate);
     event LastFeeOpTimeUpdated(uint256 _lastFeeOpTime);
 
-    constructor(IBoldToken _boldToken, IERC20Metadata[] memory _tokens, ITroveManager[] memory _troveManagers) {
+    constructor(IBoldToken _boldToken, IERC20Metadata[] memory _tokens, ITroveManager[] memory _troveManagers, address _collateralGovernor) {
         uint256 numTokens = _tokens.length;
         require(numTokens > 0, "Collateral list cannot be empty");
         require(numTokens <= 10, "Collateral list too long");
@@ -55,31 +43,43 @@ contract CollateralRegistry is ICollateralRegistry {
 
         boldToken = _boldToken;
 
-        token0 = _tokens[0];
-        token1 = numTokens > 1 ? _tokens[1] : IERC20Metadata(address(0));
-        token2 = numTokens > 2 ? _tokens[2] : IERC20Metadata(address(0));
-        token3 = numTokens > 3 ? _tokens[3] : IERC20Metadata(address(0));
-        token4 = numTokens > 4 ? _tokens[4] : IERC20Metadata(address(0));
-        token5 = numTokens > 5 ? _tokens[5] : IERC20Metadata(address(0));
-        token6 = numTokens > 6 ? _tokens[6] : IERC20Metadata(address(0));
-        token7 = numTokens > 7 ? _tokens[7] : IERC20Metadata(address(0));
-        token8 = numTokens > 8 ? _tokens[8] : IERC20Metadata(address(0));
-        token9 = numTokens > 9 ? _tokens[9] : IERC20Metadata(address(0));
+        require(_tokens.length == _troveManagers.length, "Tokens and trove managers must have the same length");
+        //standard, redeemable branches
+        for(uint256 i = 0; i < _tokens.length; i++){
+            redeemableBranchesTokens.push(_tokens[i]);
+            redeemableBranchesTroveManagers.push(_troveManagers[i]);
+        }
 
-        troveManager0 = _troveManagers[0];
-        troveManager1 = numTokens > 1 ? _troveManagers[1] : ITroveManager(address(0));
-        troveManager2 = numTokens > 2 ? _troveManagers[2] : ITroveManager(address(0));
-        troveManager3 = numTokens > 3 ? _troveManagers[3] : ITroveManager(address(0));
-        troveManager4 = numTokens > 4 ? _troveManagers[4] : ITroveManager(address(0));
-        troveManager5 = numTokens > 5 ? _troveManagers[5] : ITroveManager(address(0));
-        troveManager6 = numTokens > 6 ? _troveManagers[6] : ITroveManager(address(0));
-        troveManager7 = numTokens > 7 ? _troveManagers[7] : ITroveManager(address(0));
-        troveManager8 = numTokens > 8 ? _troveManagers[8] : ITroveManager(address(0));
-        troveManager9 = numTokens > 9 ? _troveManagers[9] : ITroveManager(address(0));
+        collateralGovernor = _collateralGovernor;
 
         // Initialize the baseRate state variable
         baseRate = INITIAL_BASE_RATE;
         emit BaseRateUpdated(INITIAL_BASE_RATE);
+    }
+
+    /*
+    @notice Creates a new branch for the collateral registry
+    @param _token The collateral token for the new branch
+    @param _troveManager The trove manager for the new branch
+    @param _isRedeemable Whether the new branch is redeemable
+
+    @dev If the new branch is redeemable, it will be added to the redeemable branches array, but only 10 are allowed
+    Alos, make sure that is doesnt already exist. Do not add a new branch using an existing known trove manager. Governor is exxpected to be trusted on this.
+    */
+    function createNewBranch(IERC20Metadata _token, ITroveManager _troveManager, bool _isRedeemable) external {
+        require(msg.sender == collateralGovernor, "CR: Only collateral governor can create new branches");
+        require(address(_token) != address(0), "CR: Token cannot be the zero address");
+        require(address(_troveManager) != address(0), "CR: Trove manager cannot be the zero address");
+        require(address(_token) != address(boldToken), "CR: Token cannot be the bold token");
+
+        if(_isRedeemable){
+            require(redeemableBranchesTokens.length < 10, "CR: Max 10 redeemable branches");
+            redeemableBranchesTokens.push(_token);
+            redeemableBranchesTroveManagers.push(_troveManager);
+        } else {
+            nonRedeemableBranchesTokens.push(_token);
+            nonRedeemableBranchesTroveManagers.push(_troveManager);
+        }
     }
 
     struct RedemptionTotals {
@@ -274,31 +274,34 @@ contract CollateralRegistry is ICollateralRegistry {
     // getters
 
     function getToken(uint256 _index) external view returns (IERC20Metadata) {
-        if (_index == 0) return token0;
-        else if (_index == 1) return token1;
-        else if (_index == 2) return token2;
-        else if (_index == 3) return token3;
-        else if (_index == 4) return token4;
-        else if (_index == 5) return token5;
-        else if (_index == 6) return token6;
-        else if (_index == 7) return token7;
-        else if (_index == 8) return token8;
-        else if (_index == 9) return token9;
-        else revert("Invalid index");
+        return redeemableBranchesTokens[_index];
     }
 
+    function getNonRedeemableToken(uint256 _index) external view returns(IERC20Metadata){
+        return nonRedeemableBranchesTokens[_index];
+    }
+
+    //@param _index The index of the redeemable branch
+    //@return The trove manager for the redeemable branch
+    //@dev ONLY returns the redeemable troves. Since this is only used for redemptions this is ideal.
     function getTroveManager(uint256 _index) public view returns (ITroveManager) {
-        if (_index == 0) return troveManager0;
-        else if (_index == 1) return troveManager1;
-        else if (_index == 2) return troveManager2;
-        else if (_index == 3) return troveManager3;
-        else if (_index == 4) return troveManager4;
-        else if (_index == 5) return troveManager5;
-        else if (_index == 6) return troveManager6;
-        else if (_index == 7) return troveManager7;
-        else if (_index == 8) return troveManager8;
-        else if (_index == 9) return troveManager9;
-        else revert("Invalid index");
+        return redeemableBranchesTroveManagers[_index];
+    }
+
+    function getNonRedeemableTroveManager(uint256 _index) external view returns(ITroveManager){
+        return nonRedeemableBranchesTroveManagers[_index];
+    }
+
+    //returns all trove managers, just used for front end as a helper and is not a core feature.
+    function getAllTroveManagers() external view returns(ITroveManager[] memory){
+        ITroveManager[] memory allTroveManagers = new ITroveManager[](redeemableBranchesTroveManagers.length + nonRedeemableBranchesTroveManagers.length);
+        for(uint256 i = 0; i < redeemableBranchesTroveManagers.length; i++){
+            allTroveManagers[i] = redeemableBranchesTroveManagers[i];
+        }
+        for(uint256 i = 0; i < nonRedeemableBranchesTroveManagers.length; i++){
+            allTroveManagers[redeemableBranchesTroveManagers.length + i] = nonRedeemableBranchesTroveManagers[i];
+        }
+        return allTroveManagers;
     }
 
     // require functions
