@@ -143,7 +143,7 @@ export function getTokenDisplayName(symbol: TokenSymbol) {
     case "YBOLD":
       return "yBOLD by Yearn";
     default:
-      return token.name;
+      return token?.name ?? symbol;
   }
 }
 

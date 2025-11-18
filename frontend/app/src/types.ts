@@ -281,8 +281,6 @@ export enum TroveStatusEnum {
   zombie
 }
 
-// Re-export for compatibility
-export { TroveStatusEnum as TroveStatus }
 
 export interface Trove {
   debt: bigint;

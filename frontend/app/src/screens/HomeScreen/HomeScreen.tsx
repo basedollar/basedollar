@@ -179,7 +179,6 @@ function EarnTable({
               return (
                 <EarnRewardsRow
                   key={pool.symbol}
-                  compact={compact}
                   symbol={symbol as CollateralSymbol}
                 />
               );
@@ -383,10 +382,8 @@ function BorrowingRow({
 }
 
 function EarnRewardsRow({
-  compact,
   symbol,
 }: {
-  compact: boolean;
   symbol: CollateralSymbol;
 }) {
   const branch = getBranch(symbol);
