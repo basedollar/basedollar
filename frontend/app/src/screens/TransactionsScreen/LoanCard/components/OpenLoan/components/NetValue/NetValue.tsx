@@ -10,6 +10,7 @@ import * as dn from "dnum";
 
 import type { PositionLoan } from "@/src/types";
 import type { FC } from "react";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 interface NetValueProps {
   loan: PositionLoan;
@@ -59,7 +60,7 @@ export const NetValue: FC<NetValueProps> = ({
 
           {prevLoanDetails?.depositPreLeverage && loanDetails.depositPreLeverage
             && !dn.eq(prevLoanDetails.depositPreLeverage, loanDetails.depositPreLeverage) && (
-            <CrossedText title={`${fmtnum(prevLoanDetails.depositPreLeverage, "full")} BOLD`}>
+            <CrossedText title={`${fmtnum(prevLoanDetails.depositPreLeverage, "full")} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}>
               {fmtnum(prevLoanDetails.depositPreLeverage)}
             </CrossedText>
           )}

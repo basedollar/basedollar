@@ -3,6 +3,7 @@ import { getTokenDisplayName, useLiquityStats } from "@/src/liquity-utils";
 import { css } from "@/styled-system/css";
 import { InfoTooltip, TokenIcon } from "@liquity2/uikit";
 import { EarnPositionSummaryBase } from "./EarnPositionSummaryBase";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 export function YboldPositionSummary() {
   const { data: rawStats } = useLiquityStats();
@@ -65,12 +66,12 @@ export function YboldPositionSummary() {
             />
           </div>
           <InfoTooltip heading="Total Value Locked (TVL)">
-            Total amount of BOLD deposited in the yBOLD pool.
+            Total amount of {WHITE_LABEL_CONFIG.tokens.mainToken.symbol} deposited in the yBOLD pool.
           </InfoTooltip>
         </>
       }
       infoItems={[{
-        label: "BOLD deposit",
+        label: `${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} deposit`,
         content: (
           <div
             className={css({
@@ -80,7 +81,7 @@ export function YboldPositionSummary() {
               height: 24,
             })}
           >
-            <TokenIcon symbol="BOLD" size="mini" title={null} />
+            <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} size="mini" title={null} />
           </div>
         ),
       }]}

@@ -372,7 +372,7 @@ function BorrowingRow({
                   <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} size="mini" />
                 </div>
               }
-              title={`Borrow BOLD from ${symbol}`}
+              title={`Borrow ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} from ${symbol}`}
             />
           </div>
         </td>

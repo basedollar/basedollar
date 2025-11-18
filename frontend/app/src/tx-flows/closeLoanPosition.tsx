@@ -111,7 +111,7 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
               >
                 Slippage refund
                 <InfoTooltip heading="Slippage refund">
-                  Excess BOLD was acquired to repay your debt and accommodate for slippage. This is the left over amount
+                  Excess ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} was acquired to repay your debt and accommodate for slippage. This is the left over amount
                   that has been refunded to your wallet.
                 </InfoTooltip>
               </div>
@@ -120,7 +120,7 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
               <Amount
                 key="start"
                 value={slippageRefund.data}
-                suffix=" BOLD"
+                suffix={` ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`}
                 format="2z"
               />,
             ]}

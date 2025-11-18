@@ -90,7 +90,7 @@ export function RedeemScreen() {
     : !balanceSufficient
     ? {
       mode: "error" as const,
-      message: `Insufficient BOLD balance. You have ${fmtnum(boldBalance.data)} BOLD.`,
+      message: `Insufficient ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} balance. You have ${fmtnum(boldBalance.data)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}.`,
     }
     : truncatedAmount
     ? {
@@ -104,7 +104,7 @@ export function RedeemScreen() {
             execution of your redemption.
             <br />
             <br />
-            You will be able to redeem the rest of your BOLD in a follow-up transaction.
+            You will be able to redeem the rest of your ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} in a follow-up transaction.
           </InfoTooltip>
         </HFlex>
       ),
@@ -221,7 +221,7 @@ export function RedeemScreen() {
               <HFlex gap={4} className={css({ color: "contentAlt" })}>
                 Profit/loss
                 <InfoTooltip>
-                  This is the estimated USD value of all the tokens you will receive minus the value of the BOLD you are
+                  This is the estimated USD value of all the tokens you will receive minus the value of the {WHITE_LABEL_CONFIG.tokens.mainToken.symbol} you are
                   paying.
                 </InfoTooltip>
               </HFlex>
@@ -239,8 +239,8 @@ export function RedeemScreen() {
         </VFlex>
 
         <InfoBox title="Important note">
-          Your BOLD will be taken at face value and converted to a mix of{" "}
-          {listOfCollTokenNames}, minus the redemption fee. Unless BOLD is trading significantly below $1, you will get
+          Your {WHITE_LABEL_CONFIG.tokens.mainToken.symbol} will be taken at face value and converted to a mix of{" "}
+          {listOfCollTokenNames}, minus the redemption fee. Unless {WHITE_LABEL_CONFIG.tokens.mainToken.symbol} is trading significantly below $1, you will get
           a better rate by swapping on an exchange.
 
           <LinkTextButton

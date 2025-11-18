@@ -363,13 +363,13 @@ export default {
       action: "Next: Summary",
     },
     rewardsPanel: {
-      boldRewardsLabel: "Your BOLD rewards will be paid out",
+      boldRewardsLabel: `Your ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} rewards will be paid out`,
       collRewardsLabel: (collateral: N) => <>Your {collateral} rewards will be paid out</>,
       expectedGasFeeLabel: "Expected gas fee",
       action: "Next: Summary",
     },
     compoundPanel: {
-      boldRewardsLabel: "Your BOLD rewards will be used to top-up your deposit",
+      boldRewardsLabel: `Your ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} rewards will be used to top-up your deposit`,
       collRewardsLabel: (collateral: N) => <>Your {collateral} rewards will remain in your deposit</>,
       expectedGasFeeLabel: "Expected gas fee",
       action: "Next: Summary",
@@ -383,14 +383,14 @@ export default {
       ],
       alsoClaimRewardsDeposit: (collateral: N) => [
         <>
-          If checked, rewards will be paid out as part of the deposit transaction. Otherwise, BOLD rewards will be
+          If checked, rewards will be paid out as part of the deposit transaction. Otherwise, ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} rewards will be
           compounded and {collateral} rewards will remain claimable.
         </>,
       ],
       alsoClaimRewardsWithdraw: (collateral: N) => [
         <>
           <div>
-            If checked, rewards will be paid out as part of the withdrawal transaction. Otherwise, BOLD rewards will be
+            If checked, rewards will be paid out as part of the withdrawal transaction. Otherwise, ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} rewards will be
             compounded and {collateral} rewards will remain claimable.
           </div>
           <div className={css({ color: "content" })}>

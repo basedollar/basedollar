@@ -11,12 +11,13 @@ import { parseEventLogs } from "viem";
 import { useConfig as useWagmiConfig, useReadContracts } from "wagmi";
 import { getTransactionReceipt } from "wagmi/actions";
 import { useDebounced } from "./react-utils";
+import { WHITE_LABEL_CONFIG } from "./white-label.config";
 
 const MARGINAL_AMOUNT_DIVIDER = 1_000n;
 
 export type SwapDirection =
-  | { inputToken: "BOLD"; outputToken: CollateralSymbol }
-  | { inputToken: CollateralSymbol; outputToken: "BOLD" };
+  | { inputToken: typeof WHITE_LABEL_CONFIG.tokens.mainToken.symbol; outputToken: CollateralSymbol }
+  | { inputToken: CollateralSymbol; outputToken: typeof WHITE_LABEL_CONFIG.tokens.mainToken.symbol };
 
 export type QuoteExactInputParams = SwapDirection & {
   inputAmount: Dnum;
@@ -44,7 +45,7 @@ function calcPriceImpact(
 export function useQuoteExactInput(params: QuoteExactInputParams) {
   const inputAmount = dn.from(params.inputAmount, 18)[0];
   const inputAmountMarginal = inputAmount / MARGINAL_AMOUNT_DIVIDER;
-  const collToBold = params.outputToken === "BOLD";
+  const collToBold = params.outputToken === WHITE_LABEL_CONFIG.tokens.mainToken.symbol;
   const collToken = getBranchContract(collToBold ? params.inputToken : params.outputToken, "CollToken").address;
 
   const values = useMemo(() => ({
@@ -95,7 +96,7 @@ export function useQuoteExactInput(params: QuoteExactInputParams) {
 export function useQuoteExactOutput(params: QuoteExactOutputParams) {
   const outputAmount = dn.from(params.outputAmount, 18)[0];
   const outputAmountMarginal = outputAmount / MARGINAL_AMOUNT_DIVIDER;
-  const collToBold = params.outputToken === "BOLD";
+  const collToBold = params.outputToken === WHITE_LABEL_CONFIG.tokens.mainToken.symbol;
   const collToken = getBranchContract(collToBold ? params.inputToken : params.outputToken, "CollToken").address;
 
   const values = useMemo(() => ({

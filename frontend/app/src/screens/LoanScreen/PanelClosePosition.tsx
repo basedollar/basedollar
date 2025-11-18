@@ -88,10 +88,10 @@ export function PanelClosePosition({
     } else {
       if (boldBalance.data && dn.lt(boldBalance.data, loan.borrowed)) {
         return {
-          name: "Insufficient BOLD balance",
+          name: `Insufficient ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} balance`,
           message: `The balance held by the account (${
             fmtnum(boldBalance.data)
-          } BOLD) is insufficient to repay the loan.`,
+          } ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}) is insufficient to repay the loan.`,
         };
       }
     }

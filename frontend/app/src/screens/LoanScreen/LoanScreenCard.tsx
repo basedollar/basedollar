@@ -531,7 +531,7 @@ function LoanCard(props: {
                           ),
 
                           label: mode === "multiply"
-                            ? "Convert to BOLD loan"
+                            ? `Convert to ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} loan`
                             : "Convert to Multiply position",
                         },
                         {

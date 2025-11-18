@@ -340,7 +340,7 @@ export function PanelInterestRate({
       {isZombieTrove && (
         <WarningBox>
           <div>
-            Interest rate can't be adjusted on loans with debt below 2,000 BOLD. Please adjust your debt first.
+            Interest rate can't be adjusted on loans with debt below 2,000 ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}. Please adjust your debt first.
           </div>
         </WarningBox>
       )}

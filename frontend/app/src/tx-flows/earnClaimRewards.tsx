@@ -116,7 +116,7 @@ export const earnClaimRewards: FlowDeclaration<EarnClaimRewardsRequest> = {
 
   steps: {
     claimRewards: {
-      name: (ctx) => ctx.request.compound ? "Compound BOLD rewards" : "Claim rewards",
+      name: (ctx) => ctx.request.compound ? `Compound ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} rewards` : "Claim rewards",
       Status: TransactionStatus,
 
       async commit(ctx) {

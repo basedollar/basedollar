@@ -170,14 +170,14 @@ export function useLeverageField({
   const deposit = depositChange && dn.add(positionDeposit, depositChange);
 
   const quoteLeverUp = useQuoteExactOutput({
-    inputToken: "BOLD",
+    inputToken: WHITE_LABEL_CONFIG.tokens.mainToken.symbol,
     outputToken: collToken.symbol,
     outputAmount: leverageFactorChange > 0 && slippageProtection ? dn.add(depositChange, slippageProtection) : DNUM_0,
   });
 
   const quoteLeverDown = useQuoteExactInput({
     inputToken: collToken.symbol,
-    outputToken: "BOLD",
+    outputToken: WHITE_LABEL_CONFIG.tokens.mainToken.symbol,
     inputAmount: leverageFactorChange < 0 && depositChange ? dn.abs(depositChange) : DNUM_0,
   });
 
@@ -270,7 +270,7 @@ export function useLeverageField({
   }), [sliderValue, sliderGradient, onSliderChange, keyboardStep]);
 
   const drawer: Drawer | null = deposit && dn.gt(deposit, DNUM_0) && debt && dn.lt(debt, MIN_DEBT)
-    ? { mode: "error", message: `Debt must be at least ${fmtnum(MIN_DEBT, 2)} BOLD.` }
+    ? { mode: "error", message: `Debt must be at least ${fmtnum(MIN_DEBT, 2)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}.` }
     : quoteAmount === null
     ? { mode: "error", message: `Not enough ${collToken.name} liquidity to reach your chosen exposure.` }
     : null;

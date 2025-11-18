@@ -15,6 +15,7 @@ import { css } from "@/styled-system/css";
 import { HFlex, IconLeverage, TokenIcon } from "@liquity2/uikit";
 import { PositionCard } from "./PositionCard";
 import { PositionCardSecondaryContent } from "./PositionCardSecondaryContent";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 export function PositionCardLeverage({
   batchManager,
@@ -99,7 +100,7 @@ export function PositionCardLeverage({
               <CrossedText>
                 <Amount value={liquidatedDebt ?? borrowed} fallback="−" />
               </CrossedText>
-              <TokenIcon size={24} symbol="BOLD" />
+              <TokenIcon size={24} symbol={WHITE_LABEL_CONFIG} />
             </HFlex>
           )
           : (

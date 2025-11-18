@@ -13,6 +13,7 @@ import * as dn from "dnum";
 import { encodeFunctionData } from "viem";
 import { useEstimateGas, useGasPrice } from "wagmi";
 import { Rewards } from "./components/Rewards";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 export function PanelCompound({
   branchId,
@@ -29,7 +30,7 @@ export function PanelCompound({
   }
 
   const ethPrice = usePrice("ETH");
-  const boldPriceUsd = usePrice("BOLD");
+  const boldPriceUsd = usePrice(WHITE_LABEL_CONFIG.tokens.mainToken.symbol);
   const collPriceUsd = usePrice(collateral.symbol);
 
   const boldRewardsUsd = boldPriceUsd.data && dn.mul(position?.rewards?.bold ?? DNUM_0, boldPriceUsd.data);
@@ -77,7 +78,7 @@ export function PanelCompound({
           amount={position?.rewards?.bold ?? DNUM_0}
           amountUsd={boldRewardsUsd ?? DNUM_0}
           label={content.earnScreen.compoundPanel.boldRewardsLabel}
-          symbol="BOLD"
+          symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
         />
         <Rewards
           amount={position?.rewards?.coll ?? DNUM_0}
@@ -133,7 +134,7 @@ export function PanelCompound({
               "Back to earn position",
             ],
             successLink: ["/", "Go to the Dashboard"],
-            successMessage: "The BOLD rewards have been successfully compounded.",
+            successMessage: `The ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} rewards have been successfully compounded.`,
             earnPosition: position,
             compound: true,
           }}

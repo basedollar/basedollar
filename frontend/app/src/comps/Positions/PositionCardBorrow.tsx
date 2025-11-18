@@ -100,13 +100,13 @@ export function PositionCardBorrow({
               <CrossedText>
                 <Amount value={liquidatedDebt ?? borrowed} fallback="−" />
               </CrossedText>
-              <TokenIcon size={24} symbol="BOLD" />
+              <TokenIcon size={24} symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />
             </HFlex>
           )
           : (
             <HFlex gap={8} alignItems="center" justifyContent="flex-start">
               <Amount value={borrowed} fallback="−" />
-              <TokenIcon size={24} symbol="BOLD" />
+              <TokenIcon size={24} symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />
             </HFlex>
           ),
         label: status === "liquidated"
