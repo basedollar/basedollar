@@ -219,6 +219,52 @@ export function useEarnPool(branchId: BranchId | null) {
   });
 }
 
+export function useEarnPools(branchIds: (BranchId | null)[]) {
+  const wagmiConfig = useWagmiConfig();
+  const stats = useLiquityStats();
+
+  return useQuery({
+    queryKey: [
+      "earnPools",
+      branchIds,
+      jsonStringifyWithDnum(stats.data),
+    ],
+    queryFn: async () => {
+      const poolsMap: Record<number, any> = {};
+      
+      await Promise.all(
+        branchIds.map(async (branchId) => {
+          if (branchId === null) return;
+          
+          const collateral = getCollToken(branchId);
+          const { spApyAvg1d = null, spApyAvg7d = null } = (
+            collateral && stats.data?.branch[collateral?.symbol]
+          ) ?? {};
+          
+          try {
+            const totalBoldDeposits = await readContract(wagmiConfig, {
+              ...getBranchContract(branchId, "StabilityPool"),
+              functionName: "getTotalBoldDeposits",
+            });
+            
+            poolsMap[branchId] = {
+              apr: spApyAvg1d,
+              apr7d: spApyAvg7d,
+              collateral,
+              totalDeposited: dnum18(totalBoldDeposits),
+            };
+          } catch (error) {
+            console.warn(`Failed to fetch pool data for branchId ${branchId}:`, error);
+          }
+        })
+      );
+      
+      return poolsMap;
+    },
+    enabled: stats.isSuccess,
+  });
+}
+
 export function isEarnPositionActive(position: PositionEarn | null) {
   return Boolean(
     position && (

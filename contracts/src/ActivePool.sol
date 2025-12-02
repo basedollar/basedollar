@@ -12,6 +12,8 @@ import "./Interfaces/IBoldToken.sol";
 import "./Interfaces/IInterestRouter.sol";
 import "./Interfaces/IDefaultPool.sol";
 
+import "./Interfaces/IAeroManager.sol";
+
 /*
  * The Active Pool holds the collateral and Bold debt (but not Bold tokens) for all active troves.
  *
@@ -28,11 +30,14 @@ contract ActivePool is IActivePool {
     address public immutable borrowerOperationsAddress;
     address public immutable troveManagerAddress;
     address public immutable defaultPoolAddress;
+    address public aeroManagerAddress;
 
     IBoldToken public immutable boldToken;
 
     IInterestRouter public immutable interestRouter;
     IBoldRewardsReceiver public immutable stabilityPool;
+
+    bool public immutable isAeroLPCollateral;
 
     uint256 internal collBalance; // deposited coll tracker
 
@@ -61,6 +66,8 @@ contract ActivePool is IActivePool {
     // Last time at which the aggregate batch fees and weighted sum were updated
     uint256 public lastAggBatchManagementFeesUpdateTime;
 
+    address public aeroGaugeAddress;
+
     // --- Events ---
 
     event CollTokenAddressChanged(address _newCollTokenAddress);
@@ -71,7 +78,7 @@ contract ActivePool is IActivePool {
     event ActivePoolBoldDebtUpdated(uint256 _recordedDebtSum);
     event ActivePoolCollBalanceUpdated(uint256 _collBalance);
 
-    constructor(IAddressesRegistry _addressesRegistry) {
+    constructor(IAddressesRegistry _addressesRegistry, bool _isAeroLPCollateral, address _aeroGaugeAddress) {
         collToken = _addressesRegistry.collToken();
         borrowerOperationsAddress = address(_addressesRegistry.borrowerOperations());
         troveManagerAddress = address(_addressesRegistry.troveManager());
@@ -88,6 +95,10 @@ contract ActivePool is IActivePool {
 
         // Allow funds movements between Liquity contracts
         collToken.approve(defaultPoolAddress, type(uint256).max);
+
+        isAeroLPCollateral = _isAeroLPCollateral;
+        aeroManagerAddress = address(_addressesRegistry.aeroManager());
+        aeroGaugeAddress = _aeroGaugeAddress;
     }
 
     // --- Getters for public variables. Required by IPool interface ---
@@ -164,6 +175,9 @@ contract ActivePool is IActivePool {
 
         _accountForSendColl(_amount);
 
+        if (isAeroLPCollateral) {
+            IAeroGauge(aeroGaugeAddress).withdraw(_amount);
+        }
         collToken.safeTransfer(_account, _amount);
     }
 
@@ -188,6 +202,11 @@ contract ActivePool is IActivePool {
 
         // Pull Coll tokens from sender
         collToken.safeTransferFrom(msg.sender, address(this), _amount);
+
+        //TODO might need to make this a factory, to keep positions separate.
+        if (isAeroLPCollateral) {
+            IAeroGauge(aeroGaugeAddress).deposit(_amount);
+        }
     }
 
     function accountForReceivedColl(uint256 _amount) public {
@@ -297,6 +316,19 @@ contract ActivePool is IActivePool {
         lastAggBatchManagementFeesUpdateTime = block.timestamp;
     }
 
+    function isAeroLPCollateral() external view returns (bool) {
+        return isAeroLPCollateral;
+    }
+
+    function setAeroManagerAddress(address _aeroManagerAddress) external {
+        _requireCallerIsAeroManager();
+        aeroManagerAddress = _aeroManagerAddress;
+    }
+
+    function _requireCallerIsAeroManager() internal view {
+        require(msg.sender == aeroManagerAddress, "ActivePool: Caller is not AeroManager");
+    }
+
     // --- Shutdown ---
 
     function setShutdownFlag() external {
@@ -342,4 +374,6 @@ contract ActivePool is IActivePool {
     function _requireCallerIsTroveManager() internal view {
         require(msg.sender == troveManagerAddress, "ActivePool: Caller is not TroveManager");
     }
+
+
 }

@@ -270,6 +270,15 @@ export function PanelClosePosition({
 
       <FlowButton
         disabled={!allowSubmit}
+        disabledReason={
+          !isOwner
+            ? "Only the loan owner can close this position"
+            : !claimOnly && repayToken.symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol
+                && amountToRepay
+                && (!boldBalance.data || dn.lt(boldBalance.data, amountToRepay))
+            ? `Insufficient ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} balance to repay the loan`
+            : undefined
+        }
         label={claimOnly
           ? content.closeLoan.buttonReclaimAndClose
           : content.closeLoan.buttonRepayAndClose}

@@ -197,3 +197,112 @@ export type IcStrategy = {
   address: Address;
   name: string;
 };
+
+// Types for backup read calls when subgraph fails
+export interface CombinedTroveData {
+  id: bigint;
+  entireDebt: bigint;
+  entireColl: bigint;
+  redistBoldDebtGain: bigint;
+  redistCollGain: bigint;
+  accruedInterest: bigint;
+  recordedDebt: bigint;
+  annualInterestRate: bigint;
+  accruedBatchManagementFee: bigint;
+  lastInterestRateAdjTime: bigint;
+  stake: bigint;
+  lastDebtUpdateTime: bigint;
+  interestBatchManager: Address;
+  batchDebtShares: bigint;
+  snapshotETH: bigint;
+  snapshotBoldDebt: bigint;
+}
+
+export interface ReturnCombinedTroveReadCallData {
+  id: string;
+  troveId: string;
+  borrower: Address;
+  debt: bigint;
+  deposit: bigint;
+  interestRate: bigint;
+  status: TroveStatusEnum;
+  collateral: {
+    id: string;
+    token: {
+      symbol: string;
+      name: string;
+    };
+    minCollRatio: number;
+    branchId: number;
+  }
+  interestBatch: {
+    annualInterestRate: bigint;
+    batchManager: Address;
+  }
+  entireDebt: bigint;
+  entireColl: bigint;
+  redistBoldDebtGain: bigint;
+  redistCollGain: bigint;
+  accruedInterest: bigint;
+  recordedDebt: bigint;
+  annualInterestRate: bigint;
+  accruedBatchManagementFee: bigint;
+  lastInterestRateAdjTime: bigint;
+  stake: bigint;
+  lastDebtUpdateTime: bigint;
+  interestBatchManager: Address;
+  batchDebtShares: bigint;
+  snapshotETH: bigint;
+  snapshotBoldDebt: bigint;
+}
+
+export type DebtPerInterestRate = {
+  interestBatchManager: Address;
+  interestRate: bigint;
+  debt: bigint;
+}
+
+export enum TroveStatusEnum {
+  nonExistent,
+  active,
+  closedByOwner,
+  closedByLiquidation,
+  zombie
+}
+
+// Re-export for compatibility
+export { TroveStatusEnum as TroveStatus }
+
+export interface Trove {
+  debt: bigint;
+  coll: bigint;
+  stake: bigint;
+  status: TroveStatusEnum;
+  arrayIndex: bigint;
+  lastDebtUpdateTime: bigint;
+  lastInterestRateAdjTime: bigint;
+  annualInterestRate: bigint;
+  interestBatchManager: Address;
+  batchDebtShares: bigint;
+}
+
+export interface ReturnTroveReadCallData extends Trove {
+  id: string;
+  troveId: string;
+  borrower: Address;
+  deposit: bigint;
+  interestRate: bigint;
+  collateral: {
+    id: string;
+    token: {
+      symbol: string;
+      name: string;
+    };
+    minCollRatio: number;
+    branchId: number;
+  }
+  interestBatch: {
+    annualInterestRate: bigint;
+    batchManager: Address;
+  }
+}
