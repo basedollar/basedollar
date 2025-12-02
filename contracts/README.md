@@ -95,9 +95,10 @@ The `AeroManager` contract is used to direct and manage AERO token rewards earne
 
 AeroManager is integrated into the system through the `AddressesRegistry` and `ActivePool`. When Aerodrome LP tokens are used as collateral:
 
-1. The `ActivePool` holds the LP collateral and references the `AeroManager` address
-2. AERO rewards accrue from the Aerodrome LP positions held in the ActivePool
-3. The `AeroManager` contract manages these rewards and can interact with Aerodrome gauges to direct reward distribution
+1. Each `ActivePool` knows about one Aero gauge for that particular collateral type
+2. When LP collateral is received, it is deposited into the associated Aerodrome gauge
+3. AERO rewards accrue from the Aerodrome LP positions staked in the gauge
+4. The `AeroManager` contract manages these rewards and can interact with Aerodrome gauges to direct reward distribution
 
 The contract maintains references to the `CollateralRegistry` and stores the AERO token address for reward management operations.
 
