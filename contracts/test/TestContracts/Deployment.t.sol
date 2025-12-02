@@ -331,7 +331,7 @@ contract TestDeployer is MetadataDeployment {
             vars.troveManagers[vars.i] = ITroveManager(troveManagerAddress);
         }
 
-        collateralRegistry = new CollateralRegistry(boldToken, vars.collaterals, vars.troveManagers, address(0));
+        collateralRegistry = new CollateralRegistry(boldToken, vars.collaterals, vars.troveManagers, address(0)); //TODO: fix this later
         hintHelpers = new HintHelpers(collateralRegistry);
         multiTroveGetter = new MultiTroveGetter(collateralRegistry);
 
@@ -557,7 +557,7 @@ contract TestDeployer is MetadataDeployment {
         vars.troveManagers[2] = ITroveManager(troveManagerAddress);
 
         // Deploy registry and register the TMs
-        result.collateralRegistry = new CollateralRegistryTester(result.boldToken, vars.collaterals, vars.troveManagers);
+        result.collateralRegistry = new CollateralRegistryTester(result.boldToken, vars.collaterals, vars.troveManagers, address(0)); //TODO: fix this later
 
         result.hintHelpers = new HintHelpers(result.collateralRegistry);
         result.multiTroveGetter = new MultiTroveGetter(result.collateralRegistry);
