@@ -42,6 +42,9 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
     // Liquidation penalty for troves redistributed
     uint256 public immutable LIQUIDATION_PENALTY_REDISTRIBUTION;
 
+    //Debt Limit
+    uint256 public debtLimit;
+
     error InvalidCCR();
     error InvalidMCR();
     error InvalidBCR();
@@ -75,6 +78,7 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
         uint256 _mcr,
         uint256 _bcr,
         uint256 _scr,
+        uint256 _debtLimit,
         uint256 _liquidationPenaltySP,
         uint256 _liquidationPenaltyRedistribution
     ) Ownable(_owner) {
@@ -90,6 +94,7 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
         SCR = _scr;
         MCR = _mcr;
         BCR = _bcr;
+        debtLimit = _debtLimit;
         LIQUIDATION_PENALTY_SP = _liquidationPenaltySP;
         LIQUIDATION_PENALTY_REDISTRIBUTION = _liquidationPenaltyRedistribution;
     }

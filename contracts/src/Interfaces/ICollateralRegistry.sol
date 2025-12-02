@@ -15,6 +15,8 @@ interface ICollateralRegistry {
     function totalCollaterals() external view returns (uint256);
     function getToken(uint256 _index) external view returns (IERC20Metadata);
     function getTroveManager(uint256 _index) external view returns (ITroveManager);
+    function getNonRedeemableToken(uint256 _index) external view returns(IERC20Metadata);
+    function getNonRedeemableTroveManager(uint256 _index) external view returns(ITroveManager);
     function boldToken() external view returns (IBoldToken);
 
     function getRedemptionRate() external view returns (uint256);
@@ -23,4 +25,8 @@ interface ICollateralRegistry {
 
     function getRedemptionFeeWithDecay(uint256 _ETHDrawn) external view returns (uint256);
     function getEffectiveRedemptionFeeInBold(uint256 _redeemAmount) external view returns (uint256);
+
+    function updateDebtLimit(uint256 _indexTroveManager, uint256 _newDebtLimit) external;
+    function updateGovernor(address _newGovernor) external;
+    function getDebtLimit(uint256 _indexTroveManager) external view returns (uint256); 
 }

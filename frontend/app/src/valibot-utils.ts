@@ -40,6 +40,16 @@ export function vBranchId() {
     v.literal(7),
     v.literal(8),
     v.literal(9),
+    v.literal(10),
+    v.literal(11),
+    v.literal(12),
+    v.literal(13),
+    v.literal(14),
+    v.literal(15),
+    v.literal(16),
+    v.literal(17),
+    v.literal(18),
+    v.literal(19),
   ]);
 }
 

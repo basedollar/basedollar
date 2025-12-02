@@ -67,6 +67,7 @@ interface IAddressesRegistry {
     function collateralRegistry() external view returns (ICollateralRegistry);
     function boldToken() external view returns (IBoldToken);
     function WETH() external returns (IWETH);
+    function debtLimit() external returns (uint256);
 
     function setAddresses(AddressVars memory _vars) external;
 }

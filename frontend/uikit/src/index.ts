@@ -34,7 +34,14 @@ export { Tabs } from "./Tabs/Tabs";
 export { AnchorTextButton } from "./TextButton/AnchorTextButton";
 export { TextButton } from "./TextButton/TextButton";
 export { colors, lightTheme, Theme, themeColor, useTheme } from "./Theme/Theme";
-export { TokenIcon, TokenIconGroup } from "./TokenIcon/TokenIcon";
+export { 
+  TokenIcon, 
+  TokenIconGroup, 
+  CollateralIcon, 
+  CollateralSectionHeader,
+  groupCollaterals,
+  type CollateralGroup 
+} from "./TokenIcon/TokenIcon";
 export { InfoTooltip } from "./Tooltip/InfoTooltip";
 export { Tooltip } from "./Tooltip/Tooltip";
 export { UiKit } from "./UiKit/UiKit";

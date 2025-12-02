@@ -11,7 +11,7 @@ import { usePrice } from "@/src/services/Prices";
 import { useAccount, useBalance } from "@/src/wagmi-utils";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { css } from "@/styled-system/css";
-import { addressesEqual, TokenIcon, TOKENS_BY_SYMBOL, VFlex } from "@liquity2/uikit";
+import { addressesEqual, TokenIcon, CollateralIcon, TOKENS_BY_SYMBOL, VFlex } from "@liquity2/uikit";
 import * as dn from "dnum";
 
 export function PanelClosePosition({
@@ -223,7 +223,7 @@ export function PanelClosePosition({
                     userSelect: "none",
                   })}
                 >
-                  <TokenIcon symbol={collateral.symbol} />
+                  <CollateralIcon symbol={collateral.symbol} />
                   <div>{collateral.name}</div>
                 </div>
               </div>

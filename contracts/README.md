@@ -1,3 +1,11 @@
+# Base Dollar hints:
+
+## Helpers for non redeemable troves
+`HintHelpers.sol` functions can be used with an appended `NonRedeemable` to the function name to work with all the non-redeemable troves.
+
+For example, `predictRemoveFromBatchUpfrontFee()` becomes `predictRemoveFromBatchUpfrontFeeNonRedeemable()`, and should work the same way.
+
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
