@@ -77,6 +77,9 @@ interface ITroveManager is ILiquityBase {
 
     function getLatestBatchData(address _batchAddress) external view returns (LatestBatchData memory);
 
+    function getInitalDebtLimit() external view returns (uint256);
+    function getDebtLimit() external view returns (uint256);
+
     // -- permissioned functions called by BorrowerOperations
 
     function onOpenTrove(address _owner, uint256 _troveId, TroveChange memory _troveChange, uint256 _annualInterestRate)
@@ -169,6 +172,8 @@ interface ITroveManager is ILiquityBase {
         uint256 _newBatchDebt, // entire, with interest and batch fee
         uint256 _newAnnualInterestRate
     ) external;
+
+    function setDebtLimit(uint256 _newDebtLimit) external;
 
     // -- end of permissioned functions --
 }

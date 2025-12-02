@@ -26,6 +26,9 @@ uint256 constant MCR_SETH = 120 * _1pct;
 uint256 constant SCR_WETH = 110 * _1pct;
 uint256 constant SCR_SETH = 120 * _1pct;
 
+uint256 constant WETH_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+uint256 constant SETH_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+
 // Batch CR buffer (same for all branches for now)
 // On top of MCR to join a batch, or adjust inside a batch
 uint256 constant BCR_ALL = 10 * _1pct;

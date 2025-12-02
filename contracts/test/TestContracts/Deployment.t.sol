@@ -137,6 +137,7 @@ contract TestDeployer is MetadataDeployment {
         uint256 MCR;
         uint256 BCR;
         uint256 SCR;
+        uint256 debtLimit;
         uint256 LIQUIDATION_PENALTY_SP;
         uint256 LIQUIDATION_PENALTY_REDISTRIBUTION;
     }
@@ -225,7 +226,7 @@ contract TestDeployer is MetadataDeployment {
             Zappers memory zappers
         )
     {
-        return deployAndConnectContracts(TroveManagerParams(150e16, 110e16, 10e16, 110e16, 5e16, 10e16));
+        return deployAndConnectContracts(TroveManagerParams(150e16, 110e16, 10e16, 110e16, 5e16, 10e16, 10000 ether));
     }
 
     function deployAndConnectContracts(TroveManagerParams memory troveManagerParams)
@@ -330,7 +331,7 @@ contract TestDeployer is MetadataDeployment {
             vars.troveManagers[vars.i] = ITroveManager(troveManagerAddress);
         }
 
-        collateralRegistry = new CollateralRegistry(boldToken, vars.collaterals, vars.troveManagers);
+        collateralRegistry = new CollateralRegistry(boldToken, vars.collaterals, vars.troveManagers, address(0));
         hintHelpers = new HintHelpers(collateralRegistry);
         multiTroveGetter = new MultiTroveGetter(collateralRegistry);
 
@@ -372,6 +373,7 @@ contract TestDeployer is MetadataDeployment {
             _troveManagerParams.MCR,
             _troveManagerParams.BCR,
             _troveManagerParams.SCR,
+            _troveManagerParams.debtLimit,
             _troveManagerParams.LIQUIDATION_PENALTY_SP,
             _troveManagerParams.LIQUIDATION_PENALTY_REDISTRIBUTION
         );
@@ -592,6 +594,7 @@ contract TestDeployer is MetadataDeployment {
             _troveManagerParams.MCR,
             _troveManagerParams.BCR,
             _troveManagerParams.SCR,
+            _troveManagerParams.debtLimit,
             _troveManagerParams.LIQUIDATION_PENALTY_SP,
             _troveManagerParams.LIQUIDATION_PENALTY_REDISTRIBUTION
         );
