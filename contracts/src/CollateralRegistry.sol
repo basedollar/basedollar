@@ -52,6 +52,8 @@ contract CollateralRegistry is ICollateralRegistry {
 
         collateralGovernor = _collateralGovernor;
 
+        governor = _governor;
+
         // Initialize the baseRate state variable
         baseRate = INITIAL_BASE_RATE;
         emit BaseRateUpdated(INITIAL_BASE_RATE);
@@ -304,6 +306,20 @@ contract CollateralRegistry is ICollateralRegistry {
         return allTroveManagers;
     }
 
+        // Update the debt limit for a specific TroveManager
+    function updateDebtLimit(uint256 _indexTroveManager, uint256 _newDebtLimit) external onlyGovernor {
+        //limited to increasing by 2x at a time, maximum. Decrease by any amount.
+        uint256 currentDebtLimit = getTroveManager(_indexTroveManager).getDebtLimit();
+        if (_newDebtLimit > currentDebtLimit) {
+            require(_newDebtLimit <= currentDebtLimit * 2 || _newDebtLimit <= getTroveManager(_indexTroveManager).getInitalDebtLimit(), "CollateralRegistry: Debt limit increase by more than 2x is not allowed");
+        }
+        getTroveManager(_indexTroveManager).setDebtLimit(_newDebtLimit);
+    }
+
+    function getDebtLimit(uint256 _indexTroveManager) external view returns (uint256) {
+        return getTroveManager(_indexTroveManager).getDebtLimit();
+    }
+
     // require functions
 
     function _requireValidMaxFeePercentage(uint256 _maxFeePercentage) internal pure {
@@ -315,5 +331,14 @@ contract CollateralRegistry is ICollateralRegistry {
 
     function _requireAmountGreaterThanZero(uint256 _amount) internal pure {
         require(_amount > 0, "CollateralRegistry: Amount must be greater than zero");
+    }
+
+    function updateGovernor(address _newGovernor) external onlyGovernor {
+        governor = _newGovernor;
+    }
+
+    modifier onlyGovernor() {
+        require(msg.sender == governor, "CollateralRegistry: Only governor can call this function");
+        _;
     }
 }
