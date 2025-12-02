@@ -40,8 +40,5 @@ contract AeroManager is IAeroManager {
         _;
     }
 
-    //TODO decide the best way to handle updates.
-    // function updateAeroGaugeAddress(address activePoolAddress, address _aeroGaugeAddress) external onlyGovernor {
-    //     collateralRegistry.addressesRegistry().activePool(branchId).updateAeroGaugeAddress(_aeroGaugeAddress);
-    // }
+    //TODO vote with AERO tokens on any gauges that governance chooses.
 }

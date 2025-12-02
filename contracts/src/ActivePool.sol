@@ -175,6 +175,9 @@ contract ActivePool is IActivePool {
 
         _accountForSendColl(_amount);
 
+        if (isAeroLPCollateral) {
+            IAeroGauge(aeroGaugeAddress).withdraw(_amount);
+        }
         collToken.safeTransfer(_account, _amount);
     }
 
@@ -200,6 +203,7 @@ contract ActivePool is IActivePool {
         // Pull Coll tokens from sender
         collToken.safeTransferFrom(msg.sender, address(this), _amount);
 
+        //TODO might need to make this a factory, to keep positions separate.
         if (isAeroLPCollateral) {
             IAeroGauge(aeroGaugeAddress).deposit(_amount);
         }
@@ -323,11 +327,6 @@ contract ActivePool is IActivePool {
 
     function _requireCallerIsAeroManager() internal view {
         require(msg.sender == aeroManagerAddress, "ActivePool: Caller is not AeroManager");
-    }
-
-    function updateAeroGaugeAddress(address _aeroGaugeAddress) external {
-        _requireCallerIsAeroManager();
-        aeroGaugeAddress = _aeroGaugeAddress;
     }
 
     // --- Shutdown ---
