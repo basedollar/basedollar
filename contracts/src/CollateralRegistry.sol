@@ -71,7 +71,7 @@ contract CollateralRegistry is ICollateralRegistry {
     @dev If the new branch is redeemable, it will be added to the redeemable branches array, but only 10 are allowed
     Alos, make sure that is doesnt already exist. Do not add a new branch using an existing known trove manager. Governor is expected to be trusted on this.
     */
-    function createNewBranch(IERC20Metadata _token, ITroveManager _troveManager, bool _isRedeemable) external onlyGovernor {
+    function createNewBranch(IERC20Metadata _token, ITroveManager _troveManager, bool _isRedeemable) external {
         require(msg.sender == collateralGovernor, "CR: Only collateral governor can create new branches");
         require(address(_token) != address(0), "CR: Token cannot be the zero address");
         require(address(_troveManager) != address(0), "CR: Trove manager cannot be the zero address");
