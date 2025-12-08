@@ -13,7 +13,9 @@ import "./Interfaces/ICollateralRegistry.sol";
 
 contract CollateralRegistry is ICollateralRegistry {
     // See: https://github.com/ethereum/solidity/issues/12587
-    uint256 public immutable totalCollaterals;
+    uint256 public totalCollaterals;
+
+    uint256 private constant MAX_REDEEMABLE_BRANCHES = 10;
 
     //standard, redeemable branches are capped at 10 total
     IERC20Metadata[] internal redeemableBranchesTokens;
@@ -34,11 +36,12 @@ contract CollateralRegistry is ICollateralRegistry {
 
     event BaseRateUpdated(uint256 _baseRate);
     event LastFeeOpTimeUpdated(uint256 _lastFeeOpTime);
+    event CollateralBranchAdded(uint256 _totalCollaterals, uint256 _index, IERC20Metadata _token, ITroveManager _troveManager, bool _isRedeemable);
 
     constructor(IBoldToken _boldToken, IERC20Metadata[] memory _tokens, ITroveManager[] memory _troveManagers, address _collateralGovernor) {
         uint256 numTokens = _tokens.length;
         require(numTokens > 0, "Collateral list cannot be empty");
-        require(numTokens <= 10, "Collateral list too long");
+        require(numTokens <= MAX_REDEEMABLE_BRANCHES, "Collateral list too long");
         totalCollaterals = numTokens;
 
         boldToken = _boldToken;
@@ -66,22 +69,27 @@ contract CollateralRegistry is ICollateralRegistry {
     @param _isRedeemable Whether the new branch is redeemable
 
     @dev If the new branch is redeemable, it will be added to the redeemable branches array, but only 10 are allowed
-    Alos, make sure that is doesnt already exist. Do not add a new branch using an existing known trove manager. Governor is exxpected to be trusted on this.
+    Alos, make sure that is doesnt already exist. Do not add a new branch using an existing known trove manager. Governor is expected to be trusted on this.
     */
-    function createNewBranch(IERC20Metadata _token, ITroveManager _troveManager, bool _isRedeemable) external {
+    function createNewBranch(IERC20Metadata _token, ITroveManager _troveManager, bool _isRedeemable) external onlyGovernor {
         require(msg.sender == collateralGovernor, "CR: Only collateral governor can create new branches");
         require(address(_token) != address(0), "CR: Token cannot be the zero address");
         require(address(_troveManager) != address(0), "CR: Trove manager cannot be the zero address");
         require(address(_token) != address(boldToken), "CR: Token cannot be the bold token");
 
+        uint256 index;
         if(_isRedeemable){
-            require(redeemableBranchesTokens.length < 10, "CR: Max 10 redeemable branches");
+            require(redeemableBranchesTokens.length < MAX_REDEEMABLE_BRANCHES, "CR: Max 10 redeemable branches");
+            index = redeemableBranchesTokens.length;
             redeemableBranchesTokens.push(_token);
             redeemableBranchesTroveManagers.push(_troveManager);
         } else {
+            index = nonRedeemableBranchesTokens.length;
             nonRedeemableBranchesTokens.push(_token);
             nonRedeemableBranchesTroveManagers.push(_troveManager);
         }
+        totalCollaterals++;
+        emit CollateralBranchAdded(totalCollaterals, index, _token, _troveManager, _isRedeemable);
     }
 
     struct RedemptionTotals {
@@ -99,7 +107,7 @@ contract CollateralRegistry is ICollateralRegistry {
 
         RedemptionTotals memory totals;
 
-        totals.numCollaterals = totalCollaterals;
+        totals.numCollaterals = redeemableBranchesTokens.length;
         uint256[] memory unbackedPortions = new uint256[](totals.numCollaterals);
         uint256[] memory prices = new uint256[](totals.numCollaterals);
 
