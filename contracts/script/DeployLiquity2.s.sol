@@ -23,6 +23,7 @@ import "src/GasPool.sol";
 import "src/HintHelpers.sol";
 import "src/MultiTroveGetter.sol";
 import {DebtInFrontHelper, IDebtInFrontHelper} from "src/DebtInFrontHelper.sol";
+import {RedemptionHelper, IRedemptionHelper} from "src/RedemptionHelper.sol";
 import "src/SortedTroves.sol";
 import "src/StabilityPool.sol";
 import "src/PriceFeeds/WETHPriceFeed.sol";
@@ -38,6 +39,7 @@ import "src/Zappers/GasCompZapper.sol";
 import "src/Zappers/LeverageLSTZapper.sol";
 import "src/Zappers/LeverageWETHZapper.sol";
 import "src/Zappers/Modules/Exchanges/HybridCurveUniV3ExchangeHelpers.sol";
+import "src/Zappers/Modules/Exchanges/HybridCurveUniV3ExchangeHelpersV2.sol";
 import {BalancerFlashLoan} from "src/Zappers/Modules/FlashLoans/BalancerFlashLoan.sol";
 import "src/Zappers/Modules/Exchanges/Curve/ICurveStableswapNGFactory.sol";
 import "src/Zappers/Modules/Exchanges/UniswapV3/ISwapRouter.sol";
@@ -225,6 +227,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         MultiTroveGetter multiTroveGetter;
         IDebtInFrontHelper debtInFrontHelper;
         IExchangeHelpers exchangeHelpers;
+        IExchangeHelpersV2 exchangeHelpersV2;
+        IRedemptionHelper redemptionHelper;
     }
 
     function run() external {
@@ -642,6 +646,19 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             UNIV3_FEE_WETH_COLL,
             uniV3Quoter
         );
+
+        r.exchangeHelpersV2 = new HybridCurveUniV3ExchangeHelpersV2({
+            _usdc: address(USDC),
+            _weth: address(WETH),
+            _curvePool: r.usdcCurvePool,
+            _usdcIndex: int128(OTHER_TOKEN_INDEX),
+            _boldIndex: int128(BOLD_TOKEN_INDEX),
+            _feeUsdcWeth: UNIV3_FEE_USDC_WETH,
+            _feeWethColl: UNIV3_FEE_WETH_COLL,
+            _uniV3Quoter: uniV3Quoter
+        });
+
+        r.redemptionHelper = new RedemptionHelper(r.collateralRegistry, vars.addressesRegistries);
     }
 
     function _deployAddressesRegistry(TroveManagerParams memory _troveManagerParams)
@@ -1164,6 +1181,10 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 string.concat('"multiTroveGetter":"', address(deployed.multiTroveGetter).toHexString(), '",'),
                 string.concat('"debtInFrontHelper":"', address(deployed.debtInFrontHelper).toHexString(), '",'),
                 string.concat('"exchangeHelpers":"', address(deployed.exchangeHelpers).toHexString(), '",'),
+                string.concat('"exchangeHelpersV2":"', address(deployed.exchangeHelpersV2).toHexString(), '",')
+            ),
+            string.concat(
+                string.concat('"redemptionHelper":"', address(deployed.redemptionHelper).toHexString(), '",'),
                 string.concat('"branches":[', branches.join(","), "],"),
                 string.concat('"governance":', _governanceManifest, "") // no comma
             ),

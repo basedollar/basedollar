@@ -11,10 +11,11 @@ import { InterestRateField } from "@/src/comps/InterestRateField/InterestRateFie
 import { LinkTextButton } from "@/src/comps/LinkTextButton/LinkTextButton";
 import { RedemptionInfo } from "@/src/comps/RedemptionInfo/RedemptionInfo";
 import { Screen } from "@/src/comps/Screen/Screen";
+import { WarningBox } from "@/src/comps/WarningBox/WarningBox";
 import { DEBT_SUGGESTIONS, ETH_MAX_RESERVE, MAX_COLLATERAL_DEPOSITS, MIN_DEBT } from "@/src/constants";
 import content from "@/src/content";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
-import { dnum18, dnumMax, dnumMin } from "@/src/dnum-utils";
+import { dnum18, DNUM_0, dnumMax, dnumMin } from "@/src/dnum-utils";
 import { useInputFieldValue } from "@/src/form-utils";
 import { fmtnum } from "@/src/formatting";
 import { getLiquidationRisk, getLoanDetails, getLtv } from "@/src/liquity-math";
@@ -23,14 +24,16 @@ import {
   getBranches,
   getCollToken,
   useBranchCollateralRatios,
+  useBranchDebt,
   useNextOwnerIndex,
-  useRedemptionRisk,
+  useRedemptionRiskOfInterestRate,
 } from "@/src/liquity-utils";
 import { usePrice } from "@/src/services/Prices";
 import { infoTooltipProps } from "@/src/uikit-utils";
 import { useAccount, useBalances } from "@/src/wagmi-utils";
 import { css } from "@/styled-system/css";
 import {
+  Checkbox,
   COLLATERALS as KNOWN_COLLATERALS,
   Dropdown,
   HFlex,
@@ -45,7 +48,7 @@ import {
 } from "@liquity2/uikit";
 import * as dn from "dnum";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { maxUint256 } from "viem";
 
 const KNOWN_COLLATERAL_SYMBOLS = KNOWN_COLLATERALS.map(({ symbol }) => symbol);
@@ -86,6 +89,14 @@ export function BorrowScreen() {
   const [interestRate, setInterestRate] = useState<null | Dnum>(null);
   const [interestRateMode, setInterestRateMode] = useState<DelegateMode>("manual");
   const [interestRateDelegate, setInterestRateDelegate] = useState<Address | null>(null);
+  const [agreeToLiquidationRisk, setAgreeToLiquidationRisk] = useState(false);
+
+  const agreeCheckboxId = useId();
+
+  const setInterestRateRounded = useCallback((averageInterestRate: Dnum, setValue: (value: string) => void) => {
+    const rounded = dn.div(dn.round(dn.mul(averageInterestRate, 1e4)), 1e4);
+    setValue(dn.toString(dn.mul(rounded, 100)));
+  }, [setInterestRate]);
 
   const collPrice = usePrice(collateral.symbol);
 
@@ -98,7 +109,7 @@ export function BorrowScreen() {
   }
 
   const nextOwnerIndex = useNextOwnerIndex(account.address ?? null, branch.id);
-  const redemptionRisk = useRedemptionRisk(branch.id, interestRate);
+  const redemptionRisk = useRedemptionRiskOfInterestRate(branch.id, interestRate ?? DNUM_0);
 
   const loanDetails = getLoanDetails(
     deposit.isEmpty ? null : deposit.parsed,
@@ -107,6 +118,14 @@ export function BorrowScreen() {
     collateral.collateralRatio,
     collPrice.data ?? null,
   );
+
+  useEffect(() => {
+    setAgreeToLiquidationRisk(false);
+  }, [loanDetails.status]);
+
+  const insufficientColl = deposit.parsed
+    && collBalance.data
+    && (dn.gt(deposit.parsed, collBalance.data));
 
   const debtSuggestions = loanDetails.maxDebt
       && loanDetails.depositUsd
@@ -153,7 +172,44 @@ export function BorrowScreen() {
   );
 
   const isBelowMinDebt = debt.parsed && !debt.isEmpty && dn.lt(debt.parsed, MIN_DEBT);
+  const isAboveMaxLtv = loanDetails.ltv && dn.gt(loanDetails.ltv, loanDetails.maxLtv);
 
+  const branchDebt = useBranchDebt(branch.id);
+
+  const newTcr = branchDebt.data
+      && loanDetails.deposit
+      && loanDetails.collPrice
+      && debt.parsed
+      && dn.gt(debt.parsed, 0)
+    ? (() => {
+      if (collateralRatios.data?.tcr === null && dn.eq(branchDebt.data, 0)) {
+        const loanColl = dn.mul(loanDetails.deposit, loanDetails.collPrice);
+        return dn.div(loanColl, debt.parsed);
+      }
+
+      if (!collateralRatios.data?.tcr) {
+        return null;
+      }
+
+      const branchColl = dn.mul(collateralRatios.data.tcr, branchDebt.data);
+      const loanColl = dn.mul(loanDetails.deposit, loanDetails.collPrice);
+
+      const totalCollAfter = dn.add(branchColl, loanColl);
+      const totalDebtAfter = dn.add(branchDebt.data, debt.parsed);
+
+      return dn.div(totalCollAfter, totalDebtAfter);
+    })()
+    : null;
+
+  const isCcrConditionsNotMet = newTcr
+    && collateralRatios.data?.ccr
+    && dn.lt(newTcr, collateralRatios.data.ccr);
+
+  const isOldTcrLtCcr = collateralRatios.data?.ccr
+    && collateralRatios.data?.tcr
+    && dn.lt(collateralRatios.data.tcr, collateralRatios.data.ccr);
+
+  const isDelegated = interestRateMode === "delegate" && interestRateDelegate;
   const allowSubmit = account.isConnected
     && deposit.parsed
     && dn.gt(deposit.parsed, 0)
@@ -161,7 +217,11 @@ export function BorrowScreen() {
     && dn.gt(debt.parsed, 0)
     && interestRate
     && dn.gt(interestRate, 0)
-    && !isBelowMinDebt;
+    && !isBelowMinDebt
+    && !isAboveMaxLtv
+    && !isCcrConditionsNotMet
+    && (loanDetails.status !== "at-risk" || (!isDelegated && agreeToLiquidationRisk))
+    && !insufficientColl;
 
   return (
     <Screen
@@ -238,6 +298,14 @@ export function BorrowScreen() {
                 selected={branch.id}
               />
             }
+            drawer={deposit.isFocused ? null : (
+              insufficientColl
+                ? {
+                  mode: "error",
+                  message: `Insufficient ${collateral.name} balance.`,
+                }
+                : null
+            )}
             label={content.borrowScreen.depositField.label}
             placeholder="0.00"
             secondary={{
@@ -284,10 +352,19 @@ export function BorrowScreen() {
                 label={WHITE_LABEL_CONFIG.tokens.mainToken.symbol}
               />
             }
-            drawer={debt.isFocused || !isBelowMinDebt ? null : {
-              mode: "error",
-              message: `You must borrow at least ${fmtnum(MIN_DEBT, 2)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}.`,
-            }}
+            drawer={debt.isFocused ? null : (
+              isBelowMinDebt
+                ? {
+                  mode: "error",
+                  message: `You must borrow at least ${fmtnum(MIN_DEBT, 2)} ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}.`,
+                }
+                : isAboveMaxLtv
+                ? {
+                  mode: "error",
+                  message: `Your LTV must be lower than ${fmtnum(dn.toNumber(loanDetails.maxLtv), "pct2z")}%`,
+                }
+                : null
+            )}
             label={content.borrowScreen.borrowField.label}
             placeholder="0.00"
             secondary={{
@@ -312,7 +389,7 @@ export function BorrowScreen() {
                             debt.setValue(dn.toString(s.debt, 0));
                           }
                         }}
-                        warnLevel={s.risk}
+                        warnLevel={s.risk === "not-applicable" ? "low" : s.risk}
                       />
                     )
                   ))}
@@ -356,7 +433,7 @@ export function BorrowScreen() {
             inputId="input-interest-rate"
             interestRate={interestRate}
             mode={interestRateMode}
-            onAverageInterestRateLoad={setInterestRate}
+            onAverageInterestRateLoad={setInterestRateRounded}
             onChange={setInterestRate}
             onDelegateChange={setInterestRateDelegate}
             onModeChange={setInterestRateMode}
@@ -415,160 +492,85 @@ export function BorrowScreen() {
 
       <RedemptionInfo />
 
-      {collateralRatios.data?.isBelowCcr && collateralRatios.data?.tcr && (
-        <div
-          className={css({
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            padding: 16,
-            fontSize: 16,
-            color: "content",
-            background: "infoSurface",
-            border: "1px solid token(colors.infoSurfaceBorder)",
-            borderRadius: 8,
-          })}
-        >
-          <div
-            className={css({
-              fontSize: 16,
-              fontWeight: 600,
-              marginBottom: 12,
-            })}
-          >
-            Borrowing Restrictions Active
-          </div>
-          <div
-            className={css({
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-              fontSize: 15,
-              medium: {
-                fontSize: 14,
-              },
-            })}
-          >
-            <div
-              className={css({
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              })}
-            >
-              <span>Current TCR:</span>
-              <Amount
-                value={collateralRatios.data.tcr}
-                percentage
-                format={0}
-              />
-            </div>
-            <div
-              className={css({
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              })}
-            >
-              <span>Critical Threshold (CCR):</span>
-              <Amount
-                value={collateralRatios.data.ccr}
-                percentage
-                format={0}
-              />
-            </div>
-          </div>
-          <div
-            className={css({
-              marginTop: 12,
-              fontSize: 15,
-              color: "contentAlt",
-              lineHeight: 1.4,
-              medium: {
-                fontSize: 14,
-              },
-            })}
-          >
-            <div className={css({ marginBottom: 8 })}>
-              When the branch TCR falls below the CCR, these restrictions apply:
-            </div>
-            <ul
-              className={css({
-                margin: 0,
-                marginBottom: 8,
-                listStyle: "none",
-              })}
-            >
-              <li
+      {isCcrConditionsNotMet && collateralRatios.data
+        ? (
+          <WarningBox>
+            <div>
+              <div
                 className={css({
-                  position: "relative",
-                  paddingLeft: 12,
-                  "&::before": {
-                    content: "\"•\"",
-                    position: "absolute",
-                    left: 0,
-                    color: "contentAlt",
-                  },
+                  fontSize: 16,
+                  fontWeight: 600,
+                  marginBottom: 12,
                 })}
               >
-                Opening a position: only allowed if resulting TCR {">"}{" "}
-                <Amount value={collateralRatios.data.ccr} percentage format={0} />
-              </li>
-              <li
+                {content.ccrWarning.title}
+              </div>
+              <div
                 className={css({
-                  position: "relative",
-                  paddingLeft: 12,
-                  "&::before": {
-                    content: "\"•\"",
-                    position: "absolute",
-                    left: 0,
-                    color: "contentAlt",
-                  },
-                })}
-              >
-                New borrowing: must bring resulting TCR {">"}{" "}
-                <Amount value={collateralRatios.data.ccr} percentage format={0} />
-              </li>
-              <li
-                className={css({
-                  position: "relative",
-                  paddingLeft: 12,
-                  "&::before": {
-                    content: "\"•\"",
-                    position: "absolute",
-                    left: 0,
-                    color: "contentAlt",
-                  },
-                })}
-              >
-                Collateral withdrawal: must be matched by debt repayment
-              </li>
-            </ul>
-          </div>
-          <LinkTextButton
-            href="https://docs.liquity.org/v2-faq/borrowing-and-liquidations#docs-internal-guid-fee4cc44-7fff-c866-9ccf-bac2da1b5222"
-            rel="noopener noreferrer"
-            target="_blank"
-            label={
-              <span
-                className={css({
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                  color: "accent",
                   fontSize: 15,
-                  medium: {
-                    fontSize: 16,
-                  },
+                  marginBottom: 12,
                 })}
               >
-                <span>Learn more about borrowing restrictions</span>
-                <IconExternal size={16} />
-              </span>
-            }
-          />
-        </div>
-      )}
+                {content.ccrWarning.openPosition({
+                  tcr: <Amount value={collateralRatios.data.tcr} percentage format={0} />,
+                  ccr: <Amount value={collateralRatios.data.ccr} percentage format={0} />,
+                  newTcr: <Amount value={newTcr} percentage format={0} />,
+                  isOldTcrLtCcr: Boolean(isOldTcrLtCcr),
+                })}
+              </div>
+              <LinkTextButton
+                href={content.ccrWarning.learnMoreUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                label={
+                  <span
+                    className={css({
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      color: "white",
+                    })}
+                  >
+                    <span>{content.ccrWarning.learnMoreLabel}</span>
+                    <IconExternal size={16} />
+                  </span>
+                }
+              />
+            </div>
+          </WarningBox>
+        )
+        : loanDetails.status === "at-risk" && (
+          <WarningBox>
+            {isDelegated
+              ? content.atRiskWarning.delegated(`${fmtnum(loanDetails.maxLtvAllowed, "pct2z")}%`)
+              : (
+                <>
+                  {content.atRiskWarning.manual(
+                    `${fmtnum(loanDetails.ltv, "pct2z")}%`,
+                    `${fmtnum(loanDetails.maxLtv, "pct2z")}%`,
+                  ).message}
+                  <label
+                    htmlFor={agreeCheckboxId}
+                    className={css({
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      cursor: "pointer",
+                    })}
+                  >
+                    <Checkbox
+                      id={agreeCheckboxId}
+                      checked={agreeToLiquidationRisk}
+                      onChange={(checked) => {
+                        setAgreeToLiquidationRisk(checked);
+                      }}
+                    />
+                    {content.atRiskWarning.manual("", "").checkboxLabel}
+                  </label>
+                </>
+              )}
+          </WarningBox>
+        )}
 
       <FlowButton
         disabled={!allowSubmit}

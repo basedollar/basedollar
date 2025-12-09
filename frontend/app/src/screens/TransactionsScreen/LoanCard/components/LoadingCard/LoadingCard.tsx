@@ -1,14 +1,15 @@
-import { a, useSpring } from "@react-spring/web";
-import { css } from "@/styled-system/css";
-import { TagPreview } from "@/src/comps/TagPreview/TagPreview.tsx";
-import { match, P } from "ts-pattern";
 import { Spinner } from "@/src/comps/Spinner/Spinner.tsx";
+import { TagPreview } from "@/src/comps/TagPreview/TagPreview.tsx";
+import { css } from "@/styled-system/css";
 import { token } from "@/styled-system/tokens";
-import { IconBorrow, IconLeverage, Button } from "@liquity2/uikit";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
+import { Button, IconBorrow, IconLeverage } from "@liquity2/uikit";
+import { a, useSpring } from "@react-spring/web";
+import { match, P } from "ts-pattern";
 
-import type { FC, PropsWithChildren } from "react";
+import { TagConfirmed } from "@/src/comps/TagConfirmed/TagConfirmed";
 import type { LoadingState } from "@/src/screens/TransactionsScreen/TransactionsScreen.tsx";
+import type { FC, PropsWithChildren } from "react";
 
 interface LoadingCardProps extends PropsWithChildren {
   height: number;
@@ -16,6 +17,7 @@ interface LoadingCardProps extends PropsWithChildren {
   loadingState: LoadingState;
   onRetry: () => void;
   txPreviewMode?: boolean;
+  isSuccess?: boolean;
 }
 
 export const LoadingCard: FC<LoadingCardProps> = ({
@@ -25,6 +27,7 @@ export const LoadingCard: FC<LoadingCardProps> = ({
   leverage,
   onRetry,
   children,
+  isSuccess,
 }) => {
   const title = leverage ? "Multiply" : `${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} loan`;
 
@@ -33,12 +36,11 @@ export const LoadingCard: FC<LoadingCardProps> = ({
       .with(P.union("loading", "error", "not-found"), (s) => ({
         cardtransform: "scale3d(0.95, 0.95, 1)",
         // bottom bar 2
-        containerHeight:
-          window.innerHeight -
-          120 - // top bar
-          24 * 2 - // padding
-          48 - // bottom bar 1
-          40,
+        containerHeight: window.innerHeight
+          - 120 // top bar
+          - 24 * 2 // padding
+          - 48 // bottom bar 1
+          - 40,
         cardHeight: s === "error" || s === "not-found" ? 180 : 120,
         cardBackground: token("colors.blue:50"),
         cardColor: token("colors.blue:950"),
@@ -85,7 +87,7 @@ export const LoadingCard: FC<LoadingCardProps> = ({
           willChange: "transform",
         }}
       >
-        {txPreviewMode && loadingState === "success" && <TagPreview />}
+        {txPreviewMode ? isSuccess ? <TagConfirmed /> : loadingState === "success" && <TagPreview /> : null}
         <h1
           className={css({
             display: "flex",
@@ -160,9 +162,7 @@ export const LoadingCard: FC<LoadingCardProps> = ({
               />
             </div>
           ))
-          .otherwise(() => (
-            <div>{children}</div>
-          ))}
+          .otherwise(() => <div>{children}</div>)}
       </a.section>
     </a.div>
   );

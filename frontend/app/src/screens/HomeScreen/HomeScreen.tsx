@@ -122,9 +122,7 @@ function BorrowTable({
         subtitle="You can adjust your loans, including your interest rate, at any time"
         icon={<IconBorrow />}
         columns={columns}
-        rows={getBranches().map(({ symbol }) => (
-          <BorrowingRow key={symbol} compact={compact} symbol={symbol} />
-        ))}
+        rows={getBranches().map(({ symbol }) => <BorrowingRow key={symbol} compact={compact} symbol={symbol} />)}
       />
     </div>
   );
@@ -181,7 +179,6 @@ function EarnTable({
               return (
                 <EarnRewardsRow
                   key={pool.symbol}
-                  compact={compact}
                   symbol={symbol as CollateralSymbol}
                 />
               );
@@ -375,7 +372,7 @@ function BorrowingRow({
                   <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} size="mini" />
                 </div>
               }
-              title={`Borrow ${collateral?.name} from ${symbol}`}
+              title={`Borrow ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} from ${symbol}`}
             />
           </div>
         </td>
@@ -385,10 +382,8 @@ function BorrowingRow({
 }
 
 function EarnRewardsRow({
-  compact,
   symbol,
 }: {
-  compact: boolean;
   symbol: CollateralSymbol;
 }) {
   const branch = getBranch(symbol);
@@ -430,30 +425,6 @@ function EarnRewardsRow({
           value={earnPool.data?.totalDeposited}
         />
       </td>
-      {!compact && (
-        <td>
-          <LinkTextButton
-            href={`/earn/${symbol.toLowerCase()}`}
-            label={
-              <div
-                className={css({
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                  fontSize: 14,
-                })}
-              >
-                Earn
-                <TokenIcon.Group size="mini">
-                  <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} />
-                  <TokenIcon symbol={symbol} />
-                </TokenIcon.Group>
-              </div>
-            }
-            title={`Earn ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} with ${token?.name}`}
-          />
-        </td>
-      )}
     </tr>
   );
 }
