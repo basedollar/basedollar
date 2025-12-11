@@ -62,24 +62,21 @@ abstract contract AeroLPTokenPriceFeedBase is Ownable, IPriceFeed {
     }
 
     function _getPrice() internal view returns (uint256 price, bool isDown) {
-        (uint256 reserve0, uint256 reserve1, uint256 blockTimestampLast) = pool.getReserves();
-        price = (reserve0 * decimals) / reserve1;
-        isDown = !_isValidPrice(price, blockTimestampLast);
-    }
+        uint256 gasBefore = gasleft();
 
-    function _getOracleAnswer(Oracle memory _oracle) internal view returns (uint256, bool) {
-        ChainlinkResponse memory chainlinkResponse = _getCurrentChainlinkResponse(_oracle.aggregator);
+        // Try to get the price from the pool
+        try pool.getReserves() returns (uint256 reserve0, uint256 reserve1, uint256 blockTimestampLast) {
+            price = (reserve0 * decimals) / reserve1;
+            isDown = !_isValidPrice(price, blockTimestampLast);
+        } catch {
+            // Require that enough gas was provided to prevent an OOG revert in the external call
+            // causing a shutdown. Instead, just revert. Slightly conservative, as it includes gas used
+            // in the check itself.
+            if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
 
-        uint256 scaledPrice;
-        bool oracleIsDown;
-        // Check oracle is serving an up-to-date and sensible price. If not, shut down this collateral branch.
-        if (!_isValidChainlinkPrice(chainlinkResponse, _oracle.stalenessThreshold)) {
-            oracleIsDown = true;
-        } else {
-            scaledPrice = _scaleChainlinkPriceTo18decimals(chainlinkResponse.answer, _oracle.decimals);
+            // If the call to the pool reverts, return a zero price and true for isDown
+            return (0, true);
         }
-
-        return (scaledPrice, oracleIsDown);
     }
 
     function _shutDownAndSwitchToLastGoodPrice(address _failedOracleAddr) internal returns (uint256) {
@@ -90,49 +87,6 @@ abstract contract AeroLPTokenPriceFeedBase is Ownable, IPriceFeed {
 
         emit ShutDownFromOracleFailure(_failedOracleAddr);
         return lastGoodPrice;
-    }
-
-    function _getCurrentChainlinkResponse(AggregatorV3Interface _aggregator)
-        internal
-        view
-        returns (ChainlinkResponse memory chainlinkResponse)
-    {
-        uint256 gasBefore = gasleft();
-
-        // Try to get latest price data:
-        try _aggregator.latestRoundData() returns (
-            uint80 roundId, int256 answer, uint256, /* startedAt */ uint256 updatedAt, uint80 /* answeredInRound */
-        ) {
-            // If call to Chainlink succeeds, return the response and success = true
-            chainlinkResponse.roundId = roundId;
-            chainlinkResponse.answer = answer;
-            chainlinkResponse.timestamp = updatedAt;
-            chainlinkResponse.success = true;
-
-            return chainlinkResponse;
-        } catch {
-            // Require that enough gas was provided to prevent an OOG revert in the call to Chainlink
-            // causing a shutdown. Instead, just revert. Slightly conservative, as it includes gas used
-            // in the check itself.
-            if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
-
-
-            // If call to Chainlink aggregator reverts, return a zero response with success = false
-            return chainlinkResponse;
-        }
-    }
-
-    // False if:
-    // - Call to Chainlink aggregator reverts
-    // - price is too stale, i.e. older than the oracle's staleness threshold
-    // - Price answer is 0 or negative
-    function _isValidChainlinkPrice(ChainlinkResponse memory chainlinkResponse, uint256 _stalenessThreshold)
-        internal
-        view
-        returns (bool)
-    {
-        return chainlinkResponse.success && block.timestamp - chainlinkResponse.timestamp < _stalenessThreshold
-            && chainlinkResponse.answer > 0;
     }
 
     function _isValidPrice(uint256 _price, uint256 _lastTimestamp)
