@@ -25,7 +25,6 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
     }
 
     function fetchRedemptionPrice() external returns (uint256, bool) {
-        // Use same price for redemption as all other ops in SAGA branch
         return fetchPrice();
     }
 
@@ -40,7 +39,7 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
         assert(priceSource == PriceSource.primary);
         (uint256 price, bool isDown) = _getPrice();
 
-        // If the yETH-USD Chainlink response was invalid in this transaction, return the last good yETH-USD price calculated
+        // If the price is invalid in this transaction, return the last good price calculated
         if (isDown) return (_shutDownAndSwitchToLastGoodPrice(address(pool)), true);
 
         lastGoodPrice = price;
