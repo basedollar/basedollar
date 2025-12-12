@@ -7,12 +7,12 @@ import "./MainnetPriceFeedBase.sol";
 
 contract cbETHPriceFeed is MainnetPriceFeedBase {
      constructor(
-        address _owner,
+        address _borrowerOperationsAddress,
         address _ethUsdOracleAddress,
         address _cbEthEthOracleAddress,
         uint256 _ethUsdStalenessThreshold,
         uint256 _cbEthEthStalenessThreshold
-    ) MainnetPriceFeedBase(_owner, _ethUsdOracleAddress, _ethUsdStalenessThreshold) {
+    ) MainnetPriceFeedBase(_ethUsdOracleAddress, _ethUsdStalenessThreshold, _borrowerOperationsAddress) {
         // Store cbETH-ETH oracle
         cbEthEthOracle.aggregator = AggregatorV3Interface(_cbEthEthOracleAddress);
         cbEthEthOracle.stalenessThreshold = _cbEthEthStalenessThreshold;

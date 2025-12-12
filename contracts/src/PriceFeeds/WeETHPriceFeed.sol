@@ -7,12 +7,11 @@ import "./MainnetPriceFeedBase.sol";
 
 contract WeETHPriceFeed is MainnetPriceFeedBase {
      constructor(
-        address _owner,
+        address _borrowerOperationsAddress,
         address _ethUsdOracleAddress,
         address _weEthEthOracleAddress,
         uint256 _ethUsdStalenessThreshold,
-        uint256 _weEthEthStalenessThreshold,
-        address _borrowerOperationsAddress
+        uint256 _weEthEthStalenessThreshold
     ) MainnetPriceFeedBase(_ethUsdOracleAddress, _ethUsdStalenessThreshold, _borrowerOperationsAddress) {
         // Store WeETH-ETH oracle
         weEthEthOracle.aggregator = AggregatorV3Interface(_weEthEthOracleAddress);

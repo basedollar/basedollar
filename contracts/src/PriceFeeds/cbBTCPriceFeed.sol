@@ -12,12 +12,12 @@ contract cbBTCPriceFeed is CompositePriceFeed {
     uint256 public constant BTC_cbBTC_DEVIATION_THRESHOLD = 2e16; // 2%
 
     constructor(
-        address _owner, 
+        address _borrowerOperationsAddress, 
         address _cbBTCUsdOracleAddress, 
         address _btcUsdOracleAddress,
         uint256 _cbBTCUsdStalenessThreshold,
         uint256 _btcUsdStalenessThreshold
-    ) CompositePriceFeed(_owner, _cbBTCUsdOracleAddress, _btcUsdOracleAddress, _cbBTCUsdStalenessThreshold)
+    ) CompositePriceFeed(_cbBTCUsdOracleAddress, _btcUsdOracleAddress, _cbBTCUsdStalenessThreshold, _borrowerOperationsAddress)
     {
         // Store BTC-USD oracle
         btcUsdOracle.aggregator = AggregatorV3Interface(_btcUsdOracleAddress);
