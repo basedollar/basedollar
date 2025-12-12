@@ -11,8 +11,9 @@ contract WeETHPriceFeed is MainnetPriceFeedBase {
         address _ethUsdOracleAddress,
         address _weEthEthOracleAddress,
         uint256 _ethUsdStalenessThreshold,
-        uint256 _weEthEthStalenessThreshold
-    ) MainnetPriceFeedBase(_owner, _ethUsdOracleAddress, _ethUsdStalenessThreshold) {
+        uint256 _weEthEthStalenessThreshold,
+        address _borrowerOperationsAddress
+    ) MainnetPriceFeedBase(_ethUsdOracleAddress, _ethUsdStalenessThreshold, _borrowerOperationsAddress) {
         // Store WeETH-ETH oracle
         weEthEthOracle.aggregator = AggregatorV3Interface(_weEthEthOracleAddress);
         weEthEthOracle.stalenessThreshold = _weEthEthStalenessThreshold;

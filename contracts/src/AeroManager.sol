@@ -12,10 +12,6 @@ contract AeroManager is IAeroManager {
     address public aeroTokenAddress;
     address public governor;
 
-    event AeroTokenAddressUpdated(address _aeroTokenAddress);
-    event GovernorUpdated(address _governor);
-    event AeroGaugeAddressUpdated(address _activePoolAddress, address _aeroGaugeAddress);
-
     constructor(ICollateralRegistry _collateralRegistry, address _aeroTokenAddress, address _governor) {
         collateralRegistry = _collateralRegistry;
         aeroTokenAddress = _aeroTokenAddress;

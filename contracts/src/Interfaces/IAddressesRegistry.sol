@@ -69,5 +69,7 @@ interface IAddressesRegistry {
     function WETH() external returns (IWETH);
     function debtLimit() external returns (uint256);
 
+    function aeroManager() external view returns (IAeroManager);
+
     function setAddresses(AddressVars memory _vars) external;
 }
