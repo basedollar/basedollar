@@ -58,15 +58,15 @@ abstract contract AeroLPTokenPriceFeedBase is Ownable, IPriceFeed {
         gauge = _gauge;
         pool = IPool(gauge.stakingToken());
         stalenessThreshold = _stalenessThreshold;
-        decimals = pool.token0().decimals();
+        decimals = pool.token0().decimals(); // TODO: Test and fix this, as it may be incorrect
     }
 
     function _getPrice() internal view returns (uint256 price, bool isDown) {
         uint256 gasBefore = gasleft();
 
         // Try to get the price from the pool
-        try pool.getReserves() returns (uint256 reserve0, uint256 reserve1, uint256 blockTimestampLast) {
-            price = (reserve0 * decimals) / reserve1;
+        try pool.currentCumulativePrices() returns (uint256 price0, uint256 price1, uint256 blockTimestampLast) {
+            price = (price0 * 10 ** decimals) / price1;
             isDown = !_isValidPrice(price, blockTimestampLast);
         } catch {
             // Require that enough gas was provided to prevent an OOG revert in the external call
