@@ -48,7 +48,7 @@ abstract contract AeroLPTokenPriceFeedBase is Ownable, IPriceFeed {
 
     IBorrowerOperations immutable borrowerOperations;
 
-    IPool public immutable pool;
+    IAeroPool public immutable pool;
     IGauge public immutable gauge;
     uint256 public immutable stalenessThreshold;
     uint8 public immutable decimals;
