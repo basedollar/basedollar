@@ -30,6 +30,7 @@ contract CollateralRegistry is ICollateralRegistry {
     uint256 public baseRate;
 
     address public collateralGovernor;
+    address public governor;
 
     // The timestamp of the latest fee operation (redemption or new Bold issuance)
     uint256 public lastFeeOperationTime = block.timestamp;
@@ -38,7 +39,7 @@ contract CollateralRegistry is ICollateralRegistry {
     event LastFeeOpTimeUpdated(uint256 _lastFeeOpTime);
     event CollateralBranchAdded(uint256 _totalCollaterals, uint256 _index, IERC20Metadata _token, ITroveManager _troveManager, bool _isRedeemable);
 
-    constructor(IBoldToken _boldToken, IERC20Metadata[] memory _tokens, ITroveManager[] memory _troveManagers, address _collateralGovernor) {
+    constructor(IBoldToken _boldToken, IERC20Metadata[] memory _tokens, ITroveManager[] memory _troveManagers, address _governor) {
         uint256 numTokens = _tokens.length;
         require(numTokens > 0, "Collateral list cannot be empty");
         require(numTokens <= MAX_REDEEMABLE_BRANCHES, "Collateral list too long");
@@ -53,8 +54,7 @@ contract CollateralRegistry is ICollateralRegistry {
             redeemableBranchesTroveManagers.push(_troveManagers[i]);
         }
 
-        collateralGovernor = _collateralGovernor;
-
+        collateralGovernor = _governor;
         governor = _governor;
 
         // Initialize the baseRate state variable
