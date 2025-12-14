@@ -4,6 +4,7 @@ import type { BranchId } from "@/src/types";
 
 import { EarnPositionSummary } from "@/src/comps/EarnPositionSummary/EarnPositionSummary";
 import { SboldPositionSummary } from "@/src/comps/EarnPositionSummary/SboldPositionSummary";
+import { YboldPositionSummary } from "@/src/comps/EarnPositionSummary/YboldPositionSummary";
 import { LinkTextButton } from "@/src/comps/LinkTextButton/LinkTextButton";
 import { Screen } from "@/src/comps/Screen/Screen";
 import content from "@/src/content";
@@ -11,11 +12,12 @@ import { getBranches, useEarnPosition } from "@/src/liquity-utils";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { isSboldEnabled, useSboldPosition } from "@/src/sbold";
 import { useAccount } from "@/src/wagmi-utils";
+import { isYboldEnabled } from "@/src/ybold";
 import { css } from "@/styled-system/css";
 import { TokenIcon } from "@liquity2/uikit";
 import { a, useTransition } from "@react-spring/web";
 
-type PoolId = BranchId | "sbold";
+type PoolId = BranchId | "sbold" | "ybold";
 
 export function EarnPoolsListScreen() {
   const branches = getBranches();
@@ -25,6 +27,10 @@ export function EarnPoolsListScreen() {
 
   if (isSboldEnabled()) {
     pools.push("sbold");
+  }
+
+  if (isYboldEnabled()) {
+    pools.push("ybold");
   }
 
   const poolsTransition = useTransition(pools, {
@@ -87,6 +93,8 @@ export function EarnPoolsListScreen() {
           <a.div style={style}>
             {poolId === "sbold"
               ? <SboldPool />
+              : poolId === "ybold"
+              ? <YboldPositionSummary />
               : <EarnPool branchId={poolId} />}
           </a.div>
         ))}

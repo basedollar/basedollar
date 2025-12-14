@@ -644,6 +644,7 @@ export const WHITE_LABEL_CONFIG = {
     // Navigation configuration  
     navigation: {
       showBorrow: true,
+      showMultiply: false,
       showEarn: true,
       showStake: false,
     },
