@@ -12,10 +12,15 @@ contract AeroManager is IAeroManager {
     address public aeroTokenAddress;
     address public governor;
 
-    constructor(ICollateralRegistry _collateralRegistry, address _aeroTokenAddress, address _governor) {
+    address public rewardManager; // can send claimed AERO to people using offchain data
+
+    event RewardManagerUpdated(address _oldRewardManager, address _newRewardManager);
+
+    constructor(ICollateralRegistry _collateralRegistry, address _aeroTokenAddress, address _governor, address _rewardManager) {
         collateralRegistry = _collateralRegistry;
         aeroTokenAddress = _aeroTokenAddress;
         governor = _governor;
+        rewardManager = _rewardManager;
     }
     //Manage Aero, Interact with gauges, anything else we need to do here.
 
@@ -30,6 +35,13 @@ contract AeroManager is IAeroManager {
         emit GovernorUpdated(_governor);
     }
 
+    function setRewardManager(address _rewardManager) external onlyGovernor {
+        require(_rewardManager != rewardManager, "AeroManager: Reward manager is already set");
+        address oldRewardManager = rewardManager;
+        rewardManager = _rewardManager;
+        emit RewardManagerUpdated(oldRewardManager, _rewardManager);
+    }
+
     //require functions
     modifier onlyGovernor() {
         require(msg.sender == governor, "AeroManager: Caller is not the governor");
@@ -37,4 +49,9 @@ contract AeroManager is IAeroManager {
     }
 
     //TODO vote with AERO tokens on any gauges that governance chooses.
+
+    function requireCallerIsRewardManager() internal view {
+        require(msg.sender == rewardManager, "AeroManager: Caller is not the reward manager");
+        _;
+    }
 }
