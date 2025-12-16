@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.24;
 
-import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 import "./Interfaces/IBorrowerOperations.sol";
 import "./Interfaces/IAddressesRegistry.sol";
@@ -16,8 +16,6 @@ import "./Types/LatestTroveData.sol";
 import "./Types/LatestBatchData.sol";
 
 contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperations {
-    using SafeERC20 for IERC20;
-
     // --- Connected contract declarations ---
 
     IERC20 internal immutable collToken;
@@ -336,7 +334,7 @@ contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperatio
         _requireUserAcceptsUpfrontFee(_change.upfrontFee, _maxUpfrontFee);
 
         vars.entireDebt = _change.debtIncrease + _change.upfrontFee;
-        require(troveManager.getDebtLimit() >= troveManager.getEntireBranchDebt() + vars.entireDebt, "BO: Debt limit exceeded.");
+        require(troveManager.getDebtLimit() >= troveManager.getEntireBranchDebt() + vars.entireDebt);
         _requireAtLeastMinDebt(vars.entireDebt);
 
         vars.ICR = LiquityMath._computeCR(_collAmount, vars.entireDebt, vars.price);
@@ -1282,7 +1280,7 @@ contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperatio
     ) internal {
         if (_troveChange.debtIncrease > 0) {
             // Check if the debt limit is exceeded only when increasing debt.
-            require(troveManager.getDebtLimit() >= troveManager.getEntireBranchDebt(), "BorrowerOperations: Debt limit exceeded.");
+            require(troveManager.getDebtLimit() >= troveManager.getEntireBranchDebt());
             _boldToken.mint(withdrawalReceiver, _troveChange.debtIncrease);
         } else if (_troveChange.debtDecrease > 0) {
             _boldToken.burn(msg.sender, _troveChange.debtDecrease);
@@ -1299,7 +1297,7 @@ contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperatio
 
     function _pullCollAndSendToActivePool(IActivePool _activePool, uint256 _amount) internal {
         // Send Coll tokens from sender to active pool
-        collToken.safeTransferFrom(msg.sender, address(_activePool), _amount);
+        collToken.transferFrom(msg.sender, address(_activePool), _amount);
         // Make sure Active Pool accountancy is right
         _activePool.accountForReceivedColl(_amount);
     }
