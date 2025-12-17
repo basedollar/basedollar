@@ -214,7 +214,6 @@ function EarnTable({
             ...group.collaterals.map(({ symbol }) => (
               <EarnRewardsRow
                 key={symbol}
-                compact={compact}
                 symbol={symbol}
               />
             ))
@@ -429,7 +428,7 @@ function BorrowingRow({
                   <TokenIcon symbol={WHITE_LABEL_CONFIG.tokens.mainToken.symbol} size="mini" />
                 </div>
               }
-              title={`Borrow ${collateral?.name} from ${symbol}`}
+              title={`Borrow ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} from ${symbol}`}
             />
           </div>
         </td>
@@ -439,10 +438,8 @@ function BorrowingRow({
 }
 
 function EarnRewardsRow({
-  compact,
   symbol,
 }: {
-  compact: boolean;
   symbol: CollateralSymbol;
 }) {
   const branch = getBranch(symbol);
@@ -507,7 +504,6 @@ function EarnRewardsRow({
           value={earnPool.data?.totalDeposited}
         />
       </td>
-      {!compact && (
         <td>
           <LinkTextButton
             href={isLPToken ? `/earn/fsbased` : `/earn/${symbol.toLowerCase()}`}
@@ -575,7 +571,6 @@ function EarnRewardsRow({
               : `Earn ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} with ${token?.name}`}
           />
         </td>
-      )}
     </tr>
   );
 }

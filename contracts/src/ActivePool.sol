@@ -13,6 +13,7 @@ import "./Interfaces/IInterestRouter.sol";
 import "./Interfaces/IDefaultPool.sol";
 
 import "./Interfaces/IAeroManager.sol";
+import "./Interfaces/IAeroGauge.sol";
 
 /*
  * The Active Pool holds the collateral and Bold debt (but not Bold tokens) for all active troves.
@@ -314,10 +315,6 @@ contract ActivePool is IActivePool {
         }
 
         lastAggBatchManagementFeesUpdateTime = block.timestamp;
-    }
-
-    function isAeroLPCollateral() external view returns (bool) {
-        return isAeroLPCollateral;
     }
 
     function setAeroManagerAddress(address _aeroManagerAddress) external {
