@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.23;
+pragma solidity 0.8.24;
 
-import "../Dependencies/Ownable.sol";
 import "../Dependencies/AggregatorV3Interface.sol";
 import "../BorrowerOperations.sol";
 import "../Interfaces/IPriceFeed.sol";
@@ -10,10 +9,11 @@ import "../Interfaces/IAeroPool.sol";
 import "../Interfaces/IAeroGauge.sol";
 import "../Dependencies/Constants.sol";
 import "../Dependencies/LiquityMath.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 // import "forge-std/console2.sol";
 
-abstract contract AeroLPTokenPriceFeedBase is Ownable, IPriceFeed {
+abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     // Determines where the PriceFeed sources data from. Possible states:
     // - primary: Uses the primary price calcuation, which depends on the specific feed
     // - lastGoodPrice: the last good price recorded by this PriceFeed.
@@ -49,7 +49,7 @@ abstract contract AeroLPTokenPriceFeedBase is Ownable, IPriceFeed {
     IBorrowerOperations public immutable borrowerOperations;
 
     IAeroPool public immutable pool;
-    IGauge public immutable gauge;
+    IAeroGauge public immutable gauge;
 
     Oracle public token0UsdOracle;
     Oracle public token1UsdOracle;
@@ -62,7 +62,7 @@ abstract contract AeroLPTokenPriceFeedBase is Ownable, IPriceFeed {
     
     constructor(
         address _borrowerOperationsAddress, 
-        IGauge _gauge, 
+        IAeroGauge _gauge, 
         address _token0UsdOracleAddress,
         address _token1UsdOracleAddress,
         uint256 _token0UsdStalenessThreshold,
@@ -71,11 +71,11 @@ abstract contract AeroLPTokenPriceFeedBase is Ownable, IPriceFeed {
     ) {
         borrowerOperations = IBorrowerOperations(_borrowerOperationsAddress);
         gauge = _gauge;
-        pool = IPool(gauge.stakingToken());
+        pool = IAeroPool(gauge.stakingToken());
 
         poolStalenessThreshold = _poolStalenessThreshold;
-        token0PoolDecimals = pool.token0().decimals();
-        token1PoolDecimals = pool.token1().decimals();
+        token0PoolDecimals = IERC20Metadata(pool.token0()).decimals();
+        token1PoolDecimals = IERC20Metadata(pool.token1()).decimals();
 
         token0UsdOracle.aggregator = AggregatorV3Interface(_token0UsdOracleAddress);
         token0UsdOracle.stalenessThreshold = _token0UsdStalenessThreshold;
