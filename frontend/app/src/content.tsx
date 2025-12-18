@@ -518,6 +518,19 @@ export default {
       ),
     },
   },
+  ecosystemScreen: {
+    headline: (ecosystemIcon: N) => (
+      <>
+        Ecosystem {ecosystemIcon}
+      </>
+    ),
+    subheading: (
+      <>
+        Partnered protocols with $BD strategies. 
+        Earn additional yield or find other opportunities from these third party protocols.
+      </>
+    ),
+  },
   atRiskWarning: {
     delegated: (maxLtvAllowed: string) => (
       <div>
