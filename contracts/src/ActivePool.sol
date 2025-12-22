@@ -67,7 +67,7 @@ contract ActivePool is IActivePool {
     // Last time at which the aggregate batch fees and weighted sum were updated
     uint256 public lastAggBatchManagementFeesUpdateTime;
 
-    address public aeroGaugeAddress;
+    address public immutable aeroGaugeAddress;
 
     // --- Events ---
 
@@ -100,6 +100,11 @@ contract ActivePool is IActivePool {
         isAeroLPCollateral = _isAeroLPCollateral;
         aeroManagerAddress = address(_addressesRegistry.aeroManager());
         aeroGaugeAddress = _aeroGaugeAddress;
+
+        // Allow AeroManager to pull LP tokens from ActivePool
+        if (_isAeroLPCollateral) {
+            collToken.approve(aeroManagerAddress, type(uint256).max);
+        }
     }
 
     // --- Getters for public variables. Required by IPool interface ---
@@ -177,7 +182,8 @@ contract ActivePool is IActivePool {
         _accountForSendColl(_amount);
 
         if (isAeroLPCollateral) {
-            IAeroGauge(aeroGaugeAddress).withdraw(_amount);
+            // IAeroGauge(aeroGaugeAddress).withdraw(_amount);
+            IAeroManager(aeroManagerAddress).withdraw(aeroGaugeAddress, address(collToken), _amount);
         }
         collToken.safeTransfer(_account, _amount);
     }
@@ -206,7 +212,10 @@ contract ActivePool is IActivePool {
 
         //TODO might need to make this a factory, to keep positions separate.
         if (isAeroLPCollateral) {
-            IAeroGauge(aeroGaugeAddress).deposit(_amount);
+            // Send to AeroManager
+            // Then AeroManager deposits the _amount into AeroGauge
+            // IAeroGauge(aeroGaugeAddress).deposit(_amount);
+            IAeroManager(aeroManagerAddress).stake(aeroGaugeAddress, address(collToken), _amount);
         }
     }
 

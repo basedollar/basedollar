@@ -9,4 +9,8 @@ interface IAeroManager {
 
     function setAeroTokenAddress(address _aeroTokenAddress) external;
     function setGovernor(address _governor) external;
+    function addActivePool(address activePool) external;
+    function stake(address gauge, address token, uint256 amount) external;
+    function withdraw(address gauge, address token, uint256 amount) external;
+    function claim(address gauge) external;
 }
