@@ -19,6 +19,7 @@ import {
   useBranchDebt,
   useEarnPool,
 } from "@/src/liquity-utils";
+import { useLpApy, isLpToken } from "@/src/services/LpApy";
 import { getAvailableEarnPools } from "@/src/white-label.config";
 import { infoTooltipProps } from "@/src/uikit-utils";
 import { useAccount } from "@/src/wagmi-utils";
@@ -113,6 +114,12 @@ function BorrowTable({
       Max LTV
     </span>,
     <span
+      key="lp-apy"
+      title="Liquidity Provider Annual Percentage Yield (for LP tokens)"
+    >
+      LP APY
+    </span>,
+    <span
       key="total-debt"
       title="Total debt"
     >
@@ -125,7 +132,7 @@ function BorrowTable({
   }
 
   const groupedCollaterals = useMemo(() => groupCollaterals(), []);
-  
+
   return (
     <div className={css({ gridArea: "borrow" })}>
       <HomeTable
@@ -134,11 +141,11 @@ function BorrowTable({
         icon={<IconBorrow />}
         columns={columns}
         rows={groupedCollaterals.flatMap((group, groupIndex) => [
-          <CollateralSectionHeader 
-            key={`section-${group.title}`} 
-            title={group.title} 
+          <CollateralSectionHeader
+            key={`section-${group.title}`}
+            title={group.title}
             isFirst={groupIndex === 0}
-            colSpan={compact ? 4 : 5}
+            colSpan={compact ? 5 : 6}
           />,
           ...group.collaterals.map(({ symbol }) => (
             <BorrowingRow key={symbol} compact={compact} symbol={symbol} />
@@ -352,6 +359,10 @@ function BorrowingRow({
   const collateralConfig = WHITE_LABEL_CONFIG.tokens.collaterals.find(c => c.symbol === symbol);
   const aerodromePoolLink = collateralConfig?.poolData?.aerodromePoolLink;
 
+  // LP APY for LP token collaterals
+  const isLp = isLpToken(symbol);
+  const lpApy = useLpApy(isLp ? symbol : null);
+
   return (
     <tr>
       <td>
@@ -395,6 +406,21 @@ function BorrowingRow({
           value={maxLtv}
           percentage
         />
+      </td>
+      <td>
+        {isLp ? (
+          <span
+            className={css({
+              color: lpApy.data ? "positiveAlt" : "contentAlt",
+            })}
+          >
+            {lpApy.data
+              ? `${lpApy.data.apy.toFixed(2)}%`
+              : "…"}
+          </span>
+        ) : (
+          <span className={css({ color: "contentAlt" })}>…</span>
+        )}
       </td>
       <td>
         <Amount

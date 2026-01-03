@@ -8,6 +8,7 @@ import { CrossedText } from "@/src/comps/CrossedText/CrossedText";
 import { ScreenCard } from "@/src/comps/Screen/ScreenCard";
 import { LoanStatusTag } from "@/src/comps/Tag/LoanStatusTag";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
+import { useLpApy, isLpToken } from "@/src/services/LpApy";
 import { Value } from "@/src/comps/Value/Value";
 import { CHAIN_BLOCK_EXPLORER } from "@/src/env";
 import { formatRisk } from "@/src/formatting";
@@ -375,6 +376,11 @@ function LoanCard(props: {
   const copyTransition = useFlashTransition();
   const liquidated = props.loan.status === "liquidated";
   const closed = props.loan.status === "closed";
+
+  // LP APY for LP token collaterals
+  const collateralSymbol = props.collateral.symbol;
+  const isLp = isLpToken(collateralSymbol);
+  const lpApy = useLpApy(isLp ? collateralSymbol : null);
 
   return (
     <div
@@ -795,6 +801,21 @@ function LoanCard(props: {
                           {fmtnum(ltv, "pct2z")}%
                         </div>
                       </GridItem>
+                      {isLp && (
+                        <GridItem label="LP APY" title="Liquidity Provider Annual Percentage Yield">
+                          <div
+                            className={css({
+                              color: "positiveAlt",
+                            })}
+                          >
+                            {lpApy.data
+                              ? `${lpApy.data.apy.toFixed(2)}%`
+                              : lpApy.isLoading
+                              ? "..."
+                              : "N/A"}
+                          </div>
+                        </GridItem>
+                      )}
                       <GridItem label="Interest rate">
                         {fmtnum(loan.interestRate, "pct2")}%
                         {loan.batchManager && (
