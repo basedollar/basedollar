@@ -7,7 +7,7 @@ import { Tag } from "@/src/comps/Tag/Tag";
 import { DEPLOYMENT_FLAVOR } from "@/src/env";
 import { useWhiteLabelHeader } from "@/src/hooks/useWhiteLabel";
 import { css } from "@/styled-system/css";
-import { IconBorrow, IconDashboard, IconEarn, IconLeverage, IconStake } from "@liquity2/uikit";
+import { IconBorrow, IconDashboard, IconEarn, IconLeverage, IconStake, IconExternal } from "@liquity2/uikit";
 import Link from "next/link";
 import { AccountButton } from "./AccountButton";
 import { Menu } from "./Menu";
@@ -23,6 +23,8 @@ export function TopBar() {
     ...(headerConfig.navigation.showMultiply ? [[headerConfig.navigation.items.multiply, "/multiply", IconLeverage] as MenuItem] : []),
     ...(headerConfig.navigation.showEarn ? [[headerConfig.navigation.items.earn, "/earn", IconEarn] as MenuItem] : []),
     ...(headerConfig.navigation.showStake ? [[headerConfig.navigation.items.stake, "/stake", IconStake] as MenuItem] : []),
+    // External link to Aerodrome voting
+    ["Vote", "https://aerodrome.finance/vote?query=basedollar", IconExternal],
   ];
 
   return (

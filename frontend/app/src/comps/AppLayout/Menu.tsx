@@ -12,6 +12,10 @@ export type MenuItem = [
   Icon: ComponentType<{}>,
 ];
 
+function isExternalUrl(url: string) {
+  return url.startsWith("http://") || url.startsWith("https://");
+}
+
 export function Menu({
   menuItems,
 }: {
@@ -37,35 +41,55 @@ export function Menu({
         })}
       >
         {menuItems.map(([label, href, Icon]) => {
-          const selected = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const isExternal = isExternalUrl(href);
+          const selected = !isExternal && (href === "/" ? pathname === "/" : pathname.startsWith(href));
+
+          const linkClassName = css({
+            display: "flex",
+            height: "100%",
+            padding: "0 8px",
+            _active: {
+              translate: "0 1px",
+            },
+            _focusVisible: {
+              outline: "2px solid token(colors.focused)",
+              borderRadius: 4,
+            },
+          });
+
+          const linkStyle = {
+            color: token(`colors.${selected ? "selected" : "interactive"}`),
+          };
+
           return (
             <li key={label + href}>
-              <Link
-                href={href}
-                className={css({
-                  display: "flex",
-                  height: "100%",
-                  padding: "0 8px",
-                  _active: {
-                    translate: "0 1px",
-                  },
-                  _focusVisible: {
-                    outline: "2px solid token(colors.focused)",
-                    borderRadius: 4,
-                  },
-                })}
-                style={{
-                  color: token(
-                    `colors.${selected ? "selected" : "interactive"}`,
-                  ),
-                }}
-              >
-                <MenuItem
-                  icon={<Icon />}
-                  label={label}
-                  selected={selected}
-                />
-              </Link>
+              {isExternal ? (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClassName}
+                  style={linkStyle}
+                >
+                  <MenuItem
+                    icon={<Icon />}
+                    label={label}
+                    selected={false}
+                  />
+                </a>
+              ) : (
+                <Link
+                  href={href}
+                  className={linkClassName}
+                  style={linkStyle}
+                >
+                  <MenuItem
+                    icon={<Icon />}
+                    label={label}
+                    selected={selected}
+                  />
+                </Link>
+              )}
             </li>
           );
         })}
