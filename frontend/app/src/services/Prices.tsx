@@ -12,13 +12,22 @@ import { isCollateralSymbol } from "@liquity2/uikit";
 import { useQuery } from "@tanstack/react-query";
 import { useConfig as useWagmiConfig, useReadContracts } from "wagmi";
 import { readContract } from "wagmi/actions";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 async function fetchCollateralPrice(
   symbol: CollateralSymbol,
   config: ReturnType<typeof useWagmiConfig>,
 ): Promise<Dnum> {
+  const PriceFeed = getBranchContract(symbol, "PriceFeed");
+
+  const FetchPriceAbi = PriceFeed.abi.find((fn) => fn.name === "fetchPrice");
+  if (!FetchPriceAbi) {
+    throw new Error("fetchPrice ABI not found");
+  }
+
   const [price] = await readContract(config, {
-    ...getBranchContract(symbol, "PriceFeed"),
+    abi: [{ ...FetchPriceAbi, stateMutability: "view" }] as const,
+    address: PriceFeed.address,
     functionName: "fetchPrice",
   });
 
@@ -36,13 +45,20 @@ export function usePrice(symbol: string | null): UseQueryResult<Dnum | null> {
         return null;
       }
 
-      const priceFromStats = statsPrices?.[symbol] ?? null;
-      if (priceFromStats !== null) {
-        return priceFromStats;
+      // Main stablecoin = $1
+      if (symbol === WHITE_LABEL_CONFIG.tokens.mainToken.symbol) {
+        return dnum18(BigInt(10 ** 18)); // $1.00
       }
 
+      // Collateral token = PriceFeed price
       if (isCollateralSymbol(symbol)) {
         return fetchCollateralPrice(symbol, config);
+      }
+
+      // Stats API prices (fallback)
+      const priceFromStats = statsPrices?.[symbol] ?? null;
+      if (priceFromStats !== null) {
+        return priceFromStats as Dnum;
       }
 
       throw new Error(`The price for ${symbol} could not be found.`);

@@ -23,7 +23,7 @@ import Image from "next/image";
 import * as dn from "dnum";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
-const DISPLAYED_PRICES = [WHITE_LABEL_CONFIG.tokens.mainToken.symbol, "ETH"] as const;
+const DISPLAYED_PRICES = [WHITE_LABEL_CONFIG.tokens.mainToken.symbol, "ETH", "AERO"] as const;
 
 export function ProtocolStats() {
   const account = useAccount();
