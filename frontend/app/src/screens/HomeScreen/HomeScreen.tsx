@@ -24,12 +24,12 @@ import { getAvailableEarnPools } from "@/src/white-label.config";
 import { infoTooltipProps } from "@/src/uikit-utils";
 import { useAccount } from "@/src/wagmi-utils";
 import { css } from "@/styled-system/css";
-import { 
-  IconBorrow, 
-  IconEarn, 
+import {
+  IconBorrow,
+  IconEarn,
   IconExternal,
   InfoTooltip,
-  TokenIcon, 
+  TokenIcon,
   CollateralIcon,
   CollateralSectionHeader,
   groupCollaterals
@@ -38,6 +38,8 @@ import * as dn from "dnum";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { HomeTable } from "./HomeTable";
+import { Tip } from "@/src/comps/Tip/Tip";
+
 import { YieldSourceTable } from "./YieldSourceTable";
 
 type ForkInfo = (typeof FORKS_INFO)[number];
@@ -100,31 +102,11 @@ function BorrowTable({
   compact: boolean;
 }) {
   const columns: ReactNode[] = [
-    "Collateral",
-    <span
-      key="avg-interest-rate"
-      title="Average interest rate, per annum"
-    >
-      {compact ? "Rate" : "Avg rate, p.a."}
-    </span>,
-    <span
-      key="max-ltv"
-      title="Maximum Loan-to-Value ratio"
-    >
-      Max LTV
-    </span>,
-    <span
-      key="lp-apy"
-      title="Liquidity Provider Annual Percentage Yield (for LP tokens)"
-    >
-      LP APY
-    </span>,
-    <span
-      key="total-debt"
-      title="Total debt"
-    >
-      {compact ? "Debt" : "Total debt"}
-    </span>,
+    <Tip key="collateral" tip="Collateral asset">Collateral</Tip>,
+    <Tip key="rate" tip="Average interest rate p.a.">Rate</Tip>,
+    <Tip key="maxLtv" tip="Maximum Loan-to-Value ratio">Max LTV</Tip>,
+    <Tip key="lpApy" tip="LP APY from AERO emissions + fees">LP APY</Tip>,
+    <Tip key="debt" tip="Total debt in this branch">Debt</Tip>,
   ];
 
   if (!compact) {
@@ -162,20 +144,10 @@ function EarnTable({
   compact: boolean;
 }) {
   const columns: ReactNode[] = [
-    "Pool",
-    <abbr
-      key="apr1d"
-      title="Annual Percentage Rate over the last 24 hours"
-    >
-      APR
-    </abbr>,
-    <abbr
-      key="apr7d"
-      title="Annual Percentage Rate over the last 7 days"
-    >
-      7d APR
-    </abbr>,
-    "Pool size",
+    <Tip key="pool" tip="Stability pool for this collateral">Pool</Tip>,
+    <Tip key="apr1d" tip="Annual Percentage Rate over the last 24 hours">APR</Tip>,
+    <Tip key="apr7d" tip="Annual Percentage Rate over the last 7 days">7d APR</Tip>,
+    <Tip key="poolSize" tip="Total value locked in the pool">Pool size</Tip>,
   ];
 
   if (!compact) {

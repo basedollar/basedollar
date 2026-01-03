@@ -141,29 +141,6 @@ function findMatchingPool(
 }
 
 /**
- * Get static APY from config as fallback
- */
-function getStaticApy(symbol: CollateralSymbol): LpApyData | null {
-  const config = getCollateralConfig(symbol);
-  if (!config || !("poolData" in config) || !config.poolData?.apr) {
-    return null;
-  }
-
-  // Parse APR string like "10.64%" to number
-  const aprString = config.poolData.apr;
-  const aprMatch = aprString.match(/[\d.]+/);
-  if (!aprMatch) {
-    return null;
-  }
-
-  return {
-    apy: parseFloat(aprMatch[0]),
-    tvlUsd: 0,
-    source: "static",
-  };
-}
-
-/**
  * Hook to get LP APY for a collateral
  * Only returns data from DefiLlama - no static fallback for pools that don't exist yet
  */
