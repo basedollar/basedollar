@@ -19,16 +19,17 @@ import {
   useBranchDebt,
   useEarnPool,
 } from "@/src/liquity-utils";
+import { useLpApy, isLpToken } from "@/src/services/LpApy";
 import { getAvailableEarnPools } from "@/src/white-label.config";
 import { infoTooltipProps } from "@/src/uikit-utils";
 import { useAccount } from "@/src/wagmi-utils";
 import { css } from "@/styled-system/css";
-import { 
-  IconBorrow, 
-  IconEarn, 
+import {
+  IconBorrow,
+  IconEarn,
   IconExternal,
   InfoTooltip,
-  TokenIcon, 
+  TokenIcon,
   CollateralIcon,
   CollateralSectionHeader,
   groupCollaterals
@@ -37,6 +38,8 @@ import * as dn from "dnum";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { HomeTable } from "./HomeTable";
+import { Tip } from "@/src/comps/Tip/Tip";
+
 import { YieldSourceTable } from "./YieldSourceTable";
 
 type ForkInfo = (typeof FORKS_INFO)[number];
@@ -99,25 +102,11 @@ function BorrowTable({
   compact: boolean;
 }) {
   const columns: ReactNode[] = [
-    "Collateral",
-    <span
-      key="avg-interest-rate"
-      title="Average interest rate, per annum"
-    >
-      {compact ? "Rate" : "Avg rate, p.a."}
-    </span>,
-    <span
-      key="max-ltv"
-      title="Maximum Loan-to-Value ratio"
-    >
-      Max LTV
-    </span>,
-    <span
-      key="total-debt"
-      title="Total debt"
-    >
-      {compact ? "Debt" : "Total debt"}
-    </span>,
+    <Tip key="collateral" tip="Collateral asset">Collateral</Tip>,
+    <Tip key="rate" tip="Average interest rate p.a.">Rate</Tip>,
+    <Tip key="maxLtv" tip="Maximum Loan-to-Value ratio">Max LTV</Tip>,
+    <Tip key="lpApy" tip="LP APY from AERO emissions + fees">LP APY</Tip>,
+    <Tip key="debt" tip="Total debt in this branch">Debt</Tip>,
   ];
 
   if (!compact) {
@@ -125,7 +114,7 @@ function BorrowTable({
   }
 
   const groupedCollaterals = useMemo(() => groupCollaterals(), []);
-  
+
   return (
     <div className={css({ gridArea: "borrow" })}>
       <HomeTable
@@ -134,11 +123,11 @@ function BorrowTable({
         icon={<IconBorrow />}
         columns={columns}
         rows={groupedCollaterals.flatMap((group, groupIndex) => [
-          <CollateralSectionHeader 
-            key={`section-${group.title}`} 
-            title={group.title} 
+          <CollateralSectionHeader
+            key={`section-${group.title}`}
+            title={group.title}
             isFirst={groupIndex === 0}
-            colSpan={compact ? 4 : 5}
+            colSpan={compact ? 5 : 6}
           />,
           ...group.collaterals.map(({ symbol }) => (
             <BorrowingRow key={symbol} compact={compact} symbol={symbol} />
@@ -155,20 +144,10 @@ function EarnTable({
   compact: boolean;
 }) {
   const columns: ReactNode[] = [
-    "Pool",
-    <abbr
-      key="apr1d"
-      title="Annual Percentage Rate over the last 24 hours"
-    >
-      APR
-    </abbr>,
-    <abbr
-      key="apr7d"
-      title="Annual Percentage Rate over the last 7 days"
-    >
-      7d APR
-    </abbr>,
-    "Pool size",
+    <Tip key="pool" tip="Stability pool for this collateral">Pool</Tip>,
+    <Tip key="apr1d" tip="Annual Percentage Rate over the last 24 hours">APR</Tip>,
+    <Tip key="apr7d" tip="Annual Percentage Rate over the last 7 days">7d APR</Tip>,
+    <Tip key="poolSize" tip="Total value locked in the pool">Pool size</Tip>,
   ];
 
   if (!compact) {
@@ -352,6 +331,10 @@ function BorrowingRow({
   const collateralConfig = WHITE_LABEL_CONFIG.tokens.collaterals.find(c => c.symbol === symbol);
   const aerodromePoolLink = collateralConfig?.poolData?.aerodromePoolLink;
 
+  // LP APY for LP token collaterals
+  const isLp = isLpToken(symbol);
+  const lpApy = useLpApy(isLp ? symbol : null);
+
   return (
     <tr>
       <td>
@@ -395,6 +378,21 @@ function BorrowingRow({
           value={maxLtv}
           percentage
         />
+      </td>
+      <td>
+        {isLp ? (
+          <span
+            className={css({
+              color: lpApy.data ? "positiveAlt" : "contentAlt",
+            })}
+          >
+            {lpApy.data
+              ? `${lpApy.data.apy.toFixed(2)}%`
+              : "…"}
+          </span>
+        ) : (
+          <span className={css({ color: "contentAlt" })}>…</span>
+        )}
       </td>
       <td>
         <Amount

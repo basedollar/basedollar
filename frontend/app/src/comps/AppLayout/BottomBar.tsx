@@ -15,7 +15,7 @@ import { blo } from "blo";
 import Image from "next/image";
 import { AboutButton } from "./AboutButton";
 
-const DISPLAYED_PRICES = [WHITE_LABEL_CONFIG.tokens.governanceToken.symbol, WHITE_LABEL_CONFIG.tokens.mainToken.symbol, "ETH"] as const;
+const DISPLAYED_PRICES = [WHITE_LABEL_CONFIG.tokens.governanceToken.symbol, WHITE_LABEL_CONFIG.tokens.mainToken.symbol, "ETH", "AERO"] as const;
 const ENABLE_REDEEM = false;
 
 export function BottomBar() {

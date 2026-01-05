@@ -165,6 +165,10 @@ function MenuDrawer({
   );
 }
 
+function isExternalUrl(url: string) {
+  return url.startsWith("http://") || url.startsWith("https://");
+}
+
 function NavItems({
   menuItems,
   onClose,
@@ -202,41 +206,62 @@ function NavItems({
         })}
       >
         {transition((styles, [label, href, Icon]) => {
-          const selected = href === "/"
+          const isExternal = isExternalUrl(href);
+          const selected = !isExternal && (href === "/"
             ? pathname === "/"
-            : pathname.startsWith(href);
+            : pathname.startsWith(href));
+
+          const linkClassName = css({
+            display: "block",
+            width: "100%",
+            padding: "0 16px",
+            _active: {
+              translate: "0 1px",
+            },
+            _focusVisible: {
+              outline: "2px solid token(colors.focused)",
+              borderRadius: 4,
+            },
+          });
+
+          const linkStyle = {
+            color: token(`colors.${selected ? "selected" : "interactive"}`),
+          };
+
           return (
             <a.li
               key={label + href}
               style={styles}
             >
-              <Link
-                href={href}
-                onClick={onClose}
-                className={css({
-                  display: "block",
-                  width: "100%",
-                  padding: "0 16px",
-                  _active: {
-                    translate: "0 1px",
-                  },
-                  _focusVisible: {
-                    outline: "2px solid token(colors.focused)",
-                    borderRadius: 4,
-                  },
-                })}
-                style={{
-                  color: token(
-                    `colors.${selected ? "selected" : "interactive"}`,
-                  ),
-                }}
-              >
-                <Item
-                  icon={<Icon />}
-                  label={label}
-                  selected={selected}
-                />
-              </Link>
+              {isExternal ? (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={onClose}
+                  className={linkClassName}
+                  style={linkStyle}
+                >
+                  <Item
+                    icon={<Icon />}
+                    label={label}
+                    selected={false}
+                  />
+                </a>
+              ) : (
+                <Link
+                  href={href}
+                  onClick={onClose}
+                  className={linkClassName}
+                  style={linkStyle}
+                >
+                  <Item
+                    icon={<Icon />}
+                    label={label}
+                    selected={selected}
+                  />
+                </Link>
+              )}
             </a.li>
           );
         })}
