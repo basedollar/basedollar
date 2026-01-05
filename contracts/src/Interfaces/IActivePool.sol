@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import "./IInterestRouter.sol";
 import "./IBoldRewardsReceiver.sol";
 import "../Types/TroveChange.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 interface IActivePool {
     function defaultPoolAddress() external view returns (address);
@@ -43,4 +44,9 @@ interface IActivePool {
     function sendCollToDefaultPool(uint256 _amount) external;
     function receiveColl(uint256 _amount) external;
     function accountForReceivedColl(uint256 _amount) external;
+
+    function isAeroLPCollateral() external view returns (bool);
+    function aeroManagerAddress() external view returns (address);
+    function aeroGaugeAddress() external view returns (address);
+    function collToken() external view returns (IERC20);
 }
