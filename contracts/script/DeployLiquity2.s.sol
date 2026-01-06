@@ -228,7 +228,6 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         address priceFeed;
         address gasPool;
         address interestRouter;
-        address aeroManager;
     }
 
     struct Zappers {
@@ -244,6 +243,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         uint256 debtLimit;
         uint256 LIQUIDATION_PENALTY_SP;
         uint256 LIQUIDATION_PENALTY_REDISTRIBUTION;
+        bool isAeroLPCollateral;
+        address aeroGauge;
     }
 
     struct DeploymentVars {
@@ -381,6 +382,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
         // WETH
         troveManagerParamsArray[0] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
             CCR: CCR_WETH,
             MCR: MCR_WETH,
             SCR: SCR_WETH,
@@ -392,6 +395,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
         // wstETH
         troveManagerParamsArray[1] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
             CCR: CCR_SETH,
             MCR: MCR_SETH,
             SCR: SCR_SETH,
@@ -406,6 +411,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
         // cbBTC
         troveManagerParamsArray[3] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
             CCR: CCR_CBBTC,
             MCR: MCR_CBBTC,
             SCR: SCR_CBBTC,
@@ -417,6 +424,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
         // cbETH
         troveManagerParamsArray[4] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
             CCR: CCR_CBETH,
             MCR: MCR_CBETH,
             SCR: SCR_CBETH,
@@ -428,6 +437,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
         // weETH
         troveManagerParamsArray[5] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
             CCR: CCR_WEETH,
             MCR: MCR_WEETH,
             SCR: SCR_WEETH,
@@ -439,6 +450,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
         // superOETHb
         troveManagerParamsArray[6] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
             CCR: CCR_SUPEROETHB,
             MCR: MCR_SUPEROETHB,
             SCR: SCR_SUPEROETHB,
@@ -450,6 +463,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
         // AERO
         troveManagerParamsArray[7] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
             CCR: CCR_AERO,
             MCR: MCR_AERO,
             SCR: SCR_AERO,
@@ -776,6 +791,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 address(vars.troveManagers[vars.i]),
                 r.hintHelpers,
                 r.multiTroveGetter,
+                troveManagerParamsArray[vars.i],
                 computeGovernanceAddress(_deployGovernanceParams)
             );
             r.contractsArray[vars.i] = vars.contracts;
@@ -843,13 +859,11 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         address _troveManagerAddress,
         IHintHelpers _hintHelpers,
         IMultiTroveGetter _multiTroveGetter,
+        TroveManagerParams memory _troveManagerParams,
         address _governance
     ) internal returns (LiquityContracts memory contracts) {
         LiquityContractAddresses memory addresses;
         contracts.collToken = _collToken;
-
-        bool isAeroLPCollateral = false;
-        address aeroGaugeAddress = address(0);
 
         // Deploy all contracts, using testers for TM and PriceFeed
         contracts.addressesRegistry = _addressesRegistry;
@@ -873,7 +887,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             SALT, keccak256(getBytecode(type(StabilityPool).creationCode, address(contracts.addressesRegistry)))
         );
         addresses.activePool = vm.computeCreate2Address(
-            SALT, keccak256(getBytecode(type(ActivePool).creationCode, address(contracts.addressesRegistry), isAeroLPCollateral, aeroGaugeAddress))
+            SALT, keccak256(getBytecode(type(ActivePool).creationCode, address(contracts.addressesRegistry), _troveManagerParams.isAeroLPCollateral, _troveManagerParams.aeroGauge))
         );
         addresses.defaultPool = vm.computeCreate2Address(
             SALT, keccak256(getBytecode(type(DefaultPool).creationCode, address(contracts.addressesRegistry)))
@@ -917,7 +931,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         contracts.troveManager = new TroveManager{salt: SALT}(contracts.addressesRegistry);
         contracts.troveNFT = new TroveNFT{salt: SALT}(contracts.addressesRegistry);
         contracts.stabilityPool = new StabilityPool{salt: SALT}(contracts.addressesRegistry);
-        contracts.activePool = new ActivePool{salt: SALT}(contracts.addressesRegistry, isAeroLPCollateral, aeroGaugeAddress);
+        contracts.activePool = new ActivePool{salt: SALT}(contracts.addressesRegistry, _troveManagerParams.isAeroLPCollateral, _troveManagerParams.aeroGauge);
         contracts.defaultPool = new DefaultPool{salt: SALT}(contracts.addressesRegistry);
         contracts.gasPool = new GasPool{salt: SALT}(contracts.addressesRegistry);
         contracts.collSurplusPool = new CollSurplusPool{salt: SALT}(contracts.addressesRegistry);
