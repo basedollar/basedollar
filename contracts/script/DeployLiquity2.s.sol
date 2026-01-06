@@ -754,14 +754,13 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
         // Deploy AeroManager (with empty active pools - they will be added after branch deployment)
         if (block.chainid == 8453) {
-            address treasuryAddr = TREASURY_ADDRESS != address(0) ? TREASURY_ADDRESS : deployer;
             address[] memory emptyActivePools = new address[](0);
             aeroManager = new AeroManager(
                 r.collateralRegistry,
                 AERO_ADDRESS,
                 emptyActivePools,
-                computeGovernanceAddress(_deployGovernanceParams), // governor
-                treasuryAddr
+                deployer, // Set to deployer for adding initial active pools, then set to GOVERNOR_ADDRESS
+                TREASURY_ADDRESS
             );
             r.aeroManager = aeroManager;
         }
@@ -780,7 +779,11 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 computeGovernanceAddress(_deployGovernanceParams)
             );
             r.contractsArray[vars.i] = vars.contracts;
+            r.aeroManager.addActivePool(address(vars.contracts.activePool));
         }
+
+        // Do this after all active pools are added to the AeroManager
+        r.aeroManager.setGovernor(GOVERNOR_ADDRESS);
 
         r.boldToken.setCollateralRegistry(address(r.collateralRegistry));
 
