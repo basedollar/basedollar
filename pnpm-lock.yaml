@@ -12,6 +12,19 @@ importers:
         specifier: ^0.50.0
         version: 0.50.0
 
+  backend:
+    dependencies:
+      viem:
+        specifier: ^2.31.4
+        version: 2.31.4(typescript@5.8.3)(zod@3.22.4)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.8.1
+        version: 22.15.33
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
   contracts:
     devDependencies:
       '@nomicfoundation/hardhat-chai-matchers':
