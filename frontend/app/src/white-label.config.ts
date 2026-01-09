@@ -623,6 +623,7 @@ export const WHITE_LABEL_CONFIG = {
         interestRates: "https://docs.basedollar.org/interest-rates",
         earn: "https://docs.basedollar.org/earn",
         staking: "https://docs.basedollar.org/staking",
+        aeroManager: "https://docs.basedollar.org/docs/technical-documentation/aero-manager",
       },
       dune: "https://dune.com/basedollar",
       discord: "https://discord.gg/basedollar",
@@ -701,11 +702,18 @@ export const WHITE_LABEL_CONFIG = {
       // Dummy governor address for now (will be Aragon DAO later)
       governorAddress: "0x0000000000000000000000000000000000000000",
     },
+
+    // AeroManager contract - manages AERO rewards from LP collateral
+    aeroManager: {
+      address: "0x0000000000000000000000000000000000000000" as `0x${string}`, // TBD - deployed AeroManager address
+      // AERO token address on Base
+      aeroTokenAddress: "0x940181a94A35A4569E4529a3CDfB74e38FD98631" as `0x${string}`,
+    },
     
     // AERO synergy configuration
     aeroSynergy: {
       enabled: true,
-      aeroFarmingTax: 0.35, // 35% of AERO farmed
+      aeroFarmingTax: 0.10, // 10% of AERO farmed (max 50% cap)
       distribution: {
         POL: 0.80, // 80% to Protocol Owned Liquidity
         FsBaseD: 0.10, // 10% to FsBaseD holders
