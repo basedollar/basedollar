@@ -2,22 +2,29 @@ import { Address, BigInt, DataSourceContext } from "@graphprotocol/graph-ts";
 import {
   CollateralRegistryAddressChanged as CollateralRegistryAddressChangedEvent,
 } from "../generated/BoldToken/BoldToken";
+import { ActivePool as ActivePoolContract } from "../generated/BoldToken/ActivePool";
 import { BorrowerOperations as BorrowerOperationsContract } from "../generated/BoldToken/BorrowerOperations";
 import { CollateralRegistry as CollateralRegistryContract } from "../generated/BoldToken/CollateralRegistry";
 import { TroveManager as TroveManagerContract } from "../generated/BoldToken/TroveManager";
 import { Collateral, CollateralAddresses } from "../generated/schema";
-import { TroveManager as TroveManagerTemplate, TroveNFT as TroveNFTTemplate } from "../generated/templates";
+import {
+  AeroManager as AeroManagerTemplate,
+  TroveManager as TroveManagerTemplate,
+  TroveNFT as TroveNFTTemplate,
+} from "../generated/templates";
 
 function addCollateral(
   collIndex: i32,
   totalCollaterals: i32,
   tokenAddress: Address,
   troveManagerAddress: Address,
+  isRedeemable: boolean,
 ): void {
   let collId = collIndex.toString();
 
   let collateral = new Collateral(collId);
   collateral.collIndex = collIndex;
+  collateral.redeemable = isRedeemable;
 
   let troveManagerContract = TroveManagerContract.bind(troveManagerAddress);
 
@@ -26,9 +33,17 @@ function addCollateral(
   addresses.borrowerOperations = troveManagerContract.borrowerOperations();
   addresses.sortedTroves = troveManagerContract.sortedTroves();
   addresses.stabilityPool = troveManagerContract.stabilityPool();
+  addresses.activePool = troveManagerContract.activePool();
   addresses.token = tokenAddress;
   addresses.troveManager = troveManagerAddress;
   addresses.troveNft = troveManagerContract.troveNFT();
+
+  // Dynamically create an AeroManager data source from the ActivePool's configured AeroManager.
+  // This avoids hardcoding the AeroManager address in subgraph.yaml/network files.
+  let aeroManagerAddress = ActivePoolContract.bind(Address.fromBytes(addresses.activePool)).aeroManagerAddress();
+  if (aeroManagerAddress.notEqual(Address.zero())) {
+    AeroManagerTemplate.create(aeroManagerAddress);
+  }
 
   collateral.minCollRatio = BorrowerOperationsContract.bind(
     Address.fromBytes(addresses.borrowerOperations),
@@ -57,14 +72,36 @@ export function handleCollateralRegistryAddressChanged(event: CollateralRegistry
   let totalCollaterals = registry.totalCollaterals().toI32();
 
   for (let index = 0; index < totalCollaterals; index++) {
-    let tokenAddress = Address.fromBytes(registry.getToken(BigInt.fromI32(index)));
-    let troveManagerAddress = Address.fromBytes(registry.getTroveManager(BigInt.fromI32(index)));
+    // Handle redeemable branches
+    try {
+      let tokenAddress = Address.fromBytes(registry.getToken(BigInt.fromI32(index)));
+      let troveManagerAddress = Address.fromBytes(registry.getTroveManager(BigInt.fromI32(index)));
+  
+      addCollateral(
+        index,
+        totalCollaterals,
+        tokenAddress,
+        troveManagerAddress,
+        true,
+      );
+    } catch {
+      continue;
+    }
 
-    addCollateral(
-      index,
-      totalCollaterals,
-      tokenAddress,
-      troveManagerAddress,
-    );
+    // Handle non-redeemable branches
+    try {
+      let tokenAddress = Address.fromBytes(registry.getNonRedeemableToken(BigInt.fromI32(index)));
+      let troveManagerAddress = Address.fromBytes(registry.getNonRedeemableTroveManager(BigInt.fromI32(index)));
+  
+      addCollateral(
+        index,
+        totalCollaterals,
+        tokenAddress,
+        troveManagerAddress,
+        false,
+      );
+    } catch {
+      continue;
+    }
   }
 }
