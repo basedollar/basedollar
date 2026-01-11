@@ -1,62 +1,163 @@
-import { createPublicClient, http, parseAbiItem, type Address } from "viem";
-import { base } from "viem/chains";
+import type { Address } from "viem";
 import type { Config } from "../config.js";
 import type { AeroLPCollateral, ClaimedEvent, DistributionPeriod, StakedEvent } from "../types.js";
 
+const SUBGRAPH_QUERY_LIMIT = 1000;
+
 export class AeroEventsService {
-  private client;
   private config: Config;
 
   constructor(config: Config) {
     this.config = config;
-    this.client = createPublicClient({
-      chain: base,
-      transport: http(config.rpcUrl),
+  }
+
+  private async query<T>(queryString: string, variables: Record<string, unknown>): Promise<T> {
+    const response = await fetch(this.config.subgraphUrl, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query: queryString, variables }),
     });
+
+    const json = (await response.json()) as { data?: T | null; errors?: unknown[] };
+    if (!json.data || json.errors) {
+      throw new Error(`GraphQL error: ${JSON.stringify(json.errors ?? "No data returned")}`);
+    }
+    return json.data;
   }
 
   /**
    * Fetch all Staked events from AeroManager contract
    */
-  async getStakedEvents(fromBlock?: bigint, toBlock?: bigint): Promise<StakedEvent[]> {
-    const logs = await this.client.getLogs({
-      address: this.config.aeroManagerAddress,
-      event: parseAbiItem(
-        "event Staked(address indexed gauge, address token, uint256 amount)",
-      ),
-      fromBlock: fromBlock ?? this.config.startBlock,
-      toBlock: toBlock ?? "latest",
-    });
+  async getStakedEvents(period?: DistributionPeriod): Promise<StakedEvent[]> {
+    const events: StakedEvent[] = [];
+    let cursor = "";
 
-    return logs.map((log) => ({
-      gauge: log.args.gauge as Address,
-      token: log.args.token as Address,
-      amount: log.args.amount as bigint,
-      blockNumber: log.blockNumber,
-      transactionHash: log.transactionHash,
-    }));
+    for (;;) {
+      const data = await this.query<{
+        aeroStakes: Array<{
+          id: string;
+          gauge: string;
+          token: string;
+          amount: string;
+          blockNumber: string;
+          timestamp: string;
+          transactionHash: string;
+        }>;
+      }>(
+        `
+        query AeroStakes($cursor: ID!, $limit: Int!, $start: BigInt, $end: BigInt) {
+          aeroStakes(
+            where: {
+              id_gt: $cursor
+              timestamp_gte: $start
+              timestamp_lt: $end
+            }
+            orderBy: id
+            orderDirection: asc
+            first: $limit
+          ) {
+            id
+            gauge
+            token
+            amount
+            blockNumber
+            timestamp
+            transactionHash
+          }
+        }
+        `,
+        {
+          cursor,
+          limit: SUBGRAPH_QUERY_LIMIT,
+          start: period ? period.startTimestamp.toString() : null,
+          end: period ? period.endTimestamp.toString() : null,
+        },
+      );
+
+      for (const row of data.aeroStakes) {
+        events.push({
+          gauge: row.gauge as Address,
+          token: row.token as Address,
+          amount: BigInt(row.amount),
+          blockNumber: BigInt(row.blockNumber),
+          transactionHash: row.transactionHash as `0x${string}`,
+        });
+      }
+
+      if (data.aeroStakes.length < SUBGRAPH_QUERY_LIMIT) break;
+      cursor = data.aeroStakes[data.aeroStakes.length - 1].id;
+    }
+
+    return events;
   }
 
   /**
    * Fetch all Claimed events from AeroManager contract
    */
-  async getClaimedEvents(fromBlock?: bigint, toBlock?: bigint): Promise<ClaimedEvent[]> {
-    const logs = await this.client.getLogs({
-      address: this.config.aeroManagerAddress,
-      event: parseAbiItem(
-        "event Claimed(address indexed gauge, uint256 total, uint256 claimFee)",
-      ),
-      fromBlock: fromBlock ?? this.config.startBlock,
-      toBlock: toBlock ?? "latest",
-    });
+  async getClaimedEvents(period?: DistributionPeriod): Promise<ClaimedEvent[]> {
+    const events: ClaimedEvent[] = [];
+    let cursor = "";
 
-    return logs.map((log) => ({
-      gauge: log.args.gauge as Address,
-      total: log.args.total as bigint,
-      claimFee: log.args.claimFee as bigint,
-      blockNumber: log.blockNumber,
-      transactionHash: log.transactionHash,
-    }));
+    for (;;) {
+      const data = await this.query<{
+        aeroClaims: Array<{
+          id: string;
+          gauge: string;
+          total: string;
+          claimFee: string;
+          blockNumber: string;
+          timestamp: string;
+          transactionHash: string;
+        }>;
+      }>(
+        `
+        query AeroClaims($cursor: ID!, $limit: Int!, $start: BigInt, $end: BigInt) {
+          aeroClaims(
+            where: {
+              id_gt: $cursor
+              timestamp_gte: $start
+              timestamp_lt: $end
+            }
+            orderBy: id
+            orderDirection: asc
+            first: $limit
+          ) {
+            id
+            gauge
+            total
+            claimFee
+            blockNumber
+            timestamp
+            transactionHash
+          }
+        }
+        `,
+        {
+          cursor,
+          limit: SUBGRAPH_QUERY_LIMIT,
+          start: period ? period.startTimestamp.toString() : null,
+          end: period ? period.endTimestamp.toString() : null,
+        },
+      );
+
+      for (const row of data.aeroClaims) {
+        events.push({
+          gauge: row.gauge as Address,
+          total: BigInt(row.total),
+          claimFee: BigInt(row.claimFee),
+          blockNumber: BigInt(row.blockNumber),
+          transactionHash: row.transactionHash as `0x${string}`,
+        });
+      }
+
+      if (data.aeroClaims.length < SUBGRAPH_QUERY_LIMIT) break;
+      cursor = data.aeroClaims[data.aeroClaims.length - 1].id;
+    }
+
+    return events;
   }
 
   /**
@@ -64,18 +165,27 @@ export class AeroEventsService {
    * These are the tokens that qualify for AERO rewards distribution.
    */
   async getAeroLPCollaterals(): Promise<AeroLPCollateral[]> {
-    const stakedEvents = await this.getStakedEvents();
+    // Prefer the indexed AeroGauge mapping from the subgraph.
+    const data = await this.query<{
+      aeroGauges: Array<{
+        gauge: string;
+        token: string;
+      }>;
+    }>(
+      `
+      query AeroGauges($limit: Int!) {
+        aeroGauges(first: $limit) {
+          gauge
+          token
+        }
+      }
+      `,
+      { limit: SUBGRAPH_QUERY_LIMIT },
+    );
 
-    // Build a map of gauge -> token to get unique LP collaterals
-    const collateralMap = new Map<Address, Address>();
-    for (const event of stakedEvents) {
-      // Use the most recent token address for each gauge
-      collateralMap.set(event.gauge, event.token);
-    }
-
-    return Array.from(collateralMap.entries()).map(([gauge, token]) => ({
-      gauge,
-      token,
+    return data.aeroGauges.map((g) => ({
+      gauge: g.gauge as Address,
+      token: g.token as Address,
     }));
   }
 
@@ -84,38 +194,40 @@ export class AeroEventsService {
    * Uses block timestamps to filter events within the period.
    */
   async getTotalClaimedInPeriod(period: DistributionPeriod): Promise<bigint> {
-    // Get all claimed events
-    const claimedEvents = await this.getClaimedEvents();
-
-    // We need to filter by timestamp, which requires getting block timestamps
-    // For efficiency, we'll fetch blocks in batches
-    const blockNumbers = [...new Set(claimedEvents.map((e) => e.blockNumber))];
-    const blockTimestamps = new Map<bigint, bigint>();
-
-    // Fetch block timestamps
-    for (const blockNumber of blockNumbers) {
-      const block = await this.client.getBlock({ blockNumber });
-      blockTimestamps.set(blockNumber, block.timestamp);
-    }
-
-    // Sum up claimed amounts within the period (excluding the fee that went to treasury)
+    const claimedEvents = await this.getClaimedEvents(period);
     let totalClaimed = 0n;
     for (const event of claimedEvents) {
-      const timestamp = blockTimestamps.get(event.blockNumber);
-      if (timestamp && timestamp >= period.startTimestamp && timestamp < period.endTimestamp) {
-        // total includes the fee, so we need to subtract it to get the amount for distribution
-        totalClaimed += event.total - event.claimFee;
-      }
+      // total includes the fee, so subtract it to get the amount for distribution
+      totalClaimed += event.total - event.claimFee;
     }
 
     return totalClaimed;
   }
 
   /**
-   * Get the current block timestamp
+   * Get the latest indexed timestamp from the subgraph.
+   * Note this is the last indexed block time, not necessarily the current chain head.
    */
   async getCurrentBlockTimestamp(): Promise<bigint> {
-    const block = await this.client.getBlock({ blockTag: "latest" });
-    return block.timestamp;
+    const data = await this.query<{
+      aeroClaims: Array<{ timestamp: string }>;
+      aeroStakes: Array<{ timestamp: string }>;
+    }>(
+      `
+      query LatestAeroTimestamps {
+        aeroClaims(first: 1, orderBy: timestamp, orderDirection: desc) { timestamp }
+        aeroStakes(first: 1, orderBy: timestamp, orderDirection: desc) { timestamp }
+      }
+      `,
+      {},
+    );
+
+    const claimTs = data.aeroClaims.length > 0 ? BigInt(data.aeroClaims[0].timestamp) : 0n;
+    const stakeTs = data.aeroStakes.length > 0 ? BigInt(data.aeroStakes[0].timestamp) : 0n;
+    const ts = claimTs > stakeTs ? claimTs : stakeTs;
+
+    // If nothing indexed yet, fall back to wall-clock time.
+    if (ts === 0n) return BigInt(Math.floor(Date.now() / 1000));
+    return ts;
   }
 }

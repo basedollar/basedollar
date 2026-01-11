@@ -82,7 +82,7 @@ async function calculateDistribution(periodOverride?: DistributionPeriod): Promi
 
   // Step 5: Calculate time-weighted average collateral for each trove
   console.log("Calculating time-weighted average collateral...");
-  const twaResults = collateralTrackerService.calculateTWAForTroves(troves, period);
+  const twaResults = await collateralTrackerService.calculateTWAForTroves(troves, period);
   console.log(`Calculated TWA for ${twaResults.length} trove(s)`);
 
   // Step 6: Get total claimed AERO for the period

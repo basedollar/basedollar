@@ -1,68 +1,115 @@
-import { createPublicClient, http, parseAbiItem, type Address } from "viem";
-import { base } from "viem/chains";
 import type { Config } from "../config.js";
 import type { CollateralSnapshot, DistributionPeriod, Trove, TroveCollateralTWA } from "../types.js";
 
-// TroveUpdated event from TroveManager
-const TROVE_UPDATED_EVENT = parseAbiItem(
-  "event TroveUpdated(uint256 indexed _troveId, uint256 _debt, uint256 _coll, uint256 _stake, uint256 _annualInterestRate, uint256 _snapshotOfTotalCollRedist, uint256 _snapshotOfTotalDebtRedist)",
-);
+const SUBGRAPH_QUERY_LIMIT = 1000;
+const TROVE_SNAPSHOT_TROVE_ID_BATCH = 100;
+
+interface GraphQLResponse<T> {
+  data?: T | null;
+  errors?: unknown[];
+}
+
+interface TroveSnapshotRow {
+  id: string;
+  trove: { id: string };
+  deposit: string;
+  timestamp: string;
+}
 
 export class CollateralTrackerService {
-  private client;
   private config: Config;
 
   constructor(config: Config) {
     this.config = config;
-    this.client = createPublicClient({
-      chain: base,
-      transport: http(config.rpcUrl),
+  }
+
+  private async query<T>(queryString: string, variables: Record<string, unknown>): Promise<T> {
+    const response = await fetch(this.config.subgraphUrl, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query: queryString, variables }),
     });
+
+    const json = (await response.json()) as GraphQLResponse<T>;
+    if (!json.data || json.errors) {
+      throw new Error(`GraphQL error: ${JSON.stringify(json.errors ?? "No data returned")}`);
+    }
+    return json.data;
   }
 
   /**
-   * Get collateral snapshots (TroveUpdated events) for a trove within a period.
-   * These events track changes to the trove's collateral amount.
-   *
-   * @param troveManagerAddress - The TroveManager contract address for this collateral
-   * @param troveId - The trove ID (numeric, from the trove's full ID)
-   * @param fromBlock - Start block for event query
-   * @param toBlock - End block for event query
+   * Fetch all TroveSnapshot rows for the given trove IDs within the period.
+   * This assumes the subgraph is indexing `TroveSnapshot` entities.
    */
-  async getCollateralSnapshots(
-    troveManagerAddress: Address,
-    troveId: bigint,
-    fromBlock: bigint,
-    toBlock: bigint | "latest",
-  ): Promise<CollateralSnapshot[]> {
-    const logs = await this.client.getLogs({
-      address: troveManagerAddress,
-      event: TROVE_UPDATED_EVENT,
-      args: {
-        _troveId: troveId,
-      },
-      fromBlock,
-      toBlock,
-    });
+  async getSnapshotsForTroves(
+    troveIds: string[],
+    period: DistributionPeriod,
+  ): Promise<Map<string, CollateralSnapshot[]>> {
+    const byTrove = new Map<string, CollateralSnapshot[]>();
+    for (const id of troveIds) byTrove.set(id, []);
 
-    // Get block timestamps for each event
-    const snapshots: CollateralSnapshot[] = [];
-    for (const log of logs) {
-      const block = await this.client.getBlock({ blockNumber: log.blockNumber });
-      snapshots.push({
-        troveId: troveId.toString(),
-        deposit: log.args._coll as bigint,
-        timestamp: block.timestamp,
-      });
+    for (let offset = 0; offset < troveIds.length; offset += TROVE_SNAPSHOT_TROVE_ID_BATCH) {
+      const troveIdBatch = troveIds.slice(offset, offset + TROVE_SNAPSHOT_TROVE_ID_BATCH);
+      let cursor = "";
+
+      for (;;) {
+        const result = await this.query<{ troveSnapshots: TroveSnapshotRow[] }>(
+          `
+          query TroveSnapshots($troveIds: [String!]!, $start: BigInt!, $end: BigInt!, $cursor: ID!, $limit: Int!) {
+            troveSnapshots(
+              where: { trove_in: $troveIds, timestamp_gte: $start, timestamp_lte: $end, id_gt: $cursor }
+              orderBy: id
+              orderDirection: asc
+              first: $limit
+            ) {
+              id
+              trove { id }
+              deposit
+              timestamp
+            }
+          }
+          `,
+          {
+            troveIds: troveIdBatch,
+            start: period.startTimestamp.toString(),
+            end: period.endTimestamp.toString(),
+            cursor,
+            limit: SUBGRAPH_QUERY_LIMIT,
+          },
+        );
+
+        const rows = result.troveSnapshots;
+        for (const row of rows) {
+          const snapshot: CollateralSnapshot = {
+            troveId: row.trove.id,
+            deposit: BigInt(row.deposit),
+            timestamp: BigInt(row.timestamp),
+          };
+          const arr = byTrove.get(row.trove.id);
+          if (arr) arr.push(snapshot);
+        }
+
+        if (rows.length < SUBGRAPH_QUERY_LIMIT) break;
+        cursor = rows[rows.length - 1].id;
+      }
     }
 
-    return snapshots.sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1));
+    // Sort snapshots per trove by timestamp asc
+    for (const [id, arr] of byTrove.entries()) {
+      arr.sort((a, b) => (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0));
+      byTrove.set(id, arr);
+    }
+
+    return byTrove;
   }
 
   /**
-   * Calculate time-weighted average collateral for a single trove over the period.
+   * Calculate time-weighted average *deposit size* for a single trove over the period.
    *
-   * TWA = Sum of (collateral_amount × time_held) / total_period_time
+   * TWA(deposit) = Sum of (deposit × time_held) / active_time_in_period
    *
    * @param trove - The trove to calculate TWA for
    * @param snapshots - Collateral snapshots within the period
@@ -73,8 +120,6 @@ export class CollateralTrackerService {
     snapshots: CollateralSnapshot[],
     period: DistributionPeriod,
   ): TroveCollateralTWA {
-    const periodDuration = period.endTimestamp - period.startTimestamp;
-
     // Determine the effective start and end times for this trove in the period
     const troveStart = trove.createdAt > period.startTimestamp ? trove.createdAt : period.startTimestamp;
     const troveEnd = trove.closedAt && trove.closedAt < period.endTimestamp
@@ -94,54 +139,53 @@ export class CollateralTrackerService {
 
     const activeTime = troveEnd - troveStart;
 
-    // Filter snapshots to only those within the period
-    const relevantSnapshots = snapshots.filter(
-      (s) => s.timestamp >= period.startTimestamp && s.timestamp < period.endTimestamp,
-    );
-
-    // If no snapshots in period, use the trove's current deposit value for the entire active time
-    if (relevantSnapshots.length === 0) {
-      // The deposit at period start would be the trove's deposit before any changes in the period
-      // We use the current deposit as an approximation (or the last known value)
-      const timeWeightedSum = trove.deposit * activeTime;
-      const timeWeightedAverage = timeWeightedSum / periodDuration;
-
+    // If no snapshots found for this trove, assume TWA deposit size is the current trove deposit.
+    // (User-specified fallback behavior.)
+    if (snapshots.length === 0) {
       return {
         troveId: trove.id,
         borrower: trove.borrower,
         collateralId: trove.collateral.id,
-        timeWeightedAverage,
+        timeWeightedAverage: trove.deposit,
         activeTime,
       };
     }
 
-    // Calculate time-weighted sum
+    // Use snapshots that fall within the trove's active window.
+    const relevantSnapshots = snapshots.filter((s) => s.timestamp >= troveStart && s.timestamp <= troveEnd);
+    if (relevantSnapshots.length === 0) {
+      return {
+        troveId: trove.id,
+        borrower: trove.borrower,
+        collateralId: trove.collateral.id,
+        timeWeightedAverage: trove.deposit,
+        activeTime,
+      };
+    }
+
+    // Time-weighted sum over activeTime.
     let timeWeightedSum = 0n;
-    let currentDeposit = trove.deposit; // Start with current deposit as initial value
     let lastTimestamp = troveStart;
+    // Assume deposit at troveStart equals the first snapshot's deposit (best effort).
+    let lastDeposit = relevantSnapshots[0].deposit;
 
-    // If the first snapshot is after trove start, account for time before first snapshot
-    if (relevantSnapshots[0].timestamp > troveStart) {
-      // We need the deposit value at period start - use the snapshot's deposit as the "before" value
-      // This is an approximation; ideally we'd query the deposit at period start
-      const timeBeforeFirstSnapshot = relevantSnapshots[0].timestamp - troveStart;
-      // The deposit before the first snapshot would need to be fetched; for now use first snapshot value
-      timeWeightedSum += relevantSnapshots[0].deposit * timeBeforeFirstSnapshot;
-      lastTimestamp = relevantSnapshots[0].timestamp;
+    for (const snapshot of relevantSnapshots) {
+      if (snapshot.timestamp <= lastTimestamp) {
+        lastDeposit = snapshot.deposit;
+        continue;
+      }
+      const duration = snapshot.timestamp - lastTimestamp;
+      timeWeightedSum += lastDeposit * duration;
+      lastTimestamp = snapshot.timestamp;
+      lastDeposit = snapshot.deposit;
     }
 
-    // Process each snapshot
-    for (let i = 0; i < relevantSnapshots.length; i++) {
-      const snapshot = relevantSnapshots[i];
-      const nextTimestamp = i < relevantSnapshots.length - 1
-        ? relevantSnapshots[i + 1].timestamp
-        : troveEnd;
-
-      const duration = nextTimestamp - snapshot.timestamp;
-      timeWeightedSum += snapshot.deposit * duration;
+    // Tail segment until troveEnd
+    if (lastTimestamp < troveEnd) {
+      timeWeightedSum += lastDeposit * (troveEnd - lastTimestamp);
     }
 
-    const timeWeightedAverage = timeWeightedSum / periodDuration;
+    const timeWeightedAverage = timeWeightedSum / activeTime;
 
     return {
       troveId: trove.id,
@@ -154,43 +198,20 @@ export class CollateralTrackerService {
 
   /**
    * Calculate TWA for multiple troves.
-   * This is a simplified version that uses the trove's current deposit value.
-   * For more accurate results, you would need to fetch TroveUpdated events for each trove.
    *
    * @param troves - Array of troves to calculate TWA for
    * @param period - The distribution period
    */
-  calculateTWAForTroves(
+  async calculateTWAForTroves(
     troves: Trove[],
     period: DistributionPeriod,
-  ): TroveCollateralTWA[] {
-    // Simplified calculation using current deposit values
-    // For production, you should fetch snapshots for each trove
-    return troves.map((trove) => this.calculateTWA(trove, [], period));
-  }
+  ): Promise<TroveCollateralTWA[]> {
+    const troveIds = troves.map((t) => t.id);
+    const snapshotsByTrove = await this.getSnapshotsForTroves(troveIds, period);
 
-  /**
-   * Get block number for a given timestamp (approximate).
-   * Uses binary search to find the closest block.
-   */
-  async getBlockNumberForTimestamp(targetTimestamp: bigint): Promise<bigint> {
-    const latestBlock = await this.client.getBlock({ blockTag: "latest" });
-
-    // Binary search for the block
-    let low = this.config.startBlock;
-    let high = latestBlock.number;
-
-    while (low < high) {
-      const mid = (low + high) / 2n;
-      const block = await this.client.getBlock({ blockNumber: mid });
-
-      if (block.timestamp < targetTimestamp) {
-        low = mid + 1n;
-      } else {
-        high = mid;
-      }
-    }
-
-    return low;
+    return troves.map((trove) => {
+      const snapshots = snapshotsByTrove.get(trove.id) ?? [];
+      return this.calculateTWA(trove, snapshots, period);
+    });
   }
 }
