@@ -1,5 +1,5 @@
 import { BigInt, Bytes, dataSource, ethereum } from "@graphprotocol/graph-ts";
-import { InterestBatch, InterestRateBracket, Trove } from "../generated/schema";
+import { InterestBatch, InterestRateBracket, Trove, TroveSnapshot } from "../generated/schema";
 import {
   BatchedTroveUpdated as BatchedTroveUpdatedEvent,
   BatchUpdated as BatchUpdatedEvent,
@@ -218,6 +218,21 @@ export function handleTroveOperation(event: TroveOperationEvent): void {
   }
 
   trove.save();
+
+  // Create TroveSnapshot
+  let troveSnapshot = new TroveSnapshot(troveFullId + ":" + timestamp.toHexString());
+  troveSnapshot.trove = trove.id;
+  troveSnapshot.collateral = trove.collateral;
+  troveSnapshot.interestBatch = trove.interestBatch;
+  troveSnapshot.status = trove.status;
+  troveSnapshot.borrower = trove.borrower;
+  troveSnapshot.debt = trove.debt;
+  troveSnapshot.deposit = trove.deposit;
+  troveSnapshot.stake = trove.stake;
+  troveSnapshot.timestamp = timestamp;
+  troveSnapshot.blockNumber = event.block.number;
+  troveSnapshot.transactionHash = event.transaction.hash;
+  troveSnapshot.save();
 }
 
 function inferLeverage(event: TroveOperationEvent): boolean {

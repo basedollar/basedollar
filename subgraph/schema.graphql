@@ -101,6 +101,21 @@ type Trove @entity(immutable: false) {
   priceAtLiquidation: BigInt
 }
 
+type TroveSnapshot @entity(immutable: true) {
+  id: ID! # "type:collIndex:troveId:timestamp", e.g. "r:0:0x1731afc858cad2708001a4f71851f9f775729c22f47df7c4360b1e416fd0f2de:1715702400" or "n:0:0x1731afc858cad2708001a4f71851f9f775729c22f47df7c4360b1e416fd0f2de:1715702400"
+  trove: Trove!
+  collateral: Collateral!
+  interestBatch: InterestBatch
+  status: TroveStatus!
+  borrower: Bytes!
+  debt: BigInt!
+  deposit: BigInt!
+  stake: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
 type BorrowerInfo @entity(immutable: false) {
   id: ID! # "borrowerAddress", e.g. "0x0000000000000000000000000000000000000000"
   nextOwnerIndexes: [Int!]!

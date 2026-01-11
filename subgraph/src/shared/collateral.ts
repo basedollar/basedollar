@@ -19,21 +19,24 @@ export function getCollateralId(collIndex: i32, isRedeemable: boolean): string {
  *
  * AeroManager is expected to be a single instance, created once elsewhere.
  */
-export function ensureCollateralBranch(params: {
-  collIndex: i32;
-  totalCollaterals: i32;
-  tokenAddress: Address;
-  troveManagerAddress: Address;
-  isRedeemable: boolean;
-  collateralRegistryAddress: Address;
-}): void {
-  let collId = getCollateralId(params.collIndex, params.isRedeemable);
+export function addCollateralBranch(
+  collIndex: i32,
+  totalCollaterals: i32,
+  tokenAddress: Address,
+  troveManagerAddress: Address,
+  isRedeemable: boolean,
+): void {
+  let collId = getCollateralId(collIndex, isRedeemable);
+
+  // Collateral is immutable in the schema: only create if missing.
+  let existing = Collateral.load(collId);
+  if (existing) return;
 
   let collateral = new Collateral(collId);
-  collateral.collIndex = params.collIndex;
-  collateral.redeemable = params.isRedeemable;
+  collateral.collIndex = collIndex;
+  collateral.redeemable = isRedeemable;
 
-  let troveManagerContract = TroveManagerContract.bind(params.troveManagerAddress);
+  let troveManagerContract = TroveManagerContract.bind(troveManagerAddress);
 
   let addresses = new CollateralAddresses(collId);
   addresses.collateral = collId;
@@ -41,8 +44,8 @@ export function ensureCollateralBranch(params: {
   addresses.sortedTroves = troveManagerContract.sortedTroves();
   addresses.stabilityPool = troveManagerContract.stabilityPool();
   addresses.activePool = troveManagerContract.activePool();
-  addresses.token = params.tokenAddress;
-  addresses.troveManager = params.troveManagerAddress;
+  addresses.token = tokenAddress;
+  addresses.troveManager = troveManagerAddress;
   addresses.troveNft = troveManagerContract.troveNFT();
   
   // minCollRatio derived from BorrowerOperations.MCR()
@@ -53,18 +56,23 @@ export function ensureCollateralBranch(params: {
   // ActivePool drives Aero LP collateral flag and also lets us discover AeroManager.
   let activePoolContract = ActivePoolContract.bind(Address.fromBytes(addresses.activePool));
   collateral.isAeroLPCollateral = activePoolContract.isAeroLPCollateral();
-  addresses.aeroGauge = activePoolContract.aeroGaugeAddress();
+  let aeroGaugeAddress = activePoolContract.aeroGaugeAddress();
+  if (aeroGaugeAddress.notEqual(Address.zero())) {
+    addresses.aeroGauge = aeroGaugeAddress;
+  }
 
   collateral.save();
   addresses.save();
 
-  let gauge = new AeroGauge(addresses.aeroGauge.toHexString());
-  gauge.collateral = collId;
-  gauge.gauge = addresses.aeroGauge;
-  gauge.token = addresses.token;
-  gauge.activePool = addresses.activePool;
-  gauge.aeroManager = activePoolContract.aeroManagerAddress();
-  gauge.save();
+  if (aeroGaugeAddress.notEqual(Address.zero())) {
+    let gauge = new AeroGauge(aeroGaugeAddress.toHexString());
+    gauge.collateral = collId;
+    gauge.gauge = aeroGaugeAddress;
+    gauge.token = addresses.token;
+    gauge.activePool = addresses.activePool;
+    gauge.aeroManager = activePoolContract.aeroManagerAddress();
+    gauge.save();
+  }
 
   // Lazily create single AeroManager template instance.
   let aeroManagerAddress = activePoolContract.aeroManagerAddress();
@@ -78,16 +86,18 @@ export function ensureCollateralBranch(params: {
   context.setBytes("address:sortedTroves", addresses.sortedTroves);
   context.setBytes("address:stabilityPool", addresses.stabilityPool);
   context.setBytes("address:activePool", addresses.activePool);
-  context.setBytes("address:aeroGauge", addresses.aeroGauge);
+  if (aeroGaugeAddress.notEqual(Address.zero())) {
+    context.setBytes("address:aeroGauge", aeroGaugeAddress);
+  }
   context.setBytes("address:token", addresses.token);
   context.setBytes("address:troveManager", addresses.troveManager);
   context.setBytes("address:troveNft", addresses.troveNft);
   context.setString("collId", collId);
-  context.setString("collType", getCollateralType(params.isRedeemable));
-  context.setI32("collIndex", params.collIndex);
-  context.setI32("totalCollaterals", params.totalCollaterals);
+  context.setString("collType", getCollateralType(isRedeemable));
+  context.setI32("collIndex", collIndex);
+  context.setI32("totalCollaterals", totalCollaterals);
 
-  TroveManagerTemplate.createWithContext(params.troveManagerAddress, context);
+  TroveManagerTemplate.createWithContext(troveManagerAddress, context);
   TroveNFTTemplate.createWithContext(Address.fromBytes(addresses.troveNft), context);
 }
 
