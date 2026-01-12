@@ -93,7 +93,7 @@ async function calculateDistribution(periodOverride?: DistributionPeriod): Promi
   // Step 7: Calculate reward distributions
   console.log("Calculating reward distributions...");
   const distributions = rewardsCalculatorService.calculateRewards(twaResults, totalClaimedAero);
-  console.log(`Generated distributions for ${distributions.length} user(s)`);
+  console.log(`Generated distributions for ${distributions.length} trove(s)`);
 
   // Build final result
   const result = rewardsCalculatorService.buildDistributionResult(distributions, {
@@ -103,7 +103,7 @@ async function calculateDistribution(periodOverride?: DistributionPeriod): Promi
   });
 
   console.log("\nDistribution calculation complete!");
-  console.log(`Total users: ${result.distributions.length}`);
+  console.log(`Total troves: ${result.distributions.length}`);
   console.log(`Total AERO to distribute: ${result.totalClaimedAero}`);
 
   return result;

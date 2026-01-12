@@ -50,6 +50,14 @@ export interface TroveCollateralTWA {
   activeTime: bigint;
 }
 
+// Final distribution data per trove (keyed by troveId)
+export interface TroveDistribution extends TroveCollateralTWA {
+  // Weight used for distribution (e.g. TWA * activeTime)
+  weight: bigint;
+  // Reward amount allocated to this troveId
+  rewardAmount: bigint;
+}
+
 // Distribution period configuration
 export interface DistributionPeriod {
   startTimestamp: bigint;
@@ -62,19 +70,10 @@ export interface AeroLPCollateral {
   gauge: Address;
 }
 
-// Final distribution data per user
-export interface UserDistribution {
-  borrower: Address;
-  troves: TroveCollateralTWA[];
-  totalTimeWeightedCollateral: bigint;
-  // Reward amount - to be calculated by rewards-calculator.ts
-  rewardAmount?: bigint;
-}
-
 // Distribution calculation result
 export interface DistributionResult {
   period: DistributionPeriod;
   lpCollaterals: AeroLPCollateral[];
   totalClaimedAero: bigint;
-  distributions: UserDistribution[];
+  distributions: TroveDistribution[];
 }
