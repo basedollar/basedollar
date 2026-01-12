@@ -13,6 +13,11 @@ import "./Dependencies/Constants.sol";
 contract AeroManager is IAeroManager, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
+    struct AeroRecipient {
+        address borrower;
+        uint256 amount;
+    }
+
     ICollateralRegistry public immutable collateralRegistry;
     address public aeroTokenAddress;
     address public governor;
@@ -24,9 +29,16 @@ contract AeroManager is IAeroManager, ReentrancyGuard {
 
     uint256 public claimedAero;
 
+    mapping(address gauge => uint256 epoch) public currentEpochs;
+    mapping(uint256 epoch => mapping(address gauge => uint256 amount)) public claimedAeroPerEpoch;
+
+    mapping(address user => uint256 amount) public claimableRewards;
+
     event Staked(address indexed gauge, address token, uint256 amount);
     event ActivePoolAdded(address indexed activePool);
-    event Claimed(address indexed gauge, uint256 total, uint256 claimFee);
+    event Claimed(address indexed gauge, uint256 total, uint256 claimFee, uint256 indexed epoch);
+    event AeroDistributed(address indexed gauge, uint256 recipients, uint256 totalRewardAmount, uint256 indexed epoch);
+    event RewardsClaimed(address indexed user, uint256 amount);
 
     constructor(ICollateralRegistry _collateralRegistry, address _aeroTokenAddress, address[] memory _activePools, address _governor, address _treasuryAddress) {
         require(_treasuryAddress != address(0), "AeroManager: Treasury address cannot be 0");
@@ -107,9 +119,38 @@ contract AeroManager is IAeroManager, ReentrancyGuard {
         IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, claimFee);
 
         // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
-        claimedAero += claimedAmount - claimFee; // Subtract the fee from the total claimed amount
+        uint256 rewardAmount = claimedAmount - claimFee;
+        claimedAero += rewardAmount; // Subtract the fee from the total claimed amount
+        
+        uint256 currentEpoch = currentEpochs[gauge];
+        claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
 
-        emit Claimed(gauge, claimedAmount, claimFee);
+        emit Claimed(gauge, claimedAmount, claimFee, currentEpoch);
+    }
+
+    function distributeAero(address[] memory gauges, AeroRecipient[][] memory recipients) external onlyGovernor {
+        require(gauges.length == recipients.length, "AeroManager: Gauges and recipients length mismatch");
+        for (uint256 i; i < gauges.length; i++) {
+            uint256 currentEpoch = currentEpochs[gauges[i]];
+            uint256 rewardAmount = claimedAeroPerEpoch[currentEpoch][gauges[i]];
+            for (uint256 j; j < recipients[i].length; j++) {
+                require(recipients[i][j].amount <= rewardAmount, "AeroManager: Total amount exceeds reward amount");
+                rewardAmount -= recipients[i][j].amount;
+                claimableRewards[recipients[i][j].borrower] += recipients[i][j].amount;
+            }
+            require(rewardAmount == 0, "AeroManager: Reward amount not fully distributed");
+            emit AeroDistributed(gauges[i], recipients[i].length, rewardAmount, currentEpoch);
+            currentEpoch++;
+            currentEpochs[gauges[i]] = currentEpoch;
+        }
+    }
+
+    function claimRewards(address user) external nonReentrant {
+        uint256 amount = claimableRewards[user];
+        require(amount > 0, "AeroManager: No rewards to claim");
+        claimableRewards[user] = 0;
+        IERC20(aeroTokenAddress).safeTransfer(user, amount);
+        emit RewardsClaimed(user, amount);
     }
 
     // Fee is a percentage of the total claimed amount
