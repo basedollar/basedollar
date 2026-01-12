@@ -24,19 +24,31 @@ contract AeroManager is IAeroManager, ReentrancyGuard {
 
     uint256 public claimedAero;
 
+    uint256 public claimFee;
+
+    uint256 public pendingNewClaimFee;
+
+    uint256 public pendingNewClaimFeeTimestamp;
+    
+    uint256 public claimFeeChangeDelayPeriod = 7 days;
+
     event Staked(address indexed gauge, address token, uint256 amount);
     event ActivePoolAdded(address indexed activePool);
     event Claimed(address indexed gauge, uint256 total, uint256 claimFee);
+    event ClaimFeeUpdated(uint256 oldFee, uint256 newFee);
+    event ClaimFeeUpdatePending(uint256 oldFee, uint256 newFee, uint256 timestamp, uint256 delayPeriod);
 
     constructor(ICollateralRegistry _collateralRegistry, address _aeroTokenAddress, address[] memory _activePools, address _governor, address _treasuryAddress) {
         require(_treasuryAddress != address(0), "AeroManager: Treasury address cannot be 0");
         require(_aeroTokenAddress != address(0), "AeroManager: Aero token address cannot be 0");
         require(address(_collateralRegistry) != address(0), "AeroManager: Collateral registry cannot be 0");
+        _requireClaimFeeLimit(AERO_MANAGER_FEE);
 
         collateralRegistry = _collateralRegistry;
         aeroTokenAddress = _aeroTokenAddress;
         governor = _governor;
         treasuryAddress = _treasuryAddress;
+        claimFee = AERO_MANAGER_FEE;
         for (uint256 i; i < _activePools.length; i++) {
             _addActivePool(_activePools[i]);
         }
@@ -112,6 +124,30 @@ contract AeroManager is IAeroManager, ReentrancyGuard {
         emit Claimed(gauge, claimedAmount, claimFee);
     }
 
+    function updateClaimFee(uint256 newFee) external onlyGovernor {
+        require(newFee != claimFee, "AeroManager: New fee is the same as the current fee");
+        _requireClaimFeeLimit(newFee);
+        if (newFee > claimFee) {
+            pendingNewClaimFee = newFee;
+            pendingNewClaimFeeTimestamp = block.timestamp;
+            emit ClaimFeeUpdatePending(claimFee, newFee, pendingNewClaimFeeTimestamp, claimFeeChangeDelayPeriod);
+        } else {
+            uint256 oldFee = claimFee;
+            claimFee = newFee;
+            emit ClaimFeeUpdated(oldFee, newFee);
+        }
+    }
+
+    function acceptClaimFeeUpdate() external onlyGovernor {
+        require(pendingNewClaimFee > 0, "AeroManager: No pending claim fee update");
+        require(block.timestamp >= pendingNewClaimFeeTimestamp + claimFeeChangeDelayPeriod, "AeroManager: Claim fee update delay period not passed");
+        uint256 oldFee = claimFee;
+        claimFee = pendingNewClaimFee;
+        pendingNewClaimFee = 0;
+        pendingNewClaimFeeTimestamp = 0;
+        emit ClaimFeeUpdated(oldFee, claimFee);
+    }
+
     // Fee is a percentage of the total claimed amount
     // _100pct is 1e18, so AERO_MANAGER_FEE is 10 * _1pct = 10e16
     function _getClaimFee(uint256 amount) internal pure returns (uint256) {
@@ -133,6 +169,10 @@ contract AeroManager is IAeroManager, ReentrancyGuard {
 
         activePools[activePool] = true;
         emit ActivePoolAdded(activePool);
+    }
+
+    function _requireClaimFeeLimit(uint256 newFee) internal view {
+        require(newFee <= MAX_AERO_MANAGER_FEE, "AeroManager: Fee is greater than max aero manager fee limit");
     }
 
     function _requireCallerIsActivePool() internal view {

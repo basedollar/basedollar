@@ -86,6 +86,7 @@ uint256 constant SP_YIELD_SPLIT = 75 * _1pct; // 75%
 uint256 constant MIN_BOLD_IN_SP = 1e18;
 
 uint256 constant AERO_MANAGER_FEE = 10 * _1pct; // 10%
+uint256 constant MAX_AERO_MANAGER_FEE = 50 * _1pct; // 20%
 
 // Dummy contract that lets legacy Hardhat tests query some of the constants
 contract Constants {
