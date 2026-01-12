@@ -151,7 +151,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard {
     // Fee is a percentage of the total claimed amount
     // _100pct is 1e18, so AERO_MANAGER_FEE is 10 * _1pct = 10e16
     function _getClaimFee(uint256 amount) internal pure returns (uint256) {
-        return amount * AERO_MANAGER_FEE / _100pct;
+        return amount * claimFee / _100pct;
     }
 
 
