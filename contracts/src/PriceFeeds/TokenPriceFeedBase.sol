@@ -2,13 +2,13 @@
 
 pragma solidity 0.8.24;
 
-import "../Dependencies/Ownable.sol";
+import "../Interfaces/IPriceFeed.sol";
 import "../Dependencies/AggregatorV3Interface.sol";
 import "../BorrowerOperations.sol";
 
 // import "forge-std/console2.sol";
 
-abstract contract TokenPriceFeedBase is Ownable {
+abstract contract TokenPriceFeedBase is IPriceFeed {
     // Determines where the PriceFeed sources data from. Possible states:
     // - primary: Uses the primary price calcuation, which depends on the specific feed
     // - lastGoodPrice: the last good price recorded by this PriceFeed.
@@ -43,23 +43,17 @@ abstract contract TokenPriceFeedBase is Ownable {
 
     Oracle public tokenUsdOracle;
 
-    IBorrowerOperations borrowerOperations;
+    IBorrowerOperations public borrowerOperations;
 
-    constructor(address _owner, address _tokenUsdOracleAddress, uint256 _tokenUsdStalenessThreshold) Ownable(_owner) {
+    constructor(address _borrowerOperationsAddress, address _tokenUsdOracleAddress, uint256 _tokenUsdStalenessThreshold) {
         // Store token-USD oracle
         tokenUsdOracle.aggregator = AggregatorV3Interface(_tokenUsdOracleAddress);
         tokenUsdOracle.stalenessThreshold = _tokenUsdStalenessThreshold;
         tokenUsdOracle.decimals = tokenUsdOracle.aggregator.decimals();
+        borrowerOperations = IBorrowerOperations(_borrowerOperationsAddress);
 
         // assertion to work chainlink or api3
         assert(tokenUsdOracle.decimals == 8 || tokenUsdOracle.decimals == 18);
-    }
-
-    // TODO: remove this and set address in constructor, since we'll use CREATE2
-    function setAddresses(address _borrowOperationsAddress) external onlyOwner {
-        borrowerOperations = IBorrowerOperations(_borrowOperationsAddress);
-
-        _renounceOwnership();
     }
 
     function _getOracleAnswer(Oracle memory _oracle) internal view returns (uint256, bool) {
