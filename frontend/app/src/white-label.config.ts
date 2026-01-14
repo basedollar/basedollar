@@ -205,6 +205,7 @@ export const WHITE_LABEL_CONFIG = {
             leverageZapper: "0x0000000000000000000000000000000000000000", // TBD
             stabilityPool: "0x0000000000000000000000000000000000000000", // TBD
             troveManager: "0x0000000000000000000000000000000000000000", // TBD
+            gauge: "0x0000000000000000000000000000000000000000", // TBD - Aerodrome gauge for this LP
           },
         },
       },
@@ -237,6 +238,7 @@ export const WHITE_LABEL_CONFIG = {
             leverageZapper: "0x0000000000000000000000000000000000000000",
             stabilityPool: "0x0000000000000000000000000000000000000000",
             troveManager: "0x0000000000000000000000000000000000000000",
+            gauge: "0x0000000000000000000000000000000000000000", // TBD - Aerodrome gauge
           },
         },
       },
@@ -269,6 +271,7 @@ export const WHITE_LABEL_CONFIG = {
             leverageZapper: "0x0000000000000000000000000000000000000000",
             stabilityPool: "0x0000000000000000000000000000000000000000",
             troveManager: "0x0000000000000000000000000000000000000000",
+            gauge: "0x0000000000000000000000000000000000000000", // TBD - Aerodrome gauge
           },
         },
       },
@@ -301,10 +304,11 @@ export const WHITE_LABEL_CONFIG = {
             leverageZapper: "0x0000000000000000000000000000000000000000",
             stabilityPool: "0x0000000000000000000000000000000000000000",
             troveManager: "0x0000000000000000000000000000000000000000",
+            gauge: "0x0000000000000000000000000000000000000000", // TBD - Aerodrome gauge
           },
         },
       },
-      
+
       // === vAMM LP Tokens (70% LTV) ===
       {
         symbol: "VAMM_USDC_AERO" as const,
@@ -335,6 +339,7 @@ export const WHITE_LABEL_CONFIG = {
             leverageZapper: "0x0000000000000000000000000000000000000000",
             stabilityPool: "0x0000000000000000000000000000000000000000",
             troveManager: "0x0000000000000000000000000000000000000000",
+            gauge: "0x0000000000000000000000000000000000000000", // TBD - Aerodrome gauge
           },
         },
       },
@@ -367,6 +372,7 @@ export const WHITE_LABEL_CONFIG = {
             leverageZapper: "0x0000000000000000000000000000000000000000",
             stabilityPool: "0x0000000000000000000000000000000000000000",
             troveManager: "0x0000000000000000000000000000000000000000",
+            gauge: "0x0000000000000000000000000000000000000000", // TBD - Aerodrome gauge
           },
         },
       },
@@ -399,6 +405,7 @@ export const WHITE_LABEL_CONFIG = {
             leverageZapper: "0x0000000000000000000000000000000000000000",
             stabilityPool: "0x0000000000000000000000000000000000000000",
             troveManager: "0x0000000000000000000000000000000000000000",
+            gauge: "0x0000000000000000000000000000000000000000", // TBD - Aerodrome gauge
           },
         },
       },
@@ -431,6 +438,7 @@ export const WHITE_LABEL_CONFIG = {
             leverageZapper: "0x0000000000000000000000000000000000000000",
             stabilityPool: "0x0000000000000000000000000000000000000000",
             troveManager: "0x0000000000000000000000000000000000000000",
+            gauge: "0x0000000000000000000000000000000000000000", // TBD - Aerodrome gauge
           },
         },
       },
@@ -463,6 +471,7 @@ export const WHITE_LABEL_CONFIG = {
             leverageZapper: "0x0000000000000000000000000000000000000000",
             stabilityPool: "0x0000000000000000000000000000000000000000",
             troveManager: "0x0000000000000000000000000000000000000000",
+            gauge: "0x0000000000000000000000000000000000000000", // TBD - Aerodrome gauge
           },
         },
       },
@@ -495,6 +504,7 @@ export const WHITE_LABEL_CONFIG = {
             leverageZapper: "0x0000000000000000000000000000000000000000",
             stabilityPool: "0x0000000000000000000000000000000000000000",
             troveManager: "0x0000000000000000000000000000000000000000",
+            gauge: "0x0000000000000000000000000000000000000000", // TBD - Aerodrome gauge
           },
         },
       },
@@ -527,6 +537,7 @@ export const WHITE_LABEL_CONFIG = {
             leverageZapper: "0x0000000000000000000000000000000000000000",
             stabilityPool: "0x0000000000000000000000000000000000000000",
             troveManager: "0x0000000000000000000000000000000000000000",
+            gauge: "0x0000000000000000000000000000000000000000", // TBD - Aerodrome gauge
           },
         },
       },

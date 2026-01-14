@@ -6,11 +6,10 @@ import { LinkTextButton } from "@/src/comps/LinkTextButton/LinkTextButton";
 import { dnum18 } from "@/src/dnum-utils";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { css } from "@/styled-system/css";
-import { Button, TokenIcon, shortenAddress, TextInput } from "@liquity2/uikit";
+import { Button, TokenIcon, shortenAddress } from "@liquity2/uikit";
 import { a, useSpring } from "@react-spring/web";
-import { useReadContracts, useWriteContract, useWaitForTransactionReceipt, useEnsAddress } from "wagmi";
-import { erc20Abi, isAddress, type Address } from "viem";
-import { normalize } from "viem/ens";
+import { useReadContracts, useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
+import { erc20Abi, type Address } from "viem";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useMemo } from "react";
@@ -61,7 +60,28 @@ const AeroManagerAbi = [
   },
   {
     inputs: [{ internalType: "address", name: "gauge", type: "address" }],
+    name: "currentEpochs",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "user", type: "address" }],
+    name: "claimableRewards",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "gauge", type: "address" }],
     name: "claim",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "user", type: "address" }],
+    name: "claimRewards",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -82,25 +102,45 @@ const AeroGaugeAbi = [
 const AERO_MANAGER_ADDRESS = WHITE_LABEL_CONFIG.basedollarFeatures.aeroManager.address;
 const AERO_TOKEN_ADDRESS = WHITE_LABEL_CONFIG.basedollarFeatures.aeroManager.aeroTokenAddress;
 
+// Get LP collaterals with gauge addresses from config
+type LpCollateral = {
+  symbol: string;
+  name: string;
+  type: string;
+  gauge: Address;
+};
+
+function getLpCollateralsWithGauges(): LpCollateral[] {
+  const collaterals = WHITE_LABEL_CONFIG.tokens.collaterals;
+  const lpCollaterals: LpCollateral[] = [];
+
+  for (const collateral of collaterals) {
+    // Check if it's an LP type (samm or vamm)
+    if ('type' in collateral && (collateral.type === 'samm' || collateral.type === 'vamm')) {
+      const deployments = collateral.deployments as Record<number, { gauge?: string }>;
+      const deployment = deployments[8453]; // Base mainnet
+      if (deployment?.gauge && deployment.gauge !== "0x0000000000000000000000000000000000000000") {
+        lpCollaterals.push({
+          symbol: collateral.symbol,
+          name: collateral.name,
+          type: collateral.type.toUpperCase(),
+          gauge: deployment.gauge as Address,
+        });
+      }
+    }
+  }
+
+  return lpCollaterals;
+}
+
 export function AeroManagerScreen() {
-  const [gaugeInput, setGaugeInput] = useState("");
+  const { address: userAddress, isConnected } = useAccount();
+  const [claimingGaugeIndex, setClaimingGaugeIndex] = useState<number | null>(null);
+  const [isClaimingAll, setIsClaimingAll] = useState(false);
+  const [isClaimingUserRewards, setIsClaimingUserRewards] = useState(false);
 
-  // Check if input looks like an ENS name
-  const isEnsName = useMemo(() => {
-    return gaugeInput.includes(".") && !isAddress(gaugeInput);
-  }, [gaugeInput]);
-
-  // Resolve ENS name
-  const { data: ensResolvedAddress, isLoading: isEnsLoading } = useEnsAddress({
-    name: isEnsName ? normalize(gaugeInput) : undefined,
-    chainId: 1, // ENS is on mainnet
-  });
-
-  // Use resolved ENS address or direct input
-  const gaugeAddress = isEnsName
-    ? (ensResolvedAddress ?? undefined)
-    : (isAddress(gaugeInput) ? gaugeInput as Address : undefined);
-  const isValidGauge = Boolean(gaugeAddress);
+  const lpCollaterals = useMemo(() => getLpCollateralsWithGauges(), []);
+  const hasGauges = lpCollaterals.length > 0;
 
   // Read AeroManager contract state
   const contractReads = useReadContracts({
@@ -143,23 +183,59 @@ export function AeroManagerScreen() {
     },
   });
 
-  // Read claimable AERO from gauge (if gauge address is provided)
-  const gaugeReads = useReadContracts({
+  // Read user's claimable rewards
+  const userRewardsRead = useReadContracts({
     contracts: [
       {
-        address: gaugeAddress,
-        abi: AeroGaugeAbi,
-        functionName: "earned",
-        args: [AERO_MANAGER_ADDRESS],
+        address: AERO_MANAGER_ADDRESS,
+        abi: AeroManagerAbi,
+        functionName: "claimableRewards",
+        args: [userAddress!],
       },
     ],
     query: {
-      enabled: isValidGauge && AERO_MANAGER_ADDRESS !== "0x0000000000000000000000000000000000000000",
+      enabled: isConnected && userAddress !== undefined && AERO_MANAGER_ADDRESS !== "0x0000000000000000000000000000000000000000",
+    },
+  });
+
+  // Build epoch reads for all LP collaterals
+  const epochContracts = useMemo(() => {
+    return lpCollaterals.map((lp) => ({
+      address: AERO_MANAGER_ADDRESS,
+      abi: AeroManagerAbi,
+      functionName: "currentEpochs" as const,
+      args: [lp.gauge] as const,
+    }));
+  }, [lpCollaterals]);
+
+  // Read current epochs for all gauges
+  const epochReads = useReadContracts({
+    contracts: epochContracts,
+    query: {
+      enabled: hasGauges && AERO_MANAGER_ADDRESS !== "0x0000000000000000000000000000000000000000",
+    },
+  });
+
+  // Build gauge reads for all LP collaterals
+  const gaugeContracts = useMemo(() => {
+    return lpCollaterals.map((lp) => ({
+      address: lp.gauge,
+      abi: AeroGaugeAbi,
+      functionName: "earned" as const,
+      args: [AERO_MANAGER_ADDRESS] as const,
+    }));
+  }, [lpCollaterals]);
+
+  // Read claimable AERO from all gauges
+  const gaugeReads = useReadContracts({
+    contracts: gaugeContracts,
+    query: {
+      enabled: hasGauges && AERO_MANAGER_ADDRESS !== "0x0000000000000000000000000000000000000000",
     },
   });
 
   // Write contract for claim
-  const { writeContract, data: txHash, isPending: isWritePending } = useWriteContract();
+  const { writeContract, data: txHash, isPending: isWritePending, reset: resetWrite } = useWriteContract();
   const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
     hash: txHash,
   });
@@ -170,18 +246,93 @@ export function AeroManagerScreen() {
   const treasuryAddress = contractReads.data?.[3]?.result as Address | undefined;
   const claimedAero = contractReads.data?.[4]?.result as bigint | undefined;
   const aeroBalance = contractReads.data?.[5]?.result as bigint | undefined;
-  const claimableAero = gaugeReads.data?.[0]?.result as bigint | undefined;
+  const userClaimableRewards = userRewardsRead.data?.[0]?.result as bigint | undefined;
+
+  // Get claimable amounts for each gauge
+  const claimableAmounts = useMemo(() => {
+    if (!gaugeReads.data) return [];
+    return gaugeReads.data.map((result) => result.result as bigint | undefined);
+  }, [gaugeReads.data]);
+
+  // Get current epochs for each gauge
+  const currentEpochs = useMemo(() => {
+    if (!epochReads.data) return [];
+    return epochReads.data.map((result) => result.result as bigint | undefined);
+  }, [epochReads.data]);
+
+  // Calculate total claimable
+  const totalClaimable = useMemo(() => {
+    return claimableAmounts.reduce<bigint>((acc, amount) => {
+      if (amount !== undefined) {
+        return acc + amount;
+      }
+      return acc;
+    }, BigInt(0));
+  }, [claimableAmounts]);
+
+  // Get gauges with claimable rewards
+  const claimableGauges = useMemo(() => {
+    return lpCollaterals.filter((_, index) => {
+      const amount = claimableAmounts[index];
+      return amount !== undefined && amount > BigInt(0);
+    });
+  }, [lpCollaterals, claimableAmounts]);
 
   const isContractDeployed = AERO_MANAGER_ADDRESS !== "0x0000000000000000000000000000000000000000";
   const isClaimLoading = isWritePending || isTxLoading;
+  const hasUserRewards = userClaimableRewards !== undefined && userClaimableRewards > BigInt(0);
 
-  const handleClaim = () => {
-    if (!isValidGauge || !gaugeAddress) return;
+  const handleClaimSingle = (gaugeAddress: Address, index: number) => {
+    setClaimingGaugeIndex(index);
+    setIsClaimingAll(false);
+    setIsClaimingUserRewards(false);
+    resetWrite();
     writeContract({
       address: AERO_MANAGER_ADDRESS,
       abi: AeroManagerAbi,
       functionName: "claim",
       args: [gaugeAddress],
+    });
+  };
+
+  const handleClaimAll = async () => {
+    if (claimableGauges.length === 0) return;
+
+    setIsClaimingAll(true);
+    setClaimingGaugeIndex(null);
+    setIsClaimingUserRewards(false);
+
+    // For now, claim the first gauge with rewards
+    // TODO: Implement proper multicall when wagmi supports it better
+    const firstClaimableIndex = lpCollaterals.findIndex((_, index) => {
+      const amount = claimableAmounts[index];
+      return amount !== undefined && amount > BigInt(0);
+    });
+
+    const gaugeToClam = lpCollaterals[firstClaimableIndex];
+    if (firstClaimableIndex !== -1 && gaugeToClam) {
+      resetWrite();
+      writeContract({
+        address: AERO_MANAGER_ADDRESS,
+        abi: AeroManagerAbi,
+        functionName: "claim",
+        args: [gaugeToClam.gauge],
+      });
+    }
+  };
+
+  const handleClaimUserRewards = () => {
+    if (!userAddress || !hasUserRewards) return;
+
+    setIsClaimingUserRewards(true);
+    setClaimingGaugeIndex(null);
+    setIsClaimingAll(false);
+    resetWrite();
+    writeContract({
+      address: AERO_MANAGER_ADDRESS,
+      abi: AeroManagerAbi,
+      functionName: "claimRewards",
+      args: [userAddress],
     });
   };
 
@@ -364,7 +515,93 @@ export function AeroManagerScreen() {
           </StatCard>
         </div>
 
-        {/* Claim Action */}
+        {/* User Claimable Rewards */}
+        {isConnected && (
+          <div
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              padding: 24,
+              background: hasUserRewards ? "positiveSurface" : "surface",
+              border: hasUserRewards ? "1px solid token(colors.positiveSurfaceBorder)" : "1px solid token(colors.border)",
+              borderRadius: 12,
+              marginBottom: 24,
+            })}
+          >
+            <div
+              className={css({
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              })}
+            >
+              <div>
+                <h3
+                  className={css({
+                    fontSize: 16,
+                    fontWeight: 600,
+                  })}
+                >
+                  Your AERO Rewards
+                </h3>
+                <p
+                  className={css({
+                    color: "contentAlt",
+                    fontSize: 14,
+                    marginTop: 4,
+                  })}
+                >
+                  Rewards distributed to you from LP collateral positions
+                </p>
+              </div>
+              <div
+                className={css({
+                  textAlign: "right",
+                })}
+              >
+                <div className={css({ fontSize: 24, fontWeight: 600 })}>
+                  <Amount
+                    value={userClaimableRewards !== undefined ? dnum18(userClaimableRewards) : undefined}
+                    format={4}
+                    fallback="0"
+                  />{" "}
+                  <span className={css({ fontSize: 14, color: "contentAlt" })}>AERO</span>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              label={
+                isClaimingUserRewards && isClaimLoading
+                  ? "Claiming..."
+                  : isClaimingUserRewards && isTxSuccess
+                    ? "Claimed!"
+                    : "Claim My Rewards"
+              }
+              mode="primary"
+              size="large"
+              wide
+              disabled={!isContractDeployed || !hasUserRewards || isClaimLoading}
+              onClick={handleClaimUserRewards}
+            />
+
+            {isClaimingUserRewards && isTxSuccess && txHash && (
+              <p className={css({ fontSize: 12, color: "positive", textAlign: "center" })}>
+                Transaction successful!{" "}
+                <Link
+                  href={`https://basescan.org/tx/${txHash}`}
+                  target="_blank"
+                  className={css({ color: "accent", textDecoration: "underline" })}
+                >
+                  View on BaseScan
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Gauge Rewards List */}
         <div
           className={css({
             display: "flex",
@@ -377,88 +614,186 @@ export function AeroManagerScreen() {
             marginBottom: 24,
           })}
         >
-          <h3
-            className={css({
-              fontSize: 16,
-              fontWeight: 600,
-            })}
-          >
-            Claim AERO Rewards
-          </h3>
-          <p
-            className={css({
-              color: "contentAlt",
-              fontSize: 14,
-            })}
-          >
-            Anyone can trigger the claim process to collect AERO rewards from Aerodrome gauges.
-            A 10% fee is sent to the protocol treasury, and the rest is kept for distribution.
-          </p>
-
           <div
             className={css({
               display: "flex",
-              flexDirection: "column",
-              gap: 8,
+              justifyContent: "space-between",
+              alignItems: "center",
             })}
           >
-            <label className={css({ fontSize: 14, fontWeight: 500 })}>
-              Gauge Address
-            </label>
-            <TextInput
-              placeholder="0x... or ENS name"
-              value={gaugeInput}
-              onChange={(value) => setGaugeInput(value)}
-            />
-            {isEnsLoading && (
-              <p className={css({ fontSize: 12, color: "contentAlt" })}>
-                Resolving ENS name...
+            <div>
+              <h3
+                className={css({
+                  fontSize: 16,
+                  fontWeight: 600,
+                })}
+              >
+                Claimable AERO Rewards
+              </h3>
+              <p
+                className={css({
+                  color: "contentAlt",
+                  fontSize: 14,
+                  marginTop: 4,
+                })}
+              >
+                Anyone can trigger the claim process. 10% fee to treasury, rest distributed.
               </p>
-            )}
-            {gaugeInput && !isValidGauge && !isEnsLoading && (
-              <p className={css({ fontSize: 12, color: "negative" })}>
-                {isEnsName ? "Could not resolve ENS name" : "Please enter a valid address"}
-              </p>
-            )}
-            {isValidGauge && gaugeAddress && isEnsName && (
-              <p className={css({ fontSize: 12, color: "positive" })}>
-                Resolved: {shortenAddress(gaugeAddress, 6)}
-              </p>
+            </div>
+            {hasGauges && totalClaimable > BigInt(0) && (
+              <div
+                className={css({
+                  textAlign: "right",
+                })}
+              >
+                <div className={css({ fontSize: 12, color: "contentAlt" })}>Total Claimable</div>
+                <div className={css({ fontSize: 18, fontWeight: 600 })}>
+                  <Amount
+                    value={dnum18(totalClaimable)}
+                    format={4}
+                  />{" "}
+                  <span className={css({ fontSize: 14, color: "contentAlt" })}>AERO</span>
+                </div>
+              </div>
             )}
           </div>
 
-          {isValidGauge && (
+          {!hasGauges ? (
             <div
               className={css({
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: 12,
+                padding: 32,
+                textAlign: "center",
+                color: "contentAlt",
                 background: "infoSurface",
                 borderRadius: 8,
               })}
             >
-              <span className={css({ fontSize: 14, color: "contentAlt" })}>
-                Claimable from this gauge:
-              </span>
-              <span className={css({ fontSize: 14, fontWeight: 600 })}>
-                <Amount
-                  value={claimableAero !== undefined ? dnum18(claimableAero) : undefined}
-                  format={4}
-                  fallback="Loading..."
-                />{" "}
-                AERO
-              </span>
+              <p className={css({ fontSize: 14 })}>
+                No gauges configured yet. Gauge addresses will be available after LP collaterals are deployed.
+              </p>
             </div>
-          )}
+          ) : (
+            <>
+              {/* Gauge List */}
+              <div
+                className={css({
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                })}
+              >
+                {lpCollaterals.map((lp, index) => {
+                  const claimable = claimableAmounts[index];
+                  const epoch = currentEpochs[index];
+                  const hasRewards = claimable !== undefined && claimable > BigInt(0);
+                  const isClaiming = claimingGaugeIndex === index && isClaimLoading;
+                  const wasJustClaimed = claimingGaugeIndex === index && isTxSuccess && !isClaimingAll && !isClaimingUserRewards;
 
-          <Button
-            label={isClaimLoading ? "Processing..." : isTxSuccess ? "Claimed!" : "Claim AERO Rewards"}
-            mode="primary"
-            size="large"
-            disabled={!isContractDeployed || !isValidGauge || isClaimLoading}
-            onClick={handleClaim}
-          />
+                  return (
+                    <div
+                      key={lp.gauge}
+                      className={css({
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: 16,
+                        background: hasRewards ? "infoSurface" : "surfaceAlt",
+                        border: hasRewards ? "1px solid token(colors.infoSurfaceBorder)" : "1px solid token(colors.border)",
+                        borderRadius: 8,
+                        opacity: hasRewards ? 1 : 0.6,
+                      })}
+                    >
+                      <div
+                        className={css({
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                        })}
+                      >
+                        <div
+                          className={css({
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 4,
+                          })}
+                        >
+                          <div
+                            className={css({
+                              padding: "4px 8px",
+                              background: lp.type === "SAMM" ? "positive" : "accent",
+                              color: lp.type === "SAMM" ? "positiveContent" : "accentContent",
+                              borderRadius: 4,
+                              fontSize: 10,
+                              fontWeight: 600,
+                            })}
+                          >
+                            {lp.type}
+                          </div>
+                          <div
+                            className={css({
+                              padding: "2px 6px",
+                              background: "surfaceAlt",
+                              borderRadius: 4,
+                              fontSize: 9,
+                              fontWeight: 500,
+                              color: "contentAlt",
+                              textAlign: "center",
+                            })}
+                          >
+                            Epoch {epoch !== undefined ? epoch.toString() : "—"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className={css({ fontWeight: 500 })}>{lp.name}</div>
+                          <div className={css({ fontSize: 12, color: "contentAlt", fontFamily: "mono" })}>
+                            {shortenAddress(lp.gauge, 4)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        className={css({
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 16,
+                        })}
+                      >
+                        <div className={css({ textAlign: "right" })}>
+                          <div className={css({ fontSize: 14, fontWeight: 600 })}>
+                            <Amount
+                              value={claimable !== undefined ? dnum18(claimable) : undefined}
+                              format={4}
+                              fallback="—"
+                            />{" "}
+                            <span className={css({ fontSize: 12, color: "contentAlt" })}>AERO</span>
+                          </div>
+                        </div>
+                        <Button
+                          label={isClaiming ? "Claiming..." : wasJustClaimed ? "Claimed!" : "Claim"}
+                          mode={hasRewards ? "primary" : "secondary"}
+                          size="small"
+                          disabled={!isContractDeployed || !hasRewards || isClaimLoading}
+                          onClick={() => handleClaimSingle(lp.gauge, index)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Claim All Button */}
+              {claimableGauges.length > 1 && (
+                <Button
+                  label={isClaimingAll && isClaimLoading ? "Claiming..." : `Claim All (${claimableGauges.length} gauges)`}
+                  mode="primary"
+                  size="large"
+                  wide
+                  disabled={!isContractDeployed || claimableGauges.length === 0 || isClaimLoading}
+                  onClick={handleClaimAll}
+                />
+              )}
+            </>
+          )}
 
           {isTxSuccess && txHash && (
             <p className={css({ fontSize: 12, color: "positive", textAlign: "center" })}>
