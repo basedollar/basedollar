@@ -164,21 +164,19 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         emit Claimed(gauge, claimedAmount, _claimFee, currentEpoch);
     }
 
-    function distributeAero(address[] memory gauges, AeroRecipient[][] memory recipients) external onlyGovernor {
-        require(gauges.length == recipients.length, "AeroManager: Gauges and recipients length mismatch");
-        for (uint256 i; i < gauges.length; i++) {
-            uint256 currentEpoch = currentEpochs[gauges[i]];
-            uint256 rewardAmount = claimedAeroPerEpoch[currentEpoch][gauges[i]];
-            for (uint256 j; j < recipients[i].length; j++) {
-                require(recipients[i][j].amount <= rewardAmount, "AeroManager: Total amount exceeds reward amount");
-                rewardAmount -= recipients[i][j].amount;
-                claimableRewards[recipients[i][j].borrower] += recipients[i][j].amount;
-            }
-            require(rewardAmount == 0, "AeroManager: Reward amount not fully distributed");
-            emit AeroDistributed(gauges[i], recipients[i].length, rewardAmount, currentEpoch);
-            currentEpoch++;
-            currentEpochs[gauges[i]] = currentEpoch;
+    function distributeAero(address gauge, AeroRecipient[] memory recipients) external onlyGovernor {
+        require(recipients.length > 0, "AeroManager: No recipients");
+        uint256 currentEpoch = currentEpochs[gauge];
+        uint256 rewardAmount = claimedAeroPerEpoch[currentEpoch][gauge];
+        for (uint256 i; i < recipients.length; i++) {
+            require(recipients[i].amount <= rewardAmount, "AeroManager: Total amount exceeds reward amount");
+            rewardAmount -= recipients[i].amount;
+            claimableRewards[recipients[i].borrower] += recipients[i].amount;
         }
+        require(rewardAmount == 0, "AeroManager: Reward amount not fully distributed");
+        emit AeroDistributed(gauge, recipients.length, rewardAmount, currentEpoch);
+        currentEpoch++;
+        currentEpochs[gauge] = currentEpoch;
     }
 
     function claimRewards(address user) external nonReentrant {
