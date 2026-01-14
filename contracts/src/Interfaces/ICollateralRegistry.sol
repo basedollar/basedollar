@@ -17,8 +17,9 @@ interface ICollateralRegistry {
     function getTroveManager(uint256 _index) external view returns (ITroveManager);
     function getNonRedeemableToken(uint256 _index) external view returns(IERC20Metadata);
     function getNonRedeemableTroveManager(uint256 _index) external view returns(ITroveManager);
+    function getTroveManagers() external view returns(ITroveManager[] memory);
+    function getNonRedeemableTroveManagers() external view returns(ITroveManager[] memory);
     function boldToken() external view returns (IBoldToken);
-
     function getRedemptionRate() external view returns (uint256);
     function getRedemptionRateWithDecay() external view returns (uint256);
     function getRedemptionRateForRedeemedAmount(uint256 _redeemAmount) external view returns (uint256);

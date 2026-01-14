@@ -10,6 +10,7 @@ import "./Dependencies/Constants.sol";
 import "./Dependencies/LiquityMath.sol";
 
 import "./Interfaces/ICollateralRegistry.sol";
+import "./Interfaces/IAeroManager.sol";
 
 contract CollateralRegistry is ICollateralRegistry {
     // See: https://github.com/ethereum/solidity/issues/12587
@@ -25,6 +26,8 @@ contract CollateralRegistry is ICollateralRegistry {
     IERC20Metadata[] internal nonRedeemableBranchesTokens;
     ITroveManager[] internal nonRedeemableBranchesTroveManagers;
 
+    IAeroManager public immutable aeroManager;
+
     IBoldToken public immutable boldToken;
 
     uint256 public baseRate;
@@ -39,13 +42,14 @@ contract CollateralRegistry is ICollateralRegistry {
     event LastFeeOpTimeUpdated(uint256 _lastFeeOpTime);
     event CollateralBranchAdded(uint256 _totalCollaterals, uint256 _index, IERC20Metadata _token, ITroveManager _troveManager, bool _isRedeemable);
 
-    constructor(IBoldToken _boldToken, IERC20Metadata[] memory _tokens, ITroveManager[] memory _troveManagers, address _governor) {
+    constructor(IBoldToken _boldToken, IERC20Metadata[] memory _tokens, ITroveManager[] memory _troveManagers, IAeroManager _aeroManager, address _governor) {
         uint256 numTokens = _tokens.length;
         require(numTokens > 0, "Collateral list cannot be empty");
         require(numTokens <= MAX_REDEEMABLE_BRANCHES, "Collateral list too long");
         totalCollaterals = numTokens;
 
         boldToken = _boldToken;
+        aeroManager = _aeroManager;
 
         require(_tokens.length == _troveManagers.length, "Tokens and trove managers must have the same length");
         //standard, redeemable branches
@@ -90,6 +94,12 @@ contract CollateralRegistry is ICollateralRegistry {
         }
         totalCollaterals++;
         emit CollateralBranchAdded(totalCollaterals, index, _token, _troveManager, _isRedeemable);
+
+        // If AERO LP collateral, add to AeroManager
+        IActivePool activePool = _troveManager.activePool();
+        if (activePool.isAeroLPCollateral()) {
+            aeroManager.addActivePool(address(activePool));
+        }
     }
 
     struct RedemptionTotals {
@@ -312,6 +322,14 @@ contract CollateralRegistry is ICollateralRegistry {
             allTroveManagers[redeemableBranchesTroveManagers.length + i] = nonRedeemableBranchesTroveManagers[i];
         }
         return allTroveManagers;
+    }
+
+    function getTroveManagers() external view returns(ITroveManager[] memory){
+        return redeemableBranchesTroveManagers;
+    }
+
+    function getNonRedeemableTroveManagers() external view returns(ITroveManager[] memory){
+        return nonRedeemableBranchesTroveManagers;
     }
 
         // Update the debt limit for a specific TroveManager

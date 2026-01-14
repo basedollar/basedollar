@@ -9,7 +9,7 @@ import {IERC20 as IERC20_GOV} from "openzeppelin/contracts/token/ERC20/IERC20.so
 import {StringFormatting} from "test/Utils/StringFormatting.sol";
 import {Accounts} from "test/TestContracts/Accounts.sol";
 import {ERC20Faucet} from "test/TestContracts/ERC20Faucet.sol";
-import {ETH_GAS_COMPENSATION} from "src/Dependencies/Constants.sol";
+import "src/Dependencies/Constants.sol";
 import {IBorrowerOperations} from "src/Interfaces/IBorrowerOperations.sol";
 import "src/AddressesRegistry.sol";
 import "src/ActivePool.sol";
@@ -29,6 +29,15 @@ import "src/StabilityPool.sol";
 import "src/PriceFeeds/WETHPriceFeed.sol";
 import "src/PriceFeeds/WSTETHPriceFeed.sol";
 import "src/PriceFeeds/RETHPriceFeed.sol";
+import "src/PriceFeeds/cbBTCPriceFeed.sol";
+import "src/PriceFeeds/cbETHPriceFeed.sol";
+import "src/PriceFeeds/WeETHPriceFeed.sol";
+import "src/PriceFeeds/SuperOETHbPriceFeed.sol";
+import "src/PriceFeeds/AEROPriceFeed.sol";
+import "src/PriceFeeds/AeroLPTokenPriceFeed.sol";
+import {IAeroGauge} from "src/Interfaces/IAeroGauge.sol";
+import {AeroManager} from "src/AeroManager.sol";
+import {IAeroManager} from "src/Interfaces/IAeroManager.sol";
 import "src/CollateralRegistry.sol";
 import "test/TestContracts/PriceFeedTestnet.sol";
 import "test/TestContracts/MetadataDeployment.sol";
@@ -70,23 +79,54 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     string constant DEPLOYMENT_MODE_BOLD_ONLY = "bold-only";
     string constant DEPLOYMENT_MODE_USE_EXISTING_BOLD = "use-existing-bold";
 
-    uint256 constant NUM_BRANCHES = 3;
+    uint256 constant NUM_BRANCHES = 8;
 
-    address WETH_ADDRESS = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address USDC_ADDRESS = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    // Base Mainnet addresses
+    address WETH_ADDRESS = 0x4200000000000000000000000000000000000006;
+    address USDC_ADDRESS = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
 
     // used for gas compensation and as collateral of the first branch
     // tapping disallowed
     IWETH WETH;
     IERC20Metadata USDC;
-    address WSTETH_ADDRESS = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
-    address RETH_ADDRESS = 0xae78736Cd615f374D3085123A210448E74Fc6393;
-    address ETH_ORACLE_ADDRESS = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
-    address RETH_ORACLE_ADDRESS = 0x536218f9E9Eb48863970252233c8F271f554C2d0;
-    address STETH_ORACLE_ADDRESS = 0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8;
+
+    // Collateral token addresses (Base Mainnet)
+    address WSTETH_ADDRESS = 0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452;
+    address RETH_ADDRESS = 0xB6fe221Fe9EeF5aBa221c348bA20A1Bf5e73624c;
+    address CBBTC_ADDRESS = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
+    address CBETH_ADDRESS = 0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22;
+    address WEETH_ADDRESS = 0x04C0599Ae5A44757c0af6F9eC3b93da8976c150A;
+    address SUPEROETHB_ADDRESS = 0xDBFeFD2e8460a6Ee4955A68582F85708BAEA60A3;
+    address AERO_ADDRESS = 0x940181a94A35A4569E4529A3CDfB74e38FD98631;
+
+    // Aerodrome LP gauge address (for LP token price feed)
+    address AERO_LP_GAUGE_ADDRESS = address(0); // Set this to the actual gauge address
+
+    // AeroManager treasury address (receives fee from AERO claims)
+    address TREASURY_ADDRESS = address(0); // TODO: Set this to the actual treasury address
+
+    // Oracle addresses (Base Mainnet - Chainlink)
+    address ETH_ORACLE_ADDRESS = 0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70;
+    address BTC_ORACLE_ADDRESS = 0x64c911996d3C6AC71E9b8A6ba41b4b9EcaF8dc42;
+    address CBBTC_ORACLE_ADDRESS = 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D;
+    address CBETH_ETH_ORACLE_ADDRESS = 0x806b4Ac04501c29769051e42783cF04dCE41440b;
+    address WEETH_ETH_ORACLE_ADDRESS = 0xFC1415403EbB0c693f9a7844b92aD2Ff24775C65;
+    address SUPEROETHB_ORACLE_ADDRESS = 0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70;
+    address AERO_ORACLE_ADDRESS = 0x4EC5970fC728C5f65ba413992CD5fF6FD70fcfF0;
+    address STETH_ORACLE_ADDRESS = 0xf586d0728a47229e747d824a939000Cf21dEF5A0;
+    address RETH_ORACLE_ADDRESS = 0xf397BF97280B488cB3E93CC98bFe04Ae7E03E7F1;
+
+    // Staleness thresholds
     uint256 ETH_USD_STALENESS_THRESHOLD = 24 hours;
     uint256 STETH_USD_STALENESS_THRESHOLD = 24 hours;
     uint256 RETH_ETH_STALENESS_THRESHOLD = 48 hours;
+    uint256 CBBTC_USD_STALENESS_THRESHOLD = 24 hours;
+    uint256 BTC_USD_STALENESS_THRESHOLD = 24 hours;
+    uint256 CBETH_ETH_STALENESS_THRESHOLD = 24 hours;
+    uint256 WEETH_ETH_STALENESS_THRESHOLD = 24 hours;
+    uint256 SUPEROETHB_USD_STALENESS_THRESHOLD = 24 hours;
+    uint256 AERO_USD_STALENESS_THRESHOLD = 24 hours;
+    uint256 AERO_LP_POOL_STALENESS_THRESHOLD = 1 hours;
 
     // V1
     address LQTY_ADDRESS = 0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D;
@@ -199,6 +239,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         uint256 debtLimit;
         uint256 LIQUIDATION_PENALTY_SP;
         uint256 LIQUIDATION_PENALTY_REDISTRIBUTION;
+        bool isAeroLPCollateral;
+        address aeroGauge;
     }
 
     struct DeploymentVars {
@@ -232,6 +274,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         IExchangeHelpers exchangeHelpers;
         IExchangeHelpersV2 exchangeHelpersV2;
         IRedemptionHelper redemptionHelper;
+        IAeroManager aeroManager;
     }
 
     function run() external {
@@ -293,8 +336,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             return;
         }
 
-        if (block.chainid == 1) {
-            // mainnet
+        if (block.chainid == 8453) {
+            // Base mainnet
             WETH = IWETH(WETH_ADDRESS);
             USDC = IERC20Metadata(USDC_ADDRESS);
             curveStableswapFactory = curveStableswapFactoryMainnet;
@@ -335,6 +378,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
         // WETH
         troveManagerParamsArray[0] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
             CCR: CCR_WETH,
             MCR: MCR_WETH,
             SCR: SCR_WETH,
@@ -346,6 +391,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
         // wstETH
         troveManagerParamsArray[1] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
             CCR: CCR_SETH,
             MCR: MCR_SETH,
             SCR: SCR_SETH,
@@ -358,12 +405,87 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         // rETH (same as wstETH)
         troveManagerParamsArray[2] = troveManagerParamsArray[1];
 
-        string[] memory collNames = new string[](2);
-        string[] memory collSymbols = new string[](2);
+        // cbBTC
+        troveManagerParamsArray[3] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
+            CCR: CCR_CBBTC,
+            MCR: MCR_CBBTC,
+            SCR: SCR_CBBTC,
+            BCR: BCR_ALL,
+            debtLimit: CBBTC_DEBT_LIMIT,
+            LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_CBBTC,
+            LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_CBBTC
+        });
+
+        // cbETH
+        troveManagerParamsArray[4] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
+            CCR: CCR_CBETH,
+            MCR: MCR_CBETH,
+            SCR: SCR_CBETH,
+            BCR: BCR_ALL,
+            debtLimit: CBETH_DEBT_LIMIT,
+            LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_CBETH,
+            LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_CBETH
+        });
+
+        // weETH
+        troveManagerParamsArray[5] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
+            CCR: CCR_WEETH,
+            MCR: MCR_WEETH,
+            SCR: SCR_WEETH,
+            BCR: BCR_ALL,
+            debtLimit: WEETH_DEBT_LIMIT,
+            LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_WEETH,
+            LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_WEETH
+        });
+
+        // superOETHb
+        troveManagerParamsArray[6] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
+            CCR: CCR_SUPEROETHB,
+            MCR: MCR_SUPEROETHB,
+            SCR: SCR_SUPEROETHB,
+            BCR: BCR_ALL,
+            debtLimit: SUPEROETHB_DEBT_LIMIT,
+            LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_SUPEROETHB,
+            LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_SUPEROETHB
+        });
+
+        // AERO
+        troveManagerParamsArray[7] = TroveManagerParams({
+            isAeroLPCollateral: false,
+            aeroGauge: address(0),
+            CCR: CCR_AERO,
+            MCR: MCR_AERO,
+            SCR: SCR_AERO,
+            BCR: BCR_ALL,
+            debtLimit: AERO_DEBT_LIMIT,
+            LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_AERO,
+            LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_AERO
+        });
+
+        string[] memory collNames = new string[](7);
+        string[] memory collSymbols = new string[](7);
         collNames[0] = "Wrapped liquid staked Ether 2.0";
         collSymbols[0] = "wstETH";
         collNames[1] = "Rocket Pool ETH";
         collSymbols[1] = "rETH";
+        collNames[2] = "Coinbase Wrapped BTC";
+        collSymbols[2] = "cbBTC";
+        collNames[3] = "Coinbase Staked ETH";
+        collSymbols[3] = "cbETH";
+        collNames[4] = "Wrapped eETH";
+        collSymbols[4] = "weETH";
+        collNames[5] = "Super OETH";
+        collSymbols[5] = "superOETHb";
+        collNames[6] = "Aerodrome";
+        collSymbols[6] = "AERO";
 
         DeployGovernanceParams memory deployGovernanceParams = DeployGovernanceParams({
             epochStart: epochStart,
@@ -561,6 +683,10 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         return abi.encodePacked(_creationCode, abi.encode(_addressesRegistry));
     }
 
+    function getBytecode(bytes memory _creationCode, address _addressesRegistry, bool _isAeroLPCollateral, address _aeroGaugeAddress) public pure returns (bytes memory) {
+        return abi.encodePacked(_creationCode, abi.encode(_addressesRegistry, _isAeroLPCollateral, _aeroGaugeAddress));
+    }
+
     function _deployAndConnectContracts(
         TroveManagerParams[] memory troveManagerParamsArray,
         string[] memory _collNames,
@@ -583,8 +709,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         vars.troveManagers = new ITroveManager[](vars.numCollaterals);
 
         // Collaterals
-        if (block.chainid == 1 && !useTestnetPriceFeeds) {
-            // mainnet
+        if (block.chainid == 8453 && !useTestnetPriceFeeds) {
+            // Base mainnet
             // ETH
             vars.collaterals[0] = IERC20Metadata(WETH);
 
@@ -593,8 +719,23 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
             // RETH
             vars.collaterals[2] = IERC20Metadata(RETH_ADDRESS);
+
+            // cbBTC
+            vars.collaterals[3] = IERC20Metadata(CBBTC_ADDRESS);
+
+            // cbETH
+            vars.collaterals[4] = IERC20Metadata(CBETH_ADDRESS);
+
+            // weETH
+            vars.collaterals[5] = IERC20Metadata(WEETH_ADDRESS);
+
+            // superOETHb
+            vars.collaterals[6] = IERC20Metadata(SUPEROETHB_ADDRESS);
+
+            // AERO
+            vars.collaterals[7] = IERC20Metadata(AERO_ADDRESS);
         } else {
-            // Sepolia
+            // Sepolia or local
             // Use WETH as collateral for the first branch
             vars.collaterals[0] = WETH;
 
@@ -617,7 +758,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             vars.troveManagers[vars.i] = ITroveManager(troveManagerAddress);
         }
 
-        r.collateralRegistry = new CollateralRegistry(r.boldToken, vars.collaterals, vars.troveManagers, address(0)); //TODO: fix this later
+        r.aeroManager = new AeroManager(AERO_ADDRESS, GOVERNOR_ADDRESS, TREASURY_ADDRESS);
+        r.collateralRegistry = new CollateralRegistry(r.boldToken, vars.collaterals, vars.troveManagers, r.aeroManager, GOVERNOR_ADDRESS);
         r.hintHelpers = new HintHelpers(r.collateralRegistry);
         r.multiTroveGetter = new MultiTroveGetter(r.collateralRegistry);
         r.debtInFrontHelper = new DebtInFrontHelper(r.collateralRegistry, r.hintHelpers);
@@ -628,17 +770,22 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 vars.collaterals[vars.i],
                 r.boldToken,
                 r.collateralRegistry,
+                r.aeroManager,
                 r.usdcCurvePool,
                 vars.addressesRegistries[vars.i],
                 address(vars.troveManagers[vars.i]),
                 r.hintHelpers,
                 r.multiTroveGetter,
+                troveManagerParamsArray[vars.i],
                 computeGovernanceAddress(_deployGovernanceParams)
             );
             r.contractsArray[vars.i] = vars.contracts;
         }
 
         r.boldToken.setCollateralRegistry(address(r.collateralRegistry));
+        
+        // Do this after all branches are deployed and added to the collateral registry
+        r.aeroManager.setAddresses(r.collateralRegistry);
 
         // exchange helpers
         r.exchangeHelpers = new HybridCurveUniV3ExchangeHelpers(
@@ -691,11 +838,13 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         IERC20Metadata _collToken,
         IBoldToken _boldToken,
         ICollateralRegistry _collateralRegistry,
+        IAeroManager _aeroManager,
         ICurveStableswapNGPool _usdcCurvePool,
         IAddressesRegistry _addressesRegistry,
         address _troveManagerAddress,
         IHintHelpers _hintHelpers,
         IMultiTroveGetter _multiTroveGetter,
+        TroveManagerParams memory _troveManagerParams,
         address _governance
     ) internal returns (LiquityContracts memory contracts) {
         LiquityContractAddresses memory addresses;
@@ -723,7 +872,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             SALT, keccak256(getBytecode(type(StabilityPool).creationCode, address(contracts.addressesRegistry)))
         );
         addresses.activePool = vm.computeCreate2Address(
-            SALT, keccak256(getBytecode(type(ActivePool).creationCode, address(contracts.addressesRegistry)))
+            SALT, keccak256(getBytecode(type(ActivePool).creationCode, address(contracts.addressesRegistry), _troveManagerParams.isAeroLPCollateral, _troveManagerParams.aeroGauge))
         );
         addresses.defaultPool = vm.computeCreate2Address(
             SALT, keccak256(getBytecode(type(DefaultPool).creationCode, address(contracts.addressesRegistry)))
@@ -758,7 +907,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             multiTroveGetter: _multiTroveGetter,
             collateralRegistry: _collateralRegistry,
             boldToken: _boldToken,
-            WETH: WETH
+            WETH: WETH,
+            aeroManager: _aeroManager
         });
         contracts.addressesRegistry.setAddresses(addressVars);
 
@@ -766,7 +916,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         contracts.troveManager = new TroveManager{salt: SALT}(contracts.addressesRegistry);
         contracts.troveNFT = new TroveNFT{salt: SALT}(contracts.addressesRegistry);
         contracts.stabilityPool = new StabilityPool{salt: SALT}(contracts.addressesRegistry);
-        contracts.activePool = new ActivePool{salt: SALT}(contracts.addressesRegistry);
+        contracts.activePool = new ActivePool{salt: SALT}(contracts.addressesRegistry, _troveManagerParams.isAeroLPCollateral, _troveManagerParams.aeroGauge);
         contracts.defaultPool = new DefaultPool{salt: SALT}(contracts.addressesRegistry);
         contracts.gasPool = new GasPool{salt: SALT}(contracts.addressesRegistry);
         contracts.collSurplusPool = new CollSurplusPool{salt: SALT}(contracts.addressesRegistry);
@@ -795,39 +945,90 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             _deployZappers(contracts.addressesRegistry, contracts.collToken, _boldToken, _usdcCurvePool);
     }
 
-    function _deployPriceFeed(address _collTokenAddress, address _borroweOperationsAddress)
+    function _deployPriceFeed(address _collTokenAddress, address _borrowerOperationsAddress)
         internal
         returns (IPriceFeed)
     {
-        if (block.chainid == 1 && !useTestnetPriceFeeds) {
-            // mainnet
-            // ETH
+        if (block.chainid == 8453 && !useTestnetPriceFeeds) {
+            // Base mainnet
+            // WETH
             if (_collTokenAddress == address(WETH)) {
-                return new WETHPriceFeed(ETH_ORACLE_ADDRESS, ETH_USD_STALENESS_THRESHOLD, _borroweOperationsAddress);
-            } else if (_collTokenAddress == WSTETH_ADDRESS) {
-                // wstETH
+                return new WETHPriceFeed(ETH_ORACLE_ADDRESS, ETH_USD_STALENESS_THRESHOLD, _borrowerOperationsAddress);
+            }
+            // wstETH
+            if (_collTokenAddress == WSTETH_ADDRESS) {
                 return new WSTETHPriceFeed(
                     ETH_ORACLE_ADDRESS,
                     STETH_ORACLE_ADDRESS,
                     WSTETH_ADDRESS,
                     ETH_USD_STALENESS_THRESHOLD,
                     STETH_USD_STALENESS_THRESHOLD,
-                    _borroweOperationsAddress
+                    _borrowerOperationsAddress
                 );
             }
-            // RETH
-            assert(_collTokenAddress == RETH_ADDRESS);
-            return new RETHPriceFeed(
-                ETH_ORACLE_ADDRESS,
-                RETH_ORACLE_ADDRESS,
-                RETH_ADDRESS,
-                ETH_USD_STALENESS_THRESHOLD,
-                RETH_ETH_STALENESS_THRESHOLD,
-                _borroweOperationsAddress
-            );
+            // rETH
+            if (_collTokenAddress == RETH_ADDRESS) {
+                return new RETHPriceFeed(
+                    ETH_ORACLE_ADDRESS,
+                    RETH_ORACLE_ADDRESS,
+                    RETH_ADDRESS,
+                    ETH_USD_STALENESS_THRESHOLD,
+                    RETH_ETH_STALENESS_THRESHOLD,
+                    _borrowerOperationsAddress
+                );
+            }
+            // cbBTC
+            if (_collTokenAddress == CBBTC_ADDRESS) {
+                return new cbBTCPriceFeed(
+                    _borrowerOperationsAddress,
+                    CBBTC_ORACLE_ADDRESS,
+                    BTC_ORACLE_ADDRESS,
+                    CBBTC_USD_STALENESS_THRESHOLD,
+                    BTC_USD_STALENESS_THRESHOLD
+                );
+            }
+            // cbETH
+            if (_collTokenAddress == CBETH_ADDRESS) {
+                return new cbETHPriceFeed(
+                    _borrowerOperationsAddress,
+                    ETH_ORACLE_ADDRESS,
+                    CBETH_ETH_ORACLE_ADDRESS,
+                    ETH_USD_STALENESS_THRESHOLD,
+                    CBETH_ETH_STALENESS_THRESHOLD
+                );
+            }
+            // weETH
+            if (_collTokenAddress == WEETH_ADDRESS) {
+                return new WeETHPriceFeed(
+                    _borrowerOperationsAddress,
+                    ETH_ORACLE_ADDRESS,
+                    WEETH_ETH_ORACLE_ADDRESS,
+                    ETH_USD_STALENESS_THRESHOLD,
+                    WEETH_ETH_STALENESS_THRESHOLD
+                );
+            }
+            // superOETHb
+            if (_collTokenAddress == SUPEROETHB_ADDRESS) {
+                SuperOETHbPriceFeed priceFeed = new SuperOETHbPriceFeed(
+                    _borrowerOperationsAddress,
+                    SUPEROETHB_ORACLE_ADDRESS,
+                    SUPEROETHB_USD_STALENESS_THRESHOLD
+                );
+                return priceFeed;
+            }
+            // AERO
+            if (_collTokenAddress == AERO_ADDRESS) {
+                AEROPriceFeed priceFeed = new AEROPriceFeed(
+                    _borrowerOperationsAddress,
+                    AERO_ORACLE_ADDRESS,
+                    AERO_USD_STALENESS_THRESHOLD
+                );
+                return priceFeed;
+            }
+            revert("Unknown collateral token");
         }
 
-        // Sepolia
+        // Sepolia or local
         return new PriceFeedTestnet();
     }
 
@@ -1142,7 +1343,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 ),
                 string.concat(
                     string.concat('"gasCompZapper":"', address(c.gasCompZapper).toHexString(), '",'),
-                    string.concat('"leverageZapper":"', address(c.leverageZapper).toHexString(), '"') // no comma
+                    string.concat('"leverageZapper":"', address(c.leverageZapper).toHexString(), '",')
                 )
             ),
             "}"
@@ -1191,6 +1392,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             ),
             string.concat(
                 string.concat('"redemptionHelper":"', address(deployed.redemptionHelper).toHexString(), '",'),
+                string.concat('"aeroManager":"', address(deployed.aeroManager).toHexString(), '",'),
                 string.concat('"branches":[', branches.join(","), "],"),
                 string.concat('"governance":', _governanceManifest, "") // no comma
             ),
