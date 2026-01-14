@@ -6,14 +6,15 @@ import "./Interfaces/IActivePool.sol";
 import "./Interfaces/ICollateralRegistry.sol";
 import "./Interfaces/IAeroManager.sol";
 import "./Interfaces/IAeroGauge.sol";
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./Dependencies/Constants.sol";
 
-contract AeroManager is IAeroManager, ReentrancyGuard {
+contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
 
-    ICollateralRegistry public immutable collateralRegistry;
+    ICollateralRegistry public collateralRegistry;
     address public aeroTokenAddress;
     address public governor;
 
@@ -34,24 +35,20 @@ contract AeroManager is IAeroManager, ReentrancyGuard {
 
     event Staked(address indexed gauge, address token, uint256 amount);
     event ActivePoolAdded(address indexed activePool);
+    event CollateralRegistryAdded(address collateralRegistry);
     event Claimed(address indexed gauge, uint256 total, uint256 claimFee);
     event ClaimFeeUpdated(uint256 oldFee, uint256 newFee);
     event ClaimFeeUpdatePending(uint256 oldFee, uint256 newFee, uint256 timestamp, uint256 delayPeriod);
 
-    constructor(ICollateralRegistry _collateralRegistry, address _aeroTokenAddress, address[] memory _activePools, address _governor, address _treasuryAddress) {
+    constructor(address _aeroTokenAddress, address _governor, address _treasuryAddress) {
         require(_treasuryAddress != address(0), "AeroManager: Treasury address cannot be 0");
         require(_aeroTokenAddress != address(0), "AeroManager: Aero token address cannot be 0");
-        require(address(_collateralRegistry) != address(0), "AeroManager: Collateral registry cannot be 0");
         _requireClaimFeeLimit(AERO_MANAGER_FEE);
 
-        collateralRegistry = _collateralRegistry;
         aeroTokenAddress = _aeroTokenAddress;
         governor = _governor;
         treasuryAddress = _treasuryAddress;
         claimFee = AERO_MANAGER_FEE;
-        for (uint256 i; i < _activePools.length; i++) {
-            _addActivePool(_activePools[i]);
-        }
     }
 
     //require functions
@@ -61,6 +58,32 @@ contract AeroManager is IAeroManager, ReentrancyGuard {
     }
 
     //Manage Aero, Interact with gauges, anything else we need to do here.
+
+    // This function is only called once by the deployer
+    function setAddresses(ICollateralRegistry _collateralRegistry) external onlyOwner {
+        require(address(_collateralRegistry) != address(0), "AeroManager: Collateral registry cannot be 0");
+
+        collateralRegistry = _collateralRegistry;
+        emit CollateralRegistryAdded(address(_collateralRegistry));
+
+        // Add all activepools from collateral registry
+        ITroveManager[] memory redeemableTroveManagers = _collateralRegistry.getTroveManagers();
+        ITroveManager[] memory nonRedeemableTroveManagers = _collateralRegistry.getNonRedeemableTroveManagers();
+        for (uint256 i; i < redeemableTroveManagers.length; i++) {
+            IActivePool activePool = IActivePool(redeemableTroveManagers[i].activePool());
+            if (activePool.isAeroLPCollateral()) {
+                _addActivePool(address(activePool));
+            }
+        }
+        for (uint256 i; i < nonRedeemableTroveManagers.length; i++) {
+            IActivePool activePool = IActivePool(nonRedeemableTroveManagers[i].activePool());
+            if (activePool.isAeroLPCollateral()) {
+                _addActivePool(address(activePool));
+            }
+        }
+
+        renounceOwnership();
+    }
 
     //admin functions
     function setAeroTokenAddress(address _aeroTokenAddress) external onlyGovernor {
@@ -73,7 +96,8 @@ contract AeroManager is IAeroManager, ReentrancyGuard {
         emit GovernorUpdated(_governor);
     }
 
-    function addActivePool(address activePool) external onlyGovernor {
+    function addActivePool(address activePool) external {
+        _requireCallerIsCollateralRegistry();
         _addActivePool(activePool);
     }
 
@@ -115,13 +139,13 @@ contract AeroManager is IAeroManager, ReentrancyGuard {
         uint256 claimedAmount = postBalance - preBalance;
 
         // Send a percentage of AERO to timelock treasury address
-        uint256 claimFee = _getClaimFee(claimedAmount);
-        IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, claimFee);
+        uint256 _claimFee = _getClaimFee(claimedAmount);
+        IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, _claimFee);
 
         // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
-        claimedAero += claimedAmount - claimFee; // Subtract the fee from the total claimed amount
+        claimedAero += claimedAmount - _claimFee; // Subtract the fee from the total claimed amount
 
-        emit Claimed(gauge, claimedAmount, claimFee);
+        emit Claimed(gauge, claimedAmount, _claimFee);
     }
 
     function updateClaimFee(uint256 newFee) external onlyGovernor {
@@ -150,7 +174,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard {
 
     // Fee is a percentage of the total claimed amount
     // _100pct is 1e18, so AERO_MANAGER_FEE is 10 * _1pct = 10e16
-    function _getClaimFee(uint256 amount) internal pure returns (uint256) {
+    function _getClaimFee(uint256 amount) internal view returns (uint256) {
         return amount * claimFee / _100pct;
     }
 
@@ -177,5 +201,9 @@ contract AeroManager is IAeroManager, ReentrancyGuard {
 
     function _requireCallerIsActivePool() internal view {
         require(activePools[msg.sender], "AeroManager: Caller is not an active pool");
+    }
+
+    function _requireCallerIsCollateralRegistry() internal view {
+        require(msg.sender == address(collateralRegistry), "AeroManager: Caller is not the collateral registry");
     }
 }
