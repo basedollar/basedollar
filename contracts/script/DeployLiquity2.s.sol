@@ -191,9 +191,6 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
     uint256 lastTroveIndex;
 
-    // AeroManager instance (deployed once, shared across branches)
-    IAeroManager aeroManager;
-
     struct LiquityContracts {
         IAddressesRegistry addressesRegistry;
         IActivePool activePool;
@@ -212,7 +209,6 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         WETHZapper wethZapper;
         GasCompZapper gasCompZapper;
         ILeverageZapper leverageZapper;
-        IAeroManager aeroManager;
     }
 
     struct LiquityContractAddresses {
@@ -762,23 +758,11 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             vars.troveManagers[vars.i] = ITroveManager(troveManagerAddress);
         }
 
-        r.collateralRegistry = new CollateralRegistry(r.boldToken, vars.collaterals, vars.troveManagers, address(0)); //TODO: fix this later
+        r.aeroManager = new AeroManager(AERO_ADDRESS, GOVERNOR_ADDRESS, TREASURY_ADDRESS);
+        r.collateralRegistry = new CollateralRegistry(r.boldToken, vars.collaterals, vars.troveManagers, r.aeroManager, GOVERNOR_ADDRESS);
         r.hintHelpers = new HintHelpers(r.collateralRegistry);
         r.multiTroveGetter = new MultiTroveGetter(r.collateralRegistry);
         r.debtInFrontHelper = new DebtInFrontHelper(r.collateralRegistry, r.hintHelpers);
-
-        // Deploy AeroManager (with empty active pools - they will be added after branch deployment)
-        if (block.chainid == 8453) {
-            address[] memory emptyActivePools = new address[](0);
-            aeroManager = new AeroManager(
-                r.collateralRegistry,
-                AERO_ADDRESS,
-                emptyActivePools,
-                deployer, // Set to deployer for adding initial active pools, then set to GOVERNOR_ADDRESS
-                TREASURY_ADDRESS
-            );
-            r.aeroManager = aeroManager;
-        }
 
         // Deploy per-branch contracts for each branch
         for (vars.i = 0; vars.i < vars.numCollaterals; vars.i++) {
@@ -786,6 +770,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 vars.collaterals[vars.i],
                 r.boldToken,
                 r.collateralRegistry,
+                r.aeroManager,
                 r.usdcCurvePool,
                 vars.addressesRegistries[vars.i],
                 address(vars.troveManagers[vars.i]),
@@ -795,13 +780,12 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 computeGovernanceAddress(_deployGovernanceParams)
             );
             r.contractsArray[vars.i] = vars.contracts;
-            r.aeroManager.addActivePool(address(vars.contracts.activePool));
         }
 
-        // Do this after all active pools are added to the AeroManager
-        r.aeroManager.setGovernor(GOVERNOR_ADDRESS);
-
         r.boldToken.setCollateralRegistry(address(r.collateralRegistry));
+        
+        // Do this after all branches are deployed and added to the collateral registry
+        r.aeroManager.setAddresses(r.collateralRegistry);
 
         // exchange helpers
         r.exchangeHelpers = new HybridCurveUniV3ExchangeHelpers(
@@ -854,6 +838,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         IERC20Metadata _collToken,
         IBoldToken _boldToken,
         ICollateralRegistry _collateralRegistry,
+        IAeroManager _aeroManager,
         ICurveStableswapNGPool _usdcCurvePool,
         IAddressesRegistry _addressesRegistry,
         address _troveManagerAddress,
@@ -923,7 +908,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             collateralRegistry: _collateralRegistry,
             boldToken: _boldToken,
             WETH: WETH,
-            aeroManager: aeroManager
+            aeroManager: _aeroManager
         });
         contracts.addressesRegistry.setAddresses(addressVars);
 
@@ -958,9 +943,6 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         // deploy zappers
         (contracts.gasCompZapper, contracts.wethZapper, contracts.leverageZapper) =
             _deployZappers(contracts.addressesRegistry, contracts.collToken, _boldToken, _usdcCurvePool);
-
-        // Set aeroManager reference (shared across all branches)
-        contracts.aeroManager = aeroManager;
     }
 
     function _deployPriceFeed(address _collTokenAddress, address _borrowerOperationsAddress)
@@ -1361,8 +1343,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 ),
                 string.concat(
                     string.concat('"gasCompZapper":"', address(c.gasCompZapper).toHexString(), '",'),
-                    string.concat('"leverageZapper":"', address(c.leverageZapper).toHexString(), '",'),
-                    string.concat('"aeroManager":"', address(c.aeroManager).toHexString(), '"') // no comma
+                    string.concat('"leverageZapper":"', address(c.leverageZapper).toHexString(), '",')
                 )
             ),
             "}"

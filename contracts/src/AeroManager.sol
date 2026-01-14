@@ -43,16 +43,12 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     constructor(address _aeroTokenAddress, address _governor, address _treasuryAddress) {
         require(_treasuryAddress != address(0), "AeroManager: Treasury address cannot be 0");
         require(_aeroTokenAddress != address(0), "AeroManager: Aero token address cannot be 0");
-        require(address(_collateralRegistry) != address(0), "AeroManager: Collateral registry cannot be 0");
         _requireClaimFeeLimit(AERO_MANAGER_FEE);
 
         aeroTokenAddress = _aeroTokenAddress;
         governor = _governor;
         treasuryAddress = _treasuryAddress;
         claimFee = AERO_MANAGER_FEE;
-        for (uint256 i; i < _activePools.length; i++) {
-            _addActivePool(_activePools[i]);
-        }
     }
 
     //require functions
@@ -143,13 +139,13 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         uint256 claimedAmount = postBalance - preBalance;
 
         // Send a percentage of AERO to timelock treasury address
-        uint256 claimFee = _getClaimFee(claimedAmount);
-        IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, claimFee);
+        uint256 _claimFee = _getClaimFee(claimedAmount);
+        IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, _claimFee);
 
         // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
-        claimedAero += claimedAmount - claimFee; // Subtract the fee from the total claimed amount
+        claimedAero += claimedAmount - _claimFee; // Subtract the fee from the total claimed amount
 
-        emit Claimed(gauge, claimedAmount, claimFee);
+        emit Claimed(gauge, claimedAmount, _claimFee);
     }
 
     function updateClaimFee(uint256 newFee) external onlyGovernor {
@@ -178,7 +174,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
 
     // Fee is a percentage of the total claimed amount
     // _100pct is 1e18, so AERO_MANAGER_FEE is 10 * _1pct = 10e16
-    function _getClaimFee(uint256 amount) internal pure returns (uint256) {
+    function _getClaimFee(uint256 amount) internal view returns (uint256) {
         return amount * claimFee / _100pct;
     }
 
