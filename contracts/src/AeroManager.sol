@@ -28,12 +28,20 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     mapping(address gauge => uint256) public stakedAmounts;
     mapping(address activePool => bool) public activePools;
 
-    uint256 public claimedAero;
-
     mapping(address gauge => uint256 epoch) public currentEpochs;
     mapping(uint256 epoch => mapping(address gauge => uint256 amount)) public claimedAeroPerEpoch;
 
     mapping(address user => uint256 amount) public claimableRewards;
+
+    uint256 public claimedAero;
+    
+    uint256 public claimFee;
+
+    uint256 public pendingNewClaimFee;
+
+    uint256 public pendingNewClaimFeeTimestamp;
+    
+    uint256 public claimFeeChangeDelayPeriod = 7 days;
 
     event Staked(address indexed gauge, address token, uint256 amount);
     event ActivePoolAdded(address indexed activePool);
@@ -43,14 +51,6 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event CollateralRegistryAdded(address collateralRegistry);
     event ClaimFeeUpdated(uint256 oldFee, uint256 newFee);
     event ClaimFeeUpdatePending(uint256 oldFee, uint256 newFee, uint256 timestamp, uint256 delayPeriod);
-    
-    uint256 public claimFee;
-
-    uint256 public pendingNewClaimFee;
-
-    uint256 public pendingNewClaimFeeTimestamp;
-    
-    uint256 public claimFeeChangeDelayPeriod = 7 days;
 
     constructor(address _aeroTokenAddress, address _governor, address _treasuryAddress) {
         require(_treasuryAddress != address(0), "AeroManager: Treasury address cannot be 0");
