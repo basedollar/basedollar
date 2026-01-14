@@ -8,7 +8,7 @@ import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { css } from "@/styled-system/css";
 import { Button, TokenIcon, shortenAddress } from "@liquity2/uikit";
 import { a, useSpring } from "@react-spring/web";
-import { useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useReadContracts, useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
 import { erc20Abi, type Address } from "viem";
 import Image from "next/image";
 import Link from "next/link";
@@ -60,7 +60,28 @@ const AeroManagerAbi = [
   },
   {
     inputs: [{ internalType: "address", name: "gauge", type: "address" }],
+    name: "currentEpochs",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "user", type: "address" }],
+    name: "claimableRewards",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "gauge", type: "address" }],
     name: "claim",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "user", type: "address" }],
+    name: "claimRewards",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -113,8 +134,10 @@ function getLpCollateralsWithGauges(): LpCollateral[] {
 }
 
 export function AeroManagerScreen() {
+  const { address: userAddress, isConnected } = useAccount();
   const [claimingGaugeIndex, setClaimingGaugeIndex] = useState<number | null>(null);
   const [isClaimingAll, setIsClaimingAll] = useState(false);
+  const [isClaimingUserRewards, setIsClaimingUserRewards] = useState(false);
 
   const lpCollaterals = useMemo(() => getLpCollateralsWithGauges(), []);
   const hasGauges = lpCollaterals.length > 0;
@@ -160,6 +183,39 @@ export function AeroManagerScreen() {
     },
   });
 
+  // Read user's claimable rewards
+  const userRewardsRead = useReadContracts({
+    contracts: [
+      {
+        address: AERO_MANAGER_ADDRESS,
+        abi: AeroManagerAbi,
+        functionName: "claimableRewards",
+        args: [userAddress!],
+      },
+    ],
+    query: {
+      enabled: isConnected && userAddress !== undefined && AERO_MANAGER_ADDRESS !== "0x0000000000000000000000000000000000000000",
+    },
+  });
+
+  // Build epoch reads for all LP collaterals
+  const epochContracts = useMemo(() => {
+    return lpCollaterals.map((lp) => ({
+      address: AERO_MANAGER_ADDRESS,
+      abi: AeroManagerAbi,
+      functionName: "currentEpochs" as const,
+      args: [lp.gauge] as const,
+    }));
+  }, [lpCollaterals]);
+
+  // Read current epochs for all gauges
+  const epochReads = useReadContracts({
+    contracts: epochContracts,
+    query: {
+      enabled: hasGauges && AERO_MANAGER_ADDRESS !== "0x0000000000000000000000000000000000000000",
+    },
+  });
+
   // Build gauge reads for all LP collaterals
   const gaugeContracts = useMemo(() => {
     return lpCollaterals.map((lp) => ({
@@ -190,12 +246,19 @@ export function AeroManagerScreen() {
   const treasuryAddress = contractReads.data?.[3]?.result as Address | undefined;
   const claimedAero = contractReads.data?.[4]?.result as bigint | undefined;
   const aeroBalance = contractReads.data?.[5]?.result as bigint | undefined;
+  const userClaimableRewards = userRewardsRead.data?.[0]?.result as bigint | undefined;
 
   // Get claimable amounts for each gauge
   const claimableAmounts = useMemo(() => {
     if (!gaugeReads.data) return [];
     return gaugeReads.data.map((result) => result.result as bigint | undefined);
   }, [gaugeReads.data]);
+
+  // Get current epochs for each gauge
+  const currentEpochs = useMemo(() => {
+    if (!epochReads.data) return [];
+    return epochReads.data.map((result) => result.result as bigint | undefined);
+  }, [epochReads.data]);
 
   // Calculate total claimable
   const totalClaimable = useMemo(() => {
@@ -217,10 +280,12 @@ export function AeroManagerScreen() {
 
   const isContractDeployed = AERO_MANAGER_ADDRESS !== "0x0000000000000000000000000000000000000000";
   const isClaimLoading = isWritePending || isTxLoading;
+  const hasUserRewards = userClaimableRewards !== undefined && userClaimableRewards > BigInt(0);
 
   const handleClaimSingle = (gaugeAddress: Address, index: number) => {
     setClaimingGaugeIndex(index);
     setIsClaimingAll(false);
+    setIsClaimingUserRewards(false);
     resetWrite();
     writeContract({
       address: AERO_MANAGER_ADDRESS,
@@ -235,6 +300,7 @@ export function AeroManagerScreen() {
 
     setIsClaimingAll(true);
     setClaimingGaugeIndex(null);
+    setIsClaimingUserRewards(false);
 
     // For now, claim the first gauge with rewards
     // TODO: Implement proper multicall when wagmi supports it better
@@ -253,6 +319,21 @@ export function AeroManagerScreen() {
         args: [gaugeToClam.gauge],
       });
     }
+  };
+
+  const handleClaimUserRewards = () => {
+    if (!userAddress || !hasUserRewards) return;
+
+    setIsClaimingUserRewards(true);
+    setClaimingGaugeIndex(null);
+    setIsClaimingAll(false);
+    resetWrite();
+    writeContract({
+      address: AERO_MANAGER_ADDRESS,
+      abi: AeroManagerAbi,
+      functionName: "claimRewards",
+      args: [userAddress],
+    });
   };
 
   const fadeIn = useSpring({
@@ -434,6 +515,92 @@ export function AeroManagerScreen() {
           </StatCard>
         </div>
 
+        {/* User Claimable Rewards */}
+        {isConnected && (
+          <div
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              padding: 24,
+              background: hasUserRewards ? "positiveSurface" : "surface",
+              border: hasUserRewards ? "1px solid token(colors.positiveSurfaceBorder)" : "1px solid token(colors.border)",
+              borderRadius: 12,
+              marginBottom: 24,
+            })}
+          >
+            <div
+              className={css({
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              })}
+            >
+              <div>
+                <h3
+                  className={css({
+                    fontSize: 16,
+                    fontWeight: 600,
+                  })}
+                >
+                  Your AERO Rewards
+                </h3>
+                <p
+                  className={css({
+                    color: "contentAlt",
+                    fontSize: 14,
+                    marginTop: 4,
+                  })}
+                >
+                  Rewards distributed to you from LP collateral positions
+                </p>
+              </div>
+              <div
+                className={css({
+                  textAlign: "right",
+                })}
+              >
+                <div className={css({ fontSize: 24, fontWeight: 600 })}>
+                  <Amount
+                    value={userClaimableRewards !== undefined ? dnum18(userClaimableRewards) : undefined}
+                    format={4}
+                    fallback="0"
+                  />{" "}
+                  <span className={css({ fontSize: 14, color: "contentAlt" })}>AERO</span>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              label={
+                isClaimingUserRewards && isClaimLoading
+                  ? "Claiming..."
+                  : isClaimingUserRewards && isTxSuccess
+                    ? "Claimed!"
+                    : "Claim My Rewards"
+              }
+              mode="primary"
+              size="large"
+              wide
+              disabled={!isContractDeployed || !hasUserRewards || isClaimLoading}
+              onClick={handleClaimUserRewards}
+            />
+
+            {isClaimingUserRewards && isTxSuccess && txHash && (
+              <p className={css({ fontSize: 12, color: "positive", textAlign: "center" })}>
+                Transaction successful!{" "}
+                <Link
+                  href={`https://basescan.org/tx/${txHash}`}
+                  target="_blank"
+                  className={css({ color: "accent", textDecoration: "underline" })}
+                >
+                  View on BaseScan
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Gauge Rewards List */}
         <div
           className={css({
@@ -517,9 +684,10 @@ export function AeroManagerScreen() {
               >
                 {lpCollaterals.map((lp, index) => {
                   const claimable = claimableAmounts[index];
+                  const epoch = currentEpochs[index];
                   const hasRewards = claimable !== undefined && claimable > BigInt(0);
                   const isClaiming = claimingGaugeIndex === index && isClaimLoading;
-                  const wasJustClaimed = claimingGaugeIndex === index && isTxSuccess && !isClaimingAll;
+                  const wasJustClaimed = claimingGaugeIndex === index && isTxSuccess && !isClaimingAll && !isClaimingUserRewards;
 
                   return (
                     <div
@@ -544,15 +712,36 @@ export function AeroManagerScreen() {
                       >
                         <div
                           className={css({
-                            padding: "4px 8px",
-                            background: lp.type === "SAMM" ? "positive" : "accent",
-                            color: lp.type === "SAMM" ? "positiveContent" : "accentContent",
-                            borderRadius: 4,
-                            fontSize: 10,
-                            fontWeight: 600,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 4,
                           })}
                         >
-                          {lp.type}
+                          <div
+                            className={css({
+                              padding: "4px 8px",
+                              background: lp.type === "SAMM" ? "positive" : "accent",
+                              color: lp.type === "SAMM" ? "positiveContent" : "accentContent",
+                              borderRadius: 4,
+                              fontSize: 10,
+                              fontWeight: 600,
+                            })}
+                          >
+                            {lp.type}
+                          </div>
+                          <div
+                            className={css({
+                              padding: "2px 6px",
+                              background: "surfaceAlt",
+                              borderRadius: 4,
+                              fontSize: 9,
+                              fontWeight: 500,
+                              color: "contentAlt",
+                              textAlign: "center",
+                            })}
+                          >
+                            Epoch {epoch !== undefined ? epoch.toString() : "—"}
+                          </div>
                         </div>
                         <div>
                           <div className={css({ fontWeight: 500 })}>{lp.name}</div>
