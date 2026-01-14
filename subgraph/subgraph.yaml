@@ -15,7 +15,10 @@ dataSources:
       entities:
         - Collateral
         - CollateralAddresses
+        - AeroGauge
       abis:
+        - name: ActivePool
+          file: ../contracts/out/ActivePool.sol/ActivePool.json
         - name: BorrowerOperations
           file: ../contracts/out/BorrowerOperations.sol/BorrowerOperations.json
         - name: BoldToken
@@ -76,6 +79,7 @@ templates:
       file: ./src/TroveManager.mapping.ts
       entities:
         - Trove
+        - TroveSnapshot
         - InterestRateBracket
         - InterestBatch
         - BorrowerInfo
@@ -120,6 +124,55 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleTransfer
+  - name: AeroManager
+    kind: ethereum/contract
+    network: mainnet
+    source:
+      abi: AeroManager
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/AeroManager.mapping.ts
+      entities:
+        - AeroStake
+        - AeroClaim
+      abis:
+        - name: AeroManager
+          file: ../contracts/out/AeroManager.sol/AeroManager.json
+      eventHandlers:
+        - event: Staked(indexed address,address,uint256)
+          handler: handleStaked
+        - event: Claimed(indexed address,uint256,uint256)
+          handler: handleClaimed
+  - name: CollateralRegistry
+    kind: ethereum/contract
+    network: mainnet
+    source:
+      abi: CollateralRegistry
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/CollateralRegistry.mapping.ts
+      entities:
+        - Collateral
+        - CollateralAddresses
+        - AeroGauge
+      abis:
+        - name: ActivePool
+          file: ../contracts/out/ActivePool.sol/ActivePool.json
+        - name: BorrowerOperations
+          file: ../contracts/out/BorrowerOperations.sol/BorrowerOperations.json
+        - name: CollateralRegistry
+          file: ../contracts/out/CollateralRegistry.sol/CollateralRegistry.json
+        - name: TroveManager
+          file: ../contracts/out/TroveManager.sol/TroveManager.json
+        - name: TroveNFT
+          file: ../contracts/out/TroveNFT.sol/TroveNFT.json
+      eventHandlers:
+        - event: CollateralBranchAdded(uint256,uint256,address,address,bool)
+          handler: handleCollateralBranchAdded
   - name: CollSurplusPool
     kind: ethereum/contract
     network: mainnet

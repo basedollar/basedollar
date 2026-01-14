@@ -29,6 +29,54 @@ uint256 constant SCR_SETH = 120 * _1pct;
 uint256 constant WETH_DEBT_LIMIT = 1000000000000000000000000000000000000000;
 uint256 constant SETH_DEBT_LIMIT = 1000000000000000000000000000000000000000;
 
+// cbBTC (Coinbase wrapped Bitcoin) parameters
+uint256 constant CCR_CBBTC = 150 * _1pct;
+uint256 constant MCR_CBBTC = 110 * _1pct;
+uint256 constant SCR_CBBTC = 110 * _1pct;
+uint256 constant CBBTC_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+uint256 constant LIQUIDATION_PENALTY_SP_CBBTC = 5 * _1pct;
+uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_CBBTC = 10 * _1pct;
+
+// cbETH (Coinbase staked ETH) parameters
+uint256 constant CCR_CBETH = 160 * _1pct;
+uint256 constant MCR_CBETH = 120 * _1pct;
+uint256 constant SCR_CBETH = 120 * _1pct;
+uint256 constant CBETH_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+uint256 constant LIQUIDATION_PENALTY_SP_CBETH = 5 * _1pct;
+uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_CBETH = 20 * _1pct;
+
+// weETH (Wrapped eETH from EtherFi) parameters
+uint256 constant CCR_WEETH = 160 * _1pct;
+uint256 constant MCR_WEETH = 120 * _1pct;
+uint256 constant SCR_WEETH = 120 * _1pct;
+uint256 constant WEETH_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+uint256 constant LIQUIDATION_PENALTY_SP_WEETH = 5 * _1pct;
+uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_WEETH = 20 * _1pct;
+
+// superOETHb (Super OETH on Base) parameters
+uint256 constant CCR_SUPEROETHB = 160 * _1pct;
+uint256 constant MCR_SUPEROETHB = 120 * _1pct;
+uint256 constant SCR_SUPEROETHB = 120 * _1pct;
+uint256 constant SUPEROETHB_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+uint256 constant LIQUIDATION_PENALTY_SP_SUPEROETHB = 5 * _1pct;
+uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_SUPEROETHB = 20 * _1pct;
+
+// AERO (Aerodrome token) parameters
+uint256 constant CCR_AERO = 200 * _1pct;
+uint256 constant MCR_AERO = 150 * _1pct;
+uint256 constant SCR_AERO = 150 * _1pct;
+uint256 constant AERO_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+uint256 constant LIQUIDATION_PENALTY_SP_AERO = 5 * _1pct;
+uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_AERO = 20 * _1pct;
+
+// Aero LP Token parameters
+uint256 constant CCR_AERO_LP = 200 * _1pct;
+uint256 constant MCR_AERO_LP = 150 * _1pct;
+uint256 constant SCR_AERO_LP = 150 * _1pct;
+uint256 constant AERO_LP_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+uint256 constant LIQUIDATION_PENALTY_SP_AERO_LP = 5 * _1pct;
+uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_AERO_LP = 20 * _1pct;
+
 // Batch CR buffer (same for all branches for now)
 // On top of MCR to join a batch, or adjust inside a batch
 uint256 constant BCR_ALL = 10 * _1pct;
@@ -86,6 +134,7 @@ uint256 constant SP_YIELD_SPLIT = 75 * _1pct; // 75%
 uint256 constant MIN_BOLD_IN_SP = 1e18;
 
 uint256 constant AERO_MANAGER_FEE = 10 * _1pct; // 10%
+uint256 constant MAX_AERO_MANAGER_FEE = 50 * _1pct; // 20%
 
 // Dummy contract that lets legacy Hardhat tests query some of the constants
 contract Constants {

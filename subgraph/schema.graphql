@@ -1,25 +1,65 @@
 type Collateral @entity(immutable: true) {
-  id: ID! # "collIndex", e.g. "0"
+  id: ID! # "type:collIndex", e.g. "r:0" or "n:0"
   collIndex: Int!
   minCollRatio: BigInt!
+  redeemable: Boolean!
+  isAeroLPCollateral: Boolean!
+  aeroGauge: AeroGauge @derivedFrom(field: "collateral") # Used for AeroManager events attribution.
   troves: [Trove!]! @derivedFrom(field: "collateral")
   addresses: CollateralAddresses! @derivedFrom(field: "collateral")
 }
 
 type CollateralAddresses @entity(immutable: false) {
-  id: ID! # "collIndex", e.g. "0"
+  id: ID! # "type:collIndex", e.g. "r:0" or "n:0"
   collateral: Collateral!
   borrowerOperations: Bytes!
   sortedTroves: Bytes!
   stabilityPool: Bytes!
+  activePool: Bytes!
   token: Bytes!
   troveManager: Bytes!
   troveNft: Bytes!
   collSurplusPool: Bytes
+  aeroGauge: Bytes
+}
+
+type AeroGauge @entity(immutable: false) {
+  id: ID! # "gaugeAddress", e.g. "0x0000000000000000000000000000000000000000"
+  collateral: Collateral!
+  gauge: Bytes!
+  token: Bytes!
+  activePool: Bytes!
+  aeroManager: Bytes!
+}
+
+# Raw AeroManager staking events, attributed to a branch via the calling ActivePool.
+type AeroStake @entity(immutable: true) {
+  id: ID! # txHash:logIndex
+  collateral: Collateral!
+  activePool: Bytes!
+  gauge: Bytes!
+  token: Bytes!
+  amount: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+# Raw AeroManager claimed events, attributed to a branch via the calling ActivePool.
+type AeroClaim @entity(immutable: true) {
+  id: ID! # txHash:logIndex
+  collateral: Collateral!
+  activePool: Bytes!
+  gauge: Bytes!
+  total: BigInt!
+  claimFee: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
 }
 
 type InterestRateBracket @entity(immutable: false) {
-  id: ID! # "collIndex:rateFloored", e.g. "0:44000000000000000"
+  id: ID! # "type:collIndex:rateFloored", e.g. "r:0:44000000000000000" or "n:0:44000000000000000"
   collateral: Collateral!
   rate: BigInt!
   totalDebt: BigInt!
@@ -36,7 +76,7 @@ enum TroveStatus {
 }
 
 type Trove @entity(immutable: false) {
-  id: ID! # "collIndex:collId", e.g. 0:0x1731afc858cad2708001a4f71851f9f775729c22f47df7c4360b1e416fd0f2de
+  id: ID! # "type:collIndex:collId", e.g. "r:0:0x1731afc858cad2708001a4f71851f9f775729c22f47df7c4360b1e416fd0f2de" or "n:0:0x1731afc858cad2708001a4f71851f9f775729c22f47df7c4360b1e416fd0f2de"
   borrower: Bytes!
   collateral: Collateral!
   closedAt: BigInt
@@ -61,6 +101,21 @@ type Trove @entity(immutable: false) {
   priceAtLiquidation: BigInt
 }
 
+type TroveSnapshot @entity(immutable: true) {
+  id: ID! # "type:collIndex:troveId:timestamp", e.g. "r:0:0x1731afc858cad2708001a4f71851f9f775729c22f47df7c4360b1e416fd0f2de:1715702400" or "n:0:0x1731afc858cad2708001a4f71851f9f775729c22f47df7c4360b1e416fd0f2de:1715702400"
+  trove: Trove!
+  collateral: Collateral!
+  interestBatch: InterestBatch
+  status: TroveStatus!
+  borrower: Bytes!
+  debt: BigInt!
+  deposit: BigInt!
+  stake: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
 type BorrowerInfo @entity(immutable: false) {
   id: ID! # "borrowerAddress", e.g. "0x0000000000000000000000000000000000000000"
   nextOwnerIndexes: [Int!]!
@@ -71,7 +126,7 @@ type BorrowerInfo @entity(immutable: false) {
 }
 
 type InterestBatch @entity(immutable: false) {
-  id: ID! # "collIndex:batchManager", e.g. "0:0x0000000000000000000000000000000000000000"
+  id: ID! # "type:collIndex:batchManager", e.g. "r:0:0x0000000000000000000000000000000000000000" or "n:0:0x0000000000000000000000000000000000000000"
   collateral: Collateral!
   batchManager: Bytes!
   debt: BigInt!
