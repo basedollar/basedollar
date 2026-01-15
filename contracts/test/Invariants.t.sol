@@ -86,8 +86,15 @@ contract InvariantsTest is Assertions, Logging, BaseInvariantTest, BaseMultiColl
 
         TestDeployer deployer = new TestDeployer();
         Contracts memory contracts;
-        (contracts.branches, contracts.collateralRegistry, contracts.boldToken, contracts.hintHelpers,, contracts.weth,)
-        = deployer.deployAndConnectContractsMultiColl(p);
+        // (contracts.branches, contracts.aeroManager, contracts.collateralRegistry, contracts.boldToken, contracts.hintHelpers,, contracts.weth,)
+        // = deployer.deployAndConnectContractsMultiColl(p);
+        TestDeployer.DeployAndConnectContractsMultiCollResult memory result = deployer.deployAndConnectContractsMultiColl(p);
+        contracts.branches = result.contractsArray;
+        contracts.aeroManager = result.aeroManager;
+        contracts.collateralRegistry = result.collateralRegistry;
+        contracts.boldToken = result.boldToken;
+        contracts.hintHelpers = result.hintHelpers;
+        contracts.weth = result.WETH;
         setupContracts(contracts);
 
         handler = new InvariantsTestHandler({contracts: contracts, assumeNoExpectedFailures: true});

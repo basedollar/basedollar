@@ -26,8 +26,15 @@ contract AnchoredInvariantsTest is Logging, BaseInvariantTest, BaseMultiCollater
         p[3] = TestDeployer.TroveManagerParams(1.6 ether, 1.25 ether, 0.1 ether, 1.01 ether, 0.05 ether, 0.1 ether, 10000 ether);
         TestDeployer deployer = new TestDeployer();
         Contracts memory contracts;
-        (contracts.branches, contracts.collateralRegistry, contracts.boldToken, contracts.hintHelpers,, contracts.weth,)
-        = deployer.deployAndConnectContractsMultiColl(p);
+        // (contracts.branches, contracts.aeroManager, contracts.collateralRegistry, contracts.boldToken, contracts.hintHelpers,, contracts.weth,)
+        // = deployer.deployAndConnectContractsMultiColl(p);
+        TestDeployer.DeployAndConnectContractsMultiCollResult memory result = deployer.deployAndConnectContractsMultiColl(p);
+        contracts.branches = result.contractsArray;
+        contracts.aeroManager = result.aeroManager;
+        contracts.collateralRegistry = result.collateralRegistry;
+        contracts.boldToken = result.boldToken;
+        contracts.hintHelpers = result.hintHelpers;
+        contracts.weth = result.WETH;
         setupContracts(contracts);
 
         handler = new InvariantsTestHandler({contracts: contracts, assumeNoExpectedFailures: true});

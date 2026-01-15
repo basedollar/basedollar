@@ -34,8 +34,14 @@ contract ShutdownTest is DevTestSetup {
 
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev[] memory _contractsArray;
-        (_contractsArray, collateralRegistry, boldToken,,, WETH,) =
-            deployer.deployAndConnectContractsMultiColl(troveManagerParamsArray);
+        // (_contractsArray, aeroManager, collateralRegistry, boldToken,,, WETH,) =
+        //     deployer.deployAndConnectContractsMultiColl(troveManagerParamsArray);
+        TestDeployer.DeployAndConnectContractsMultiCollResult memory result = deployer.deployAndConnectContractsMultiColl(troveManagerParamsArray);
+        _contractsArray = result.contractsArray;
+        aeroManager = result.aeroManager;
+        collateralRegistry = result.collateralRegistry;
+        boldToken = result.boldToken;
+        WETH = result.WETH;
         // Unimplemented feature (...):Copying of type struct LiquityContracts memory[] memory to storage not yet supported.
         for (uint256 c = 0; c < NUM_COLLATERALS; c++) {
             contractsArray.push(_contractsArray[c]);

@@ -33,8 +33,14 @@ contract ZapperGasCompTest is DevTestSetup {
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev[] memory contractsArray;
         TestDeployer.Zappers[] memory zappersArray;
-        (contractsArray, collateralRegistry, boldToken,,, zappersArray) =
-            deployer.deployAndConnectContracts(troveManagerParams, WETH);
+        // (contractsArray, aeroManager, collateralRegistry, boldToken,,, zappersArray) =
+        //     deployer.deployAndConnectContracts(troveManagerParams, WETH);
+        TestDeployer.DeployAndConnectContractsResults memory deployedContracts = deployer.deployAndConnectContracts(troveManagerParams, WETH);
+        contractsArray = deployedContracts.contractsArray;
+        aeroManager = deployedContracts.aeroManager;
+        collateralRegistry = deployedContracts.collateralRegistry;
+        boldToken = deployedContracts.boldToken;
+        zappersArray = deployedContracts.zappersArray;
 
         // Set price feeds
         contractsArray[1].priceFeed.setPrice(2000e18);

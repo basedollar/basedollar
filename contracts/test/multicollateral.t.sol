@@ -75,8 +75,14 @@ contract MulticollateralTest is DevTestSetup {
 
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev[] memory _contractsArray;
-        (_contractsArray, collateralRegistry, boldToken,,, WETH,) =
-            deployer.deployAndConnectContractsMultiColl(troveManagerParamsArray);
+        // (_contractsArray, aeroManager, collateralRegistry, boldToken,,, WETH,) =
+            // deployer.deployAndConnectContractsMultiColl(troveManagerParamsArray);
+        TestDeployer.DeployAndConnectContractsMultiCollResult memory result = deployer.deployAndConnectContractsMultiColl(troveManagerParamsArray);
+        _contractsArray = result.contractsArray;
+        aeroManager = result.aeroManager;
+        collateralRegistry = result.collateralRegistry;
+        boldToken = result.boldToken;
+        WETH = result.WETH;
         // Unimplemented feature (...):Copying of type struct LiquityContracts memory[] memory to storage not yet supported.
         for (uint256 c = 0; c < NUM_COLLATERALS; c++) {
             contractsArray.push(_contractsArray[c]);
@@ -746,6 +752,7 @@ contract CsBold013 is TestAccounts {
 
     IBoldToken boldToken;
     ICollateralRegistry collateralRegistry;
+    IAeroManager aeroManager;
     IHintHelpers hintHelpers;
     IWETH weth;
     TestDeployer.LiquityContractsDev[] branches;
@@ -796,8 +803,15 @@ contract CsBold013 is TestAccounts {
 
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev[] memory _branches;
-        (_branches, collateralRegistry, boldToken, hintHelpers,, weth,) =
-            deployer.deployAndConnectContractsMultiColl(params);
+        // (_branches, aeroManager, collateralRegistry, boldToken, hintHelpers,, weth,) =
+        //     deployer.deployAndConnectContractsMultiColl(params);
+        TestDeployer.DeployAndConnectContractsMultiCollResult memory result = deployer.deployAndConnectContractsMultiColl(params);
+        _branches = result.contractsArray;
+        aeroManager = result.aeroManager;
+        collateralRegistry = result.collateralRegistry;
+        boldToken = result.boldToken;
+        hintHelpers = result.hintHelpers;
+        weth = result.WETH;
 
         for (uint256 i = 0; i < _branches.length; ++i) {
             branches.push(_branches[i]);
