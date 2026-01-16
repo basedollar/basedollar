@@ -782,7 +782,7 @@ contract CsBold013 is TestAccounts {
             MCR: MCR_WETH,
             SCR: SCR_WETH,
             BCR: BCR_ALL,
-            debtLimit: 100000 ether,
+            debtLimit: 100_000_000 ether,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_WETH,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_WETH
         });
@@ -793,7 +793,7 @@ contract CsBold013 is TestAccounts {
             MCR: MCR_SETH,
             SCR: SCR_SETH,
             BCR: BCR_ALL,
-            debtLimit: 100000 ether,
+            debtLimit: 100_000_000 ether,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_SETH,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_SETH
         });

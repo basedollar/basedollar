@@ -53,9 +53,9 @@ uint256 constant _48_HOURS = 172800;
 
 // TODO: Split dev and mainnet
 contract TestDeployer is MetadataDeployment {
-    address constant GOVERNOR_ADDRESS = 0x0000000000000000000000000000000000000000;
-    address constant TREASURY_ADDRESS = 0x0000000000000000000000000000000000000000;
-    address constant AERO_TOKEN_ADDRESS = 0x0000000000000000000000000000000000000000;
+    address GOVERNOR_ADDRESS = makeAddr("GOVERNOR");
+    address TREASURY_ADDRESS = makeAddr("TREASURY");
+    address AERO_TOKEN_ADDRESS = makeAddr("AERO");
 
     IERC20 constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     IWETH constant WETH_MAINNET = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
@@ -241,7 +241,7 @@ contract TestDeployer is MetadataDeployment {
         //     Zappers memory zappers
         // )
     {
-        return deployAndConnectContracts(TroveManagerParams(150e16, 110e16, 10e16, 110e16, 5e16, 10e16, 10000 ether));
+        return deployAndConnectContracts(TroveManagerParams(150e16, 110e16, 10e16, 110e16, 100_000_000e18, 5e16, 10e16));
     }
 
     struct DeployAndConnectContractsResult {
