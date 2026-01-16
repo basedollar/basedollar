@@ -68,15 +68,21 @@ contract MulticollateralTest is DevTestSetup {
 
         TestDeployer.TroveManagerParams[] memory troveManagerParamsArray =
             new TestDeployer.TroveManagerParams[](NUM_COLLATERALS);
-        troveManagerParamsArray[0] = TestDeployer.TroveManagerParams(150e16, 110e16, 10e16, 110e16, 5e16, 10e16, 10000 ether);
-        troveManagerParamsArray[1] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 5e16, 10e16, 10000 ether);
-        troveManagerParamsArray[2] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 5e16, 10e16, 10000 ether);
-        troveManagerParamsArray[3] = TestDeployer.TroveManagerParams(160e16, 125e16, 10e16, 125e16, 5e16, 10e16, 10000 ether);
+        troveManagerParamsArray[0] = TestDeployer.TroveManagerParams(150e16, 110e16, 10e16, 110e16, 100_000_000 ether, 5e16, 10e16);
+        troveManagerParamsArray[1] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 100_000_000 ether, 5e16, 10e16);
+        troveManagerParamsArray[2] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 100_000_000 ether, 5e16, 10e16);
+        troveManagerParamsArray[3] = TestDeployer.TroveManagerParams(160e16, 125e16, 10e16, 125e16, 100_000_000 ether, 5e16, 10e16);
 
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev[] memory _contractsArray;
-        (_contractsArray, collateralRegistry, boldToken,,, WETH,) =
-            deployer.deployAndConnectContractsMultiColl(troveManagerParamsArray);
+        // (_contractsArray, aeroManager, collateralRegistry, boldToken,,, WETH,) =
+            // deployer.deployAndConnectContractsMultiColl(troveManagerParamsArray);
+        TestDeployer.DeployAndConnectContractsMultiCollResult memory result = deployer.deployAndConnectContractsMultiColl(troveManagerParamsArray);
+        _contractsArray = result.contractsArray;
+        aeroManager = result.aeroManager;
+        collateralRegistry = result.collateralRegistry;
+        boldToken = result.boldToken;
+        WETH = result.WETH;
         // Unimplemented feature (...):Copying of type struct LiquityContracts memory[] memory to storage not yet supported.
         for (uint256 c = 0; c < NUM_COLLATERALS; c++) {
             contractsArray.push(_contractsArray[c]);
@@ -119,14 +125,16 @@ contract MulticollateralTest is DevTestSetup {
             assertNotEq(address(collateralRegistry.getTroveManager(c)), ZERO_ADDRESS, "Missing TroveManager");
         }
         for (uint256 c = NUM_COLLATERALS; c < 10; c++) {
+            vm.expectRevert(); // array out-of-bounds access
             assertEq(address(collateralRegistry.getToken(c)), ZERO_ADDRESS, "Extra collateral token");
+            vm.expectRevert(); // array out-of-bounds access
             assertEq(address(collateralRegistry.getTroveManager(c)), ZERO_ADDRESS, "Extra TroveManager");
         }
         // reverts for invalid index
-        vm.expectRevert("Invalid index");
-        collateralRegistry.getToken(10);
-        vm.expectRevert("Invalid index");
-        collateralRegistry.getTroveManager(10);
+        // vm.expectRevert("Invalid index");
+        // collateralRegistry.getToken(10);
+        // vm.expectRevert("Invalid index");
+        // collateralRegistry.getTroveManager(10);
     }
 
     struct TestValues {
@@ -746,6 +754,7 @@ contract CsBold013 is TestAccounts {
 
     IBoldToken boldToken;
     ICollateralRegistry collateralRegistry;
+    IAeroManager aeroManager;
     IHintHelpers hintHelpers;
     IWETH weth;
     TestDeployer.LiquityContractsDev[] branches;
@@ -775,7 +784,7 @@ contract CsBold013 is TestAccounts {
             MCR: MCR_WETH,
             SCR: SCR_WETH,
             BCR: BCR_ALL,
-            debtLimit: 100000 ether,
+            debtLimit: 100_000_000 ether,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_WETH,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_WETH
         });
@@ -786,7 +795,7 @@ contract CsBold013 is TestAccounts {
             MCR: MCR_SETH,
             SCR: SCR_SETH,
             BCR: BCR_ALL,
-            debtLimit: 100000 ether,
+            debtLimit: 100_000_000 ether,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_SETH,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_SETH
         });
@@ -796,8 +805,15 @@ contract CsBold013 is TestAccounts {
 
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev[] memory _branches;
-        (_branches, collateralRegistry, boldToken, hintHelpers,, weth,) =
-            deployer.deployAndConnectContractsMultiColl(params);
+        // (_branches, aeroManager, collateralRegistry, boldToken, hintHelpers,, weth,) =
+        //     deployer.deployAndConnectContractsMultiColl(params);
+        TestDeployer.DeployAndConnectContractsMultiCollResult memory result = deployer.deployAndConnectContractsMultiColl(params);
+        _branches = result.contractsArray;
+        aeroManager = result.aeroManager;
+        collateralRegistry = result.collateralRegistry;
+        boldToken = result.boldToken;
+        hintHelpers = result.hintHelpers;
+        weth = result.WETH;
 
         for (uint256 i = 0; i < _branches.length; ++i) {
             branches.push(_branches[i]);

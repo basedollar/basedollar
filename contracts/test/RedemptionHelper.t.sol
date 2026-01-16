@@ -45,15 +45,22 @@ contract RedemptionHelperTest is DevTestSetup {
             accountsList[6]
         );
 
-        params.push(TestDeployer.TroveManagerParams(1.5 ether, 1.1 ether, 0.1 ether, 1.1 ether, 0.05 ether, 0.1 ether));
-        params.push(TestDeployer.TroveManagerParams(1.6 ether, 1.2 ether, 0.1 ether, 1.2 ether, 0.05 ether, 0.2 ether));
-        params.push(TestDeployer.TroveManagerParams(1.6 ether, 1.2 ether, 0.1 ether, 1.2 ether, 0.05 ether, 0.2 ether));
+        params.push(TestDeployer.TroveManagerParams(1.5 ether, 1.1 ether, 0.1 ether, 1.1 ether, 100_000_000 ether, 0.05 ether, 0.1 ether));
+        params.push(TestDeployer.TroveManagerParams(1.6 ether, 1.2 ether, 0.1 ether, 1.2 ether, 100_000_000 ether, 0.05 ether, 0.2 ether));
+        params.push(TestDeployer.TroveManagerParams(1.6 ether, 1.2 ether, 0.1 ether, 1.2 ether, 100_000_000 ether, 0.05 ether, 0.2 ether));
         assertEq(NUM_BRANCHES, 3, "Must update params");
 
         TestDeployer.LiquityContractsDev[] memory tmpBranch;
         TestDeployer deployer = new TestDeployer();
-        (tmpBranch, collateralRegistry, boldToken, hintHelpers,, WETH,) =
-            deployer.deployAndConnectContractsMultiColl(params);
+        // (tmpBranch, aeroManager, collateralRegistry, boldToken, hintHelpers,, WETH,) =
+            // deployer.deployAndConnectContractsMultiColl(params);
+        TestDeployer.DeployAndConnectContractsMultiCollResult memory result = deployer.deployAndConnectContractsMultiColl(params);
+        tmpBranch = result.contractsArray;
+        aeroManager = result.aeroManager;
+        collateralRegistry = result.collateralRegistry;
+        boldToken = result.boldToken;
+        hintHelpers = result.hintHelpers;
+        WETH = result.WETH;
 
         for (uint256 i = 0; i < tmpBranch.length; ++i) {
             branch.push(tmpBranch[i]);

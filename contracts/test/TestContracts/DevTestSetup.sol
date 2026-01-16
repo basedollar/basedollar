@@ -50,7 +50,15 @@ contract DevTestSetup is BaseTest {
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev memory contracts;
         TestDeployer.Zappers memory zappers;
-        (contracts, collateralRegistry, boldToken, hintHelpers,, WETH, zappers) = deployer.deployAndConnectContracts();
+        // (contracts, aeroManager, collateralRegistry, boldToken, hintHelpers,, WETH, zappers) = deployer.deployAndConnectContracts();
+        TestDeployer.DeployAndConnectContractsResult memory deployedContracts = deployer.deployAndConnectContracts();
+        contracts = deployedContracts.contracts;
+        aeroManager = deployedContracts.aeroManager;
+        collateralRegistry = deployedContracts.collateralRegistry;
+        boldToken = deployedContracts.boldToken;
+        hintHelpers = deployedContracts.hintHelpers;
+        WETH = deployedContracts.WETH;
+        zappers = deployedContracts.zappers;
         addressesRegistry = contracts.addressesRegistry;
         collToken = contracts.collToken;
         activePool = contracts.activePool;

@@ -27,13 +27,19 @@ contract ZapperWETHTest is DevTestSetup {
         WETH = new WETH9();
 
         TestDeployer.TroveManagerParams[] memory troveManagerParams = new TestDeployer.TroveManagerParams[](1);
-        troveManagerParams[0] = TestDeployer.TroveManagerParams(150e16, 110e16, 10e16, 110e16, 5e16, 10e16, 10000 ether);
+        troveManagerParams[0] = TestDeployer.TroveManagerParams(150e16, 110e16, 10e16, 110e16, 100_000_000 ether, 5e16, 10e16);
 
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev[] memory contractsArray;
         TestDeployer.Zappers[] memory zappersArray;
-        (contractsArray, collateralRegistry, boldToken,,, zappersArray) =
-            deployer.deployAndConnectContracts(troveManagerParams, WETH);
+        // (contractsArray, aeroManager, collateralRegistry, boldToken,,, zappersArray) =
+        //     deployer.deployAndConnectContracts(troveManagerParams, WETH);
+        TestDeployer.DeployAndConnectContractsResults memory deployedContracts = deployer.deployAndConnectContracts(troveManagerParams, WETH);
+        contractsArray = deployedContracts.contractsArray;
+        aeroManager = deployedContracts.aeroManager;
+        collateralRegistry = deployedContracts.collateralRegistry;
+        boldToken = deployedContracts.boldToken;
+        zappersArray = deployedContracts.zappersArray;
 
         // Set price feeds
         contractsArray[0].priceFeed.setPrice(2000e18);

@@ -17,8 +17,12 @@ abstract contract SPInvariantsBase is Assertions, BaseInvariantTest {
         super.setUp();
 
         TestDeployer deployer = new TestDeployer();
-        (TestDeployer.LiquityContractsDev memory contracts,, IBoldToken boldToken, HintHelpers hintHelpers,,,) =
-            deployer.deployAndConnectContracts();
+        // (TestDeployer.LiquityContractsDev memory contracts,,, IBoldToken boldToken, HintHelpers hintHelpers,,,) =
+        //     deployer.deployAndConnectContracts();
+        TestDeployer.DeployAndConnectContractsResult memory result = deployer.deployAndConnectContracts();
+        TestDeployer.LiquityContractsDev memory contracts = result.contracts;
+        IBoldToken boldToken = result.boldToken;
+        HintHelpers hintHelpers = result.hintHelpers;
         stabilityPool = contracts.stabilityPool;
 
         handler = new SPInvariantsTestHandler(
