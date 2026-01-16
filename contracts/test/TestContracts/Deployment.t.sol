@@ -241,7 +241,7 @@ contract TestDeployer is MetadataDeployment {
         //     Zappers memory zappers
         // )
     {
-        return deployAndConnectContracts(TroveManagerParams(150e16, 110e16, 10e16, 110e16, 100_000_000e18, 5e16, 10e16));
+        return deployAndConnectContracts(TroveManagerParams(150e16, 110e16, 10e16, 110e16, type(uint256).max, 5e16, 10e16));
     }
 
     struct DeployAndConnectContractsResult {

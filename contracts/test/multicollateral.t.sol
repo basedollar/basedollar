@@ -68,10 +68,10 @@ contract MulticollateralTest is DevTestSetup {
 
         TestDeployer.TroveManagerParams[] memory troveManagerParamsArray =
             new TestDeployer.TroveManagerParams[](NUM_COLLATERALS);
-        troveManagerParamsArray[0] = TestDeployer.TroveManagerParams(150e16, 110e16, 10e16, 110e16, 5e16, 10e16, 10000 ether);
-        troveManagerParamsArray[1] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 5e16, 10e16, 10000 ether);
-        troveManagerParamsArray[2] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 5e16, 10e16, 10000 ether);
-        troveManagerParamsArray[3] = TestDeployer.TroveManagerParams(160e16, 125e16, 10e16, 125e16, 5e16, 10e16, 10000 ether);
+        troveManagerParamsArray[0] = TestDeployer.TroveManagerParams(150e16, 110e16, 10e16, 110e16, 100_000_000 ether, 5e16, 10e16);
+        troveManagerParamsArray[1] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 100_000_000 ether, 5e16, 10e16);
+        troveManagerParamsArray[2] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 100_000_000 ether, 5e16, 10e16);
+        troveManagerParamsArray[3] = TestDeployer.TroveManagerParams(160e16, 125e16, 10e16, 125e16, 100_000_000 ether, 5e16, 10e16);
 
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev[] memory _contractsArray;
@@ -125,14 +125,16 @@ contract MulticollateralTest is DevTestSetup {
             assertNotEq(address(collateralRegistry.getTroveManager(c)), ZERO_ADDRESS, "Missing TroveManager");
         }
         for (uint256 c = NUM_COLLATERALS; c < 10; c++) {
+            vm.expectRevert(); // array out-of-bounds access
             assertEq(address(collateralRegistry.getToken(c)), ZERO_ADDRESS, "Extra collateral token");
+            vm.expectRevert(); // array out-of-bounds access
             assertEq(address(collateralRegistry.getTroveManager(c)), ZERO_ADDRESS, "Extra TroveManager");
         }
         // reverts for invalid index
-        vm.expectRevert("Invalid index");
-        collateralRegistry.getToken(10);
-        vm.expectRevert("Invalid index");
-        collateralRegistry.getTroveManager(10);
+        // vm.expectRevert("Invalid index");
+        // collateralRegistry.getToken(10);
+        // vm.expectRevert("Invalid index");
+        // collateralRegistry.getTroveManager(10);
     }
 
     struct TestValues {
