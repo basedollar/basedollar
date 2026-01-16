@@ -41,6 +41,7 @@ import "src/Zappers/Modules/Exchanges/UniswapV3/INonfungiblePositionManager.sol"
 import "src/Zappers/Modules/Exchanges/HybridCurveUniV3Exchange.sol";
 import {WETHTester} from "./WETHTester.sol";
 import {ERC20Faucet} from "./ERC20Faucet.sol";
+import {MockAeroToken} from "./AeroGaugeTester.sol";
 
 import "src/PriceFeeds/WETHPriceFeed.sol";
 import "src/PriceFeeds/WSTETHPriceFeed.sol";
@@ -55,7 +56,8 @@ uint256 constant _48_HOURS = 172800;
 contract TestDeployer is MetadataDeployment {
     address GOVERNOR_ADDRESS = makeAddr("GOVERNOR");
     address TREASURY_ADDRESS = makeAddr("TREASURY");
-    address AERO_TOKEN_ADDRESS = makeAddr("AERO");
+    MockAeroToken public aeroToken;
+    address public AERO_TOKEN_ADDRESS;
 
     IERC20 constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     IWETH constant WETH_MAINNET = IWETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
@@ -77,6 +79,12 @@ contract TestDeployer is MetadataDeployment {
     uint24 constant UNIV3_FEE_WETH_COLL = 100; // 0.01%
 
     bytes32 constant SALT = keccak256("LiquityV2");
+
+    constructor() {
+        // For tests we need a real ERC20 at `aeroTokenAddress` (AeroManager calls `balanceOf`/`transfer`).
+        aeroToken = new MockAeroToken();
+        AERO_TOKEN_ADDRESS = address(aeroToken);
+    }
 
     struct LiquityContractsDevPools {
         IDefaultPool defaultPool;
@@ -145,6 +153,8 @@ contract TestDeployer is MetadataDeployment {
         uint256 debtLimit;
         uint256 LIQUIDATION_PENALTY_SP;
         uint256 LIQUIDATION_PENALTY_REDISTRIBUTION;
+        bool isAeroLPCollateral;
+        address aeroGaugeAddress;
     }
 
     struct DeploymentVarsDev {
@@ -152,6 +162,7 @@ contract TestDeployer is MetadataDeployment {
         IERC20Metadata[] collaterals;
         IAddressesRegistry[] addressesRegistries;
         ITroveManager[] troveManagers;
+        AeroParams[] aeroParams;
         bytes bytecode;
         address boldTokenAddress;
         uint256 i;
@@ -230,18 +241,8 @@ contract TestDeployer is MetadataDeployment {
     function deployAndConnectContracts()
         external
         returns (DeployAndConnectContractsResult memory)
-        // returns (
-        //     LiquityContractsDev memory contracts,
-        //     IAeroManager aeroManager,
-        //     ICollateralRegistry collateralRegistry,
-        //     IBoldToken boldToken,
-        //     HintHelpers hintHelpers,
-        //     MultiTroveGetter multiTroveGetter,
-        //     IWETH WETH, // for gas compensation
-        //     Zappers memory zappers
-        // )
     {
-        return deployAndConnectContracts(TroveManagerParams(150e16, 110e16, 10e16, 110e16, type(uint256).max, 5e16, 10e16));
+        return deployAndConnectContracts(TroveManagerParams(150e16, 110e16, 10e16, 110e16, type(uint256).max, 5e16, 10e16, false, address(0)));
     }
 
     struct DeployAndConnectContractsResult {
@@ -258,25 +259,11 @@ contract TestDeployer is MetadataDeployment {
     function deployAndConnectContracts(TroveManagerParams memory troveManagerParams)
         public
         returns (DeployAndConnectContractsResult memory result)
-        // returns (
-        //     LiquityContractsDev memory, // contractsArray[0] - to prevent stacks too deep
-        //     IAeroManager aeroManager,
-        //     ICollateralRegistry collateralRegistry,
-        //     IBoldToken boldToken,
-        //     HintHelpers hintHelpers,
-        //     MultiTroveGetter multiTroveGetter,
-        //     IWETH WETH, // for gas compensation
-        //     Zappers memory // zappersArray[0] - to prevent stacks too deep
-        // )
     {
-        // LiquityContractsDev[] memory contractsArray;
         TroveManagerParams[] memory troveManagerParamsArray = new TroveManagerParams[](1);
-        // Zappers[] memory zappersArray;
 
         troveManagerParamsArray[0] = troveManagerParams;
 
-        // (contractsArray, result.aeroManager, result.collateralRegistry, result.boldToken, result.hintHelpers, result.multiTroveGetter, result.WETH, zappersArray) =
-        //     deployAndConnectContractsMultiColl(troveManagerParamsArray);
         DeployAndConnectContractsMultiCollResult memory deployedContracts = deployAndConnectContractsMultiColl(troveManagerParamsArray);
         result.contracts = deployedContracts.contractsArray[0];
         result.aeroManager = deployedContracts.aeroManager;
@@ -303,24 +290,12 @@ contract TestDeployer is MetadataDeployment {
     function deployAndConnectContractsMultiColl(TroveManagerParams[] memory troveManagerParamsArray)
         public
         returns (DeployAndConnectContractsMultiCollResult memory result)
-        // returns (
-        //     LiquityContractsDev[] memory contractsArray,
-        //     IAeroManager aeroManager,
-        //     ICollateralRegistry collateralRegistry,
-        //     IBoldToken boldToken,
-        //     HintHelpers hintHelpers,
-        //     MultiTroveGetter multiTroveGetter,
-        //     IWETH WETH, // for gas compensation
-        //     Zappers[] memory zappersArray
-        // )
     {
         // used for gas compensation and as collateral of the first branch
         result.WETH = new WETHTester(
             100 ether, //     _tapAmount
             1 days //         _tapPeriod
         );
-        // (result.contractsArray, result.aeroManager, result.collateralRegistry, result.boldToken, result.hintHelpers, result.multiTroveGetter, result.zappersArray) =
-        //     deployAndConnectContracts(troveManagerParamsArray, result.WETH);
         DeployAndConnectContractsResults memory deployedContracts = deployAndConnectContracts(troveManagerParamsArray, result.WETH);
         result.contractsArray = deployedContracts.contractsArray;
         result.aeroManager = deployedContracts.aeroManager;
@@ -357,15 +332,6 @@ contract TestDeployer is MetadataDeployment {
     function deployAndConnectContracts(TroveManagerParams[] memory troveManagerParamsArray, IWETH _WETH)
         public
         returns (DeployAndConnectContractsResults memory result)
-        // returns (
-        //     LiquityContractsDev[] memory contractsArray,
-        //     IAeroManager aeroManager,
-        //     ICollateralRegistry collateralRegistry,
-        //     IBoldToken boldToken,
-        //     HintHelpers hintHelpers,
-        //     MultiTroveGetter multiTroveGetter,
-        //     Zappers[] memory zappersArray
-        // )
     {
         DeploymentVarsDev memory vars;
         vars.numCollaterals = troveManagerParamsArray.length;
@@ -375,11 +341,14 @@ contract TestDeployer is MetadataDeployment {
         result.boldToken = new BoldToken{salt: SALT}(address(this));
         assert(address(result.boldToken) == vars.boldTokenAddress);
 
+        result.aeroManager = new AeroManager(AERO_TOKEN_ADDRESS, GOVERNOR_ADDRESS, TREASURY_ADDRESS);
+
         result.contractsArray = new LiquityContractsDev[](vars.numCollaterals);
         result.zappersArray = new Zappers[](vars.numCollaterals);
         vars.collaterals = new IERC20Metadata[](vars.numCollaterals);
         vars.addressesRegistries = new IAddressesRegistry[](vars.numCollaterals);
         vars.troveManagers = new ITroveManager[](vars.numCollaterals);
+        vars.aeroParams = new AeroParams[](vars.numCollaterals);
 
         // Deploy the first branch with WETH collateral
         vars.collaterals[0] = _WETH;
@@ -387,6 +356,9 @@ contract TestDeployer is MetadataDeployment {
             _deployAddressesRegistryDev(troveManagerParamsArray[0]);
         vars.addressesRegistries[0] = addressesRegistry;
         vars.troveManagers[0] = ITroveManager(troveManagerAddress);
+        vars.aeroParams[0] = AeroParams(
+            result.aeroManager, troveManagerParamsArray[0].isAeroLPCollateral, troveManagerParamsArray[0].aeroGaugeAddress
+        );
         for (vars.i = 1; vars.i < vars.numCollaterals; vars.i++) {
             IERC20Metadata collToken = new ERC20Faucet(
                 _nameToken(vars.i), // _name
@@ -399,9 +371,9 @@ contract TestDeployer is MetadataDeployment {
             (addressesRegistry, troveManagerAddress) = _deployAddressesRegistryDev(troveManagerParamsArray[vars.i]);
             vars.addressesRegistries[vars.i] = addressesRegistry;
             vars.troveManagers[vars.i] = ITroveManager(troveManagerAddress);
+            vars.aeroParams[vars.i] = AeroParams(result.aeroManager, troveManagerParamsArray[vars.i].isAeroLPCollateral, troveManagerParamsArray[vars.i].aeroGaugeAddress);
         }
 
-        result.aeroManager = new AeroManager(AERO_TOKEN_ADDRESS, GOVERNOR_ADDRESS, TREASURY_ADDRESS);
         result.collateralRegistry = new CollateralRegistry(result.boldToken, vars.collaterals, vars.troveManagers, result.aeroManager, GOVERNOR_ADDRESS); //TODO: fix this later
         result.hintHelpers = new HintHelpers(result.collateralRegistry);
         result.multiTroveGetter = new MultiTroveGetter(result.collateralRegistry);
@@ -415,7 +387,7 @@ contract TestDeployer is MetadataDeployment {
             address(vars.troveManagers[0]),
             result.hintHelpers,
             result.multiTroveGetter,
-            AeroParams(result.aeroManager, false, address(0)) // TODO: add isAeroLPCollateral and aero gauge address
+            vars.aeroParams[0]
         );
 
         // Deploy the remaining branches with LST collateral
@@ -429,7 +401,7 @@ contract TestDeployer is MetadataDeployment {
                 address(vars.troveManagers[vars.i]),
                 result.hintHelpers,
                 result.multiTroveGetter,
-                AeroParams(result.aeroManager, false, address(0)) // TODO: add isAeroLPCollateral and aero gauge address
+                vars.aeroParams[vars.i]
             );
         }
 

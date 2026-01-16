@@ -16,4 +16,5 @@ interface IAeroManager {
     function withdraw(address gauge, address token, uint256 amount) external;
     function claim(address gauge) external;
     function setAddresses(ICollateralRegistry _collateralRegistry) external;
+    function governor() external view returns (address);
 }

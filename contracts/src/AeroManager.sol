@@ -126,6 +126,8 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
 
         // Pull LP tokens from ActivePool
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        // Allow the gauge to pull tokens from the AeroManager on deposit()
+        IERC20(token).safeIncreaseAllowance(gauge, amount);
         // Stake LP tokens into AeroGauge
         IAeroGauge(gauge).deposit(amount);
         // Log amount staked

@@ -27,14 +27,12 @@ contract ZapperGasCompTest is DevTestSetup {
         WETH = new WETH9();
 
         TestDeployer.TroveManagerParams[] memory troveManagerParams = new TestDeployer.TroveManagerParams[](2);
-        troveManagerParams[0] = TestDeployer.TroveManagerParams(150e16, 110e16, 10e16, 110e16, 100_000_000 ether, 5e16, 10e16);
-        troveManagerParams[1] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 100_000_000 ether, 5e16, 10e16);
+        troveManagerParams[0] = TestDeployer.TroveManagerParams(150e16, 110e16, 10e16, 110e16, 100_000_000 ether, 5e16, 10e16, false, address(0));
+        troveManagerParams[1] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 100_000_000 ether, 5e16, 10e16, false, address(0));
 
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev[] memory contractsArray;
         TestDeployer.Zappers[] memory zappersArray;
-        // (contractsArray, aeroManager, collateralRegistry, boldToken,,, zappersArray) =
-        //     deployer.deployAndConnectContracts(troveManagerParams, WETH);
         TestDeployer.DeployAndConnectContractsResults memory deployedContracts = deployer.deployAndConnectContracts(troveManagerParams, WETH);
         contractsArray = deployedContracts.contractsArray;
         aeroManager = deployedContracts.aeroManager;

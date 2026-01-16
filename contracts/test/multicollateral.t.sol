@@ -68,15 +68,13 @@ contract MulticollateralTest is DevTestSetup {
 
         TestDeployer.TroveManagerParams[] memory troveManagerParamsArray =
             new TestDeployer.TroveManagerParams[](NUM_COLLATERALS);
-        troveManagerParamsArray[0] = TestDeployer.TroveManagerParams(150e16, 110e16, 10e16, 110e16, 100_000_000 ether, 5e16, 10e16);
-        troveManagerParamsArray[1] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 100_000_000 ether, 5e16, 10e16);
-        troveManagerParamsArray[2] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 100_000_000 ether, 5e16, 10e16);
-        troveManagerParamsArray[3] = TestDeployer.TroveManagerParams(160e16, 125e16, 10e16, 125e16, 100_000_000 ether, 5e16, 10e16);
+        troveManagerParamsArray[0] = TestDeployer.TroveManagerParams(150e16, 110e16, 10e16, 110e16, 100_000_000 ether, 5e16, 10e16, false, address(0));
+        troveManagerParamsArray[1] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 100_000_000 ether, 5e16, 10e16, false, address(0));
+        troveManagerParamsArray[2] = TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 100_000_000 ether, 5e16, 10e16, false, address(0));
+        troveManagerParamsArray[3] = TestDeployer.TroveManagerParams(160e16, 125e16, 10e16, 125e16, 100_000_000 ether, 5e16, 10e16, false, address(0));
 
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev[] memory _contractsArray;
-        // (_contractsArray, aeroManager, collateralRegistry, boldToken,,, WETH,) =
-            // deployer.deployAndConnectContractsMultiColl(troveManagerParamsArray);
         TestDeployer.DeployAndConnectContractsMultiCollResult memory result = deployer.deployAndConnectContractsMultiColl(troveManagerParamsArray);
         _contractsArray = result.contractsArray;
         aeroManager = result.aeroManager;
@@ -786,7 +784,9 @@ contract CsBold013 is TestAccounts {
             BCR: BCR_ALL,
             debtLimit: 100_000_000 ether,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_WETH,
-            LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_WETH
+            LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_WETH,
+            isAeroLPCollateral: false,
+            aeroGaugeAddress: address(0)
         });
 
         // wstETH
@@ -797,7 +797,9 @@ contract CsBold013 is TestAccounts {
             BCR: BCR_ALL,
             debtLimit: 100_000_000 ether,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_SETH,
-            LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_SETH
+            LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_SETH,
+            isAeroLPCollateral: false,
+            aeroGaugeAddress: address(0)
         });
 
         // rETH (same as wstETH)
@@ -805,8 +807,6 @@ contract CsBold013 is TestAccounts {
 
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev[] memory _branches;
-        // (_branches, aeroManager, collateralRegistry, boldToken, hintHelpers,, weth,) =
-        //     deployer.deployAndConnectContractsMultiColl(params);
         TestDeployer.DeployAndConnectContractsMultiCollResult memory result = deployer.deployAndConnectContractsMultiColl(params);
         _branches = result.contractsArray;
         aeroManager = result.aeroManager;

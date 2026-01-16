@@ -30,8 +30,6 @@ contract AnchoredSPInvariantsTest is DevTestSetup {
         super.setUp();
 
         TestDeployer deployer = new TestDeployer();
-        // (TestDeployer.LiquityContractsDev memory contracts,,, IBoldToken boldToken, HintHelpers hintHelpers,,,) =
-        //     deployer.deployAndConnectContracts();
         TestDeployer.DeployAndConnectContractsResult memory deployedContracts = deployer.deployAndConnectContracts();
         TestDeployer.LiquityContractsDev memory contracts = deployedContracts.contracts;
         IBoldToken boldToken = deployedContracts.boldToken;

@@ -24,11 +24,8 @@ contract LiquidationsLSTTest is DevTestSetup {
 
         TestDeployer deployer = new TestDeployer();
         TestDeployer.LiquityContractsDev memory contracts;
-        // (contracts, aeroManager, collateralRegistry, boldToken,,,,) = deployer.deployAndConnectContracts(
-        //     TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 5e16, 10e16, 10000 ether)
-        // );
         TestDeployer.DeployAndConnectContractsResult memory result = deployer.deployAndConnectContracts(
-            TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 100_000_000e18, 5e16, 10e16)
+            TestDeployer.TroveManagerParams(160e16, 120e16, 10e16, 120e16, 100_000_000e18, 5e16, 10e16, false, address(0))
         );
         contracts = result.contracts;
         aeroManager = result.aeroManager;
