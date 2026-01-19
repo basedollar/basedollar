@@ -6,9 +6,9 @@ import "./Interfaces/IActivePool.sol";
 import "./Interfaces/ICollateralRegistry.sol";
 import "./Interfaces/IAeroManager.sol";
 import "./Interfaces/IAeroGauge.sol";
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import "./Dependencies/Ownable.sol";
 import "./Dependencies/Constants.sol";
 
 contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
@@ -52,7 +52,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event ClaimFeeUpdated(uint256 oldFee, uint256 newFee);
     event ClaimFeeUpdatePending(uint256 oldFee, uint256 newFee, uint256 timestamp, uint256 delayPeriod);
 
-    constructor(address _aeroTokenAddress, address _governor, address _treasuryAddress) {
+    constructor(address _aeroTokenAddress, address _governor, address _treasuryAddress) Ownable(msg.sender) {
         require(_treasuryAddress != address(0), "AeroManager: Treasury address cannot be 0");
         require(_aeroTokenAddress != address(0), "AeroManager: Aero token address cannot be 0");
         _requireClaimFeeLimit(AERO_MANAGER_FEE);
@@ -94,7 +94,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
             }
         }
 
-        renounceOwnership();
+        _renounceOwnership();
     }
 
     //admin functions

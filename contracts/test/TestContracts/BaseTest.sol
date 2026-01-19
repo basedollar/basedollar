@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import "./Accounts.sol";
+import "src/Interfaces/IAeroManager.sol";
 import "src/Interfaces/IActivePool.sol";
 import "src/Interfaces/IBoldToken.sol";
 import "src/Interfaces/ICollSurplusPool.sol";
@@ -49,6 +50,7 @@ contract BaseTest is TestAccounts, Logging, TroveId {
     IMetadataNFT metadataNFT;
     IBoldToken boldToken;
     ICollateralRegistry collateralRegistry;
+    IAeroManager aeroManager;
     IPriceFeedTestnet priceFeed;
     GasPool gasPool;
     IInterestRouter mockInterestRouter;
