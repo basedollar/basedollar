@@ -42,7 +42,7 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
     }
 
     function fetchRedemptionPrice() external returns (uint256, bool) {
-        return fetchPrice();
+        return _fetchPricePrimary(true);
     }
 
     //  _fetchPricePrimary returns:
