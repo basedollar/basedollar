@@ -28,7 +28,12 @@ contract ERC20DecimalsMock is ERC20 {
     }
 }
 
+contract BorrowerOperationsMock {
+    function shutdownFromOracleFailure() external {}
+}
+
 contract AeroLPTokenPriceFeedTest is Test {
+    BorrowerOperationsMock internal borrowerOperations;
     ERC20DecimalsMock internal token0;
     ERC20DecimalsMock internal token1;
     AeroPoolMock internal pool;
@@ -38,8 +43,13 @@ contract AeroLPTokenPriceFeedTest is Test {
     AeroLPTokenPriceFeedTester internal feed;
 
     function setUp() public {
+        // Ensure any `block.timestamp - X` arithmetic in tests is safe
+        vm.warp(200_000);
+
         token0 = new ERC20DecimalsMock("Token0", "T0", 6); // e.g. USDC-like
         token1 = new ERC20DecimalsMock("Token1", "T1", 18); // e.g. WETH-like
+
+        borrowerOperations = new BorrowerOperationsMock();
 
         gauge = new AeroGaugeMock(address(token0), address(token1));
         pool = gauge.pool();
@@ -56,7 +66,7 @@ contract AeroLPTokenPriceFeedTest is Test {
         token1UsdOracle.setUpdatedAt(block.timestamp);
 
         feed = new AeroLPTokenPriceFeedTester(
-            address(0xB0),
+            address(borrowerOperations),
             IAeroGauge(address(gauge)),
             address(token0UsdOracle),
             address(token1UsdOracle),
@@ -105,6 +115,135 @@ contract AeroLPTokenPriceFeedTest is Test {
         assertEq(p0, 0);
         assertEq(p1, 0);
         assertTrue(isStale);
+    }
+
+    function test_fetchPrice_shutsDownAndReturnsLastGoodPrice_whenPoolCumulativePriceIsStale() public {
+        // First: produce a known lastGoodPrice (healthy path)
+        pool.setCumulativePrices(100e6, 200e18, block.timestamp);
+        token0UsdOracle.setPrice(100e8);
+        token0UsdOracle.setUpdatedAt(block.timestamp);
+        token1UsdOracle.setPrice(200e8);
+        token1UsdOracle.setUpdatedAt(block.timestamp);
+
+        (uint256 lastGoodBefore, bool newFailureBefore) = feed.fetchPrice();
+        assertFalse(newFailureBefore);
+        assertEq(lastGoodBefore, feed.lastGoodPrice());
+        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.primary));
+
+        // Now: make pool stale -> should shut down and return lastGoodPrice
+        pool.setCumulativePrices(100e6, 200e18, block.timestamp - 1 hours - 1);
+
+        vm.expectCall(address(borrowerOperations), abi.encodeWithSignature("shutdownFromOracleFailure()"));
+        vm.expectEmit();
+        emit AeroLPTokenPriceFeedBase.ShutDownFromOracleFailure(address(pool));
+        (uint256 price, bool newFailure) = feed.fetchPrice();
+
+        assertTrue(newFailure);
+        assertEq(price, lastGoodBefore);
+        assertEq(feed.lastGoodPrice(), lastGoodBefore);
+        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.lastGoodPrice));
+    }
+
+    function test_fetchPrice_shutsDownAndReturnsLastGoodPrice_whenToken0OracleIsDown() public {
+        // Healthy baseline: set a non-trivial lastGoodPrice
+        pool.setCumulativePrices(100e6, 200e18, block.timestamp);
+        token0UsdOracle.setPrice(100e8);
+        token0UsdOracle.setUpdatedAt(block.timestamp);
+        token1UsdOracle.setPrice(200e8);
+        token1UsdOracle.setUpdatedAt(block.timestamp);
+
+        (uint256 lastGoodBefore, bool newFailureBefore) = feed.fetchPrice();
+        assertFalse(newFailureBefore);
+        assertEq(lastGoodBefore, feed.lastGoodPrice());
+        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.primary));
+
+        // Make token0 oracle stale (down)
+        token0UsdOracle.setUpdatedAt(block.timestamp - 2 days);
+
+        vm.expectCall(address(borrowerOperations), abi.encodeWithSignature("shutdownFromOracleFailure()"));
+        vm.expectEmit();
+        emit AeroLPTokenPriceFeedBase.ShutDownFromOracleFailure(address(token0UsdOracle));
+        (uint256 price, bool newFailure) = feed.fetchPrice();
+
+        assertTrue(newFailure);
+        assertEq(price, lastGoodBefore);
+        assertEq(feed.lastGoodPrice(), lastGoodBefore);
+        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.lastGoodPrice));
+    }
+
+    function test_fetchPrice_shutsDownAndReturnsLastGoodPrice_whenToken1OracleIsDown() public {
+        // Healthy baseline: set a non-trivial lastGoodPrice
+        pool.setCumulativePrices(100e6, 200e18, block.timestamp);
+        token0UsdOracle.setPrice(100e8);
+        token0UsdOracle.setUpdatedAt(block.timestamp);
+        token1UsdOracle.setPrice(200e8);
+        token1UsdOracle.setUpdatedAt(block.timestamp);
+
+        (uint256 lastGoodBefore, bool newFailureBefore) = feed.fetchPrice();
+        assertFalse(newFailureBefore);
+        assertEq(lastGoodBefore, feed.lastGoodPrice());
+        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.primary));
+
+        // Make token1 oracle stale (down)
+        token1UsdOracle.setUpdatedAt(block.timestamp - 2 days);
+
+        vm.expectCall(address(borrowerOperations), abi.encodeWithSignature("shutdownFromOracleFailure()"));
+        vm.expectEmit();
+        emit AeroLPTokenPriceFeedBase.ShutDownFromOracleFailure(address(token1UsdOracle));
+        (uint256 price, bool newFailure) = feed.fetchPrice();
+
+        assertTrue(newFailure);
+        assertEq(price, lastGoodBefore);
+        assertEq(feed.lastGoodPrice(), lastGoodBefore);
+        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.lastGoodPrice));
+    }
+
+    function test_fetchRedemptionPrice_withinDeviation_usesMaxMinLogic() public {
+        // Pool prices (scaled inside feed):
+        // - token0 decimals = 6  => token0Price = token0Cum * 1e12
+        // - token1 decimals = 18 => token1Price = token1Cum
+        pool.setCumulativePrices(100e6, 200e18, block.timestamp);
+
+        // Oracle prices (8 decimals): scaled to 1e18 inside feed
+        // Within 2% deviation for both:
+        // - token0 oracle lower than pool (uses MIN on redemption)
+        // - token1 oracle higher than pool (uses MAX on redemption)
+        token0UsdOracle.setPrice(99e8);
+        token0UsdOracle.setUpdatedAt(block.timestamp);
+        token1UsdOracle.setPrice(202e8);
+        token1UsdOracle.setUpdatedAt(block.timestamp);
+
+        (uint256 price, bool newFailure) = feed.fetchRedemptionPrice();
+        assertFalse(newFailure);
+
+        uint256 token0Used = 99e18; // min(100, 99)
+        uint256 token1Used = 202e18; // max(200, 202)
+        uint256 expected = token1Used * 1e18 / token0Used;
+
+        assertEq(price, expected);
+        assertEq(feed.lastGoodPrice(), expected);
+        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.primary));
+    }
+
+    function test_fetchRedemptionPrice_outsideDeviation_usesMinMaxLogic() public {
+        pool.setCumulativePrices(100e6, 200e18, block.timestamp);
+
+        // Make token0 deviate >2% => withinPriceDeviationThreshold == false
+        token0UsdOracle.setPrice(120e8); // 20% above pool token0 price
+        token0UsdOracle.setUpdatedAt(block.timestamp);
+        token1UsdOracle.setPrice(198e8); // within 2% but irrelevant due to AND condition
+        token1UsdOracle.setUpdatedAt(block.timestamp);
+
+        (uint256 price, bool newFailure) = feed.fetchRedemptionPrice();
+        assertFalse(newFailure);
+
+        uint256 token0Used = 120e18; // max(100, 120)
+        uint256 token1Used = 198e18; // min(200, 198)
+        uint256 expected = token1Used * 1e18 / token0Used;
+
+        assertEq(price, expected);
+        assertEq(feed.lastGoodPrice(), expected);
+        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.primary));
     }
 }
 
