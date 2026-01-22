@@ -3,7 +3,7 @@
 ## Changes in Basedollar compared to Liquity V2
 1. Stablecoin renamed to $BD
 2. Superfluid streaming added directly into BD. Update tests which use memory layout `deal()` function of BOLD token
-3. "Redemption Protected" branches, which can't be redeemed against but have other requirements
+3. ["Redemption Protected" branches](./contracts/README.md), which can't be redeemed against but have other requirements
 4. Debt limits for each collateral branch, can be raised or lowered by governance. 
 5. Administrative features: Governance can now update
 6. Maximized AERO synergy: 
