@@ -17,6 +17,16 @@ contract AeroManagerTest is DevTestSetup {
     address internal treasury;
     address internal collateralRegistryAddress;
 
+    function _stakeThroughActivePool(uint256 amount) internal {
+        deal(address(weth), address(borrowerOperations), amount);
+
+        // As seen in BorrowerOperations._pullCollAndSendToActivePool(), we need to transfer the collateral to the ActivePool.
+        vm.startPrank(address(borrowerOperations));
+        weth.transfer(address(aeroActivePool), amount);
+        aeroActivePool.accountForReceivedColl(amount);
+        vm.stopPrank();
+    }
+
     function setUp() public override {
         // Start tests at a non-zero timestamp
         vm.warp(block.timestamp + 600);
@@ -201,13 +211,7 @@ contract AeroManagerTest is DevTestSetup {
         uint256 amount = 10e18;
 
         // Stake via ActivePool.receiveColl() so the "caller is ActivePool" path is exercised end-to-end.
-        deal(address(weth), address(borrowerOperations), amount);
-        
-        // As seen in BorrowerOperations._pullCollAndSendToActivePool(), we need to transfer the collateral to the ActivePool.
-        vm.startPrank(address(borrowerOperations));
-        weth.transfer(address(aeroActivePool), amount);
-        aeroActivePool.accountForReceivedColl(amount);
-        vm.stopPrank();
+        _stakeThroughActivePool(amount);
 
         uint256 preTreasury = aeroToken.balanceOf(treasury);
         uint256 preManager = aeroToken.balanceOf(address(aeroManager));
@@ -222,5 +226,100 @@ contract AeroManagerTest is DevTestSetup {
         assertEq(aeroToken.balanceOf(address(aeroManagerImpl)), preManager + rewardAmount);
         assertEq(aeroManagerImpl.claimedAero(), rewardAmount);
         assertEq(aeroManagerImpl.claimedAeroPerEpoch(0, address(gauge)), rewardAmount);
+    }
+
+    function test_distributeAero_incrementsEpoch_setsClaimable_and_userCanClaim() public {
+        uint256 amount = 10e18;
+        _stakeThroughActivePool(amount);
+
+        // Create rewards for epoch 0
+        aeroManagerImpl.claim(address(gauge));
+
+        uint256 epoch0 = aeroManagerImpl.currentEpochs(address(gauge));
+        assertEq(epoch0, 0);
+
+        uint256 rewardEpoch0 = aeroManagerImpl.claimedAeroPerEpoch(epoch0, address(gauge));
+        assertGt(rewardEpoch0, 0);
+
+        // Allocate all epoch-0 rewards
+        AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](2);
+        uint256 aAmt = rewardEpoch0 / 3;
+        uint256 bAmt = rewardEpoch0 - aAmt;
+        recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: aAmt});
+        recipients[1] = AeroManager.AeroRecipient({borrower: B, amount: bAmt});
+
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(gauge), recipients);
+
+        // Epoch incremented
+        assertEq(aeroManagerImpl.currentEpochs(address(gauge)), epoch0 + 1);
+
+        // Allocations recorded
+        assertEq(aeroManagerImpl.claimableRewards(A), aAmt);
+        assertEq(aeroManagerImpl.claimableRewards(B), bAmt);
+
+        // Users can claim
+        uint256 preA = aeroToken.balanceOf(A);
+        uint256 preB = aeroToken.balanceOf(B);
+
+        aeroManagerImpl.claimRewards(A);
+        aeroManagerImpl.claimRewards(B);
+
+        assertEq(aeroToken.balanceOf(A), preA + aAmt);
+        assertEq(aeroToken.balanceOf(B), preB + bAmt);
+        assertEq(aeroManagerImpl.claimableRewards(A), 0);
+        assertEq(aeroManagerImpl.claimableRewards(B), 0);
+    }
+
+    function test_claimRewards_accruesAcrossMultipleEpochs_thenClaimsOnce() public {
+        uint256 amount = 10e18;
+        _stakeThroughActivePool(amount);
+
+        // ---- Epoch 0 ----
+        aeroManagerImpl.claim(address(gauge));
+        uint256 epoch0 = aeroManagerImpl.currentEpochs(address(gauge));
+        assertEq(epoch0, 0);
+        uint256 reward0 = aeroManagerImpl.claimedAeroPerEpoch(epoch0, address(gauge));
+        assertGt(reward0, 0);
+
+        uint256 a0 = reward0 / 2;
+        uint256 b0 = reward0 - a0;
+        AeroManager.AeroRecipient[] memory recipients0 = new AeroManager.AeroRecipient[](2);
+        recipients0[0] = AeroManager.AeroRecipient({borrower: A, amount: a0});
+        recipients0[1] = AeroManager.AeroRecipient({borrower: B, amount: b0});
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(gauge), recipients0);
+        assertEq(aeroManagerImpl.currentEpochs(address(gauge)), 1);
+
+        // ---- Epoch 1 ----
+        aeroManagerImpl.claim(address(gauge));
+        uint256 epoch1 = aeroManagerImpl.currentEpochs(address(gauge));
+        assertEq(epoch1, 1);
+        uint256 reward1 = aeroManagerImpl.claimedAeroPerEpoch(epoch1, address(gauge));
+        assertGt(reward1, 0);
+
+        uint256 a1 = reward1 / 4;
+        uint256 b1 = reward1 - a1;
+        AeroManager.AeroRecipient[] memory recipients1 = new AeroManager.AeroRecipient[](2);
+        recipients1[0] = AeroManager.AeroRecipient({borrower: A, amount: a1});
+        recipients1[1] = AeroManager.AeroRecipient({borrower: B, amount: b1});
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(gauge), recipients1);
+        assertEq(aeroManagerImpl.currentEpochs(address(gauge)), 2);
+
+        // Claimable should include both epochs (we didn't claim in-between)
+        assertEq(aeroManagerImpl.claimableRewards(A), a0 + a1);
+        assertEq(aeroManagerImpl.claimableRewards(B), b0 + b1);
+
+        uint256 preA = aeroToken.balanceOf(A);
+        uint256 preB = aeroToken.balanceOf(B);
+
+        aeroManagerImpl.claimRewards(A);
+        aeroManagerImpl.claimRewards(B);
+
+        assertEq(aeroToken.balanceOf(A), preA + a0 + a1);
+        assertEq(aeroToken.balanceOf(B), preB + b0 + b1);
+        assertEq(aeroManagerImpl.claimableRewards(A), 0);
+        assertEq(aeroManagerImpl.claimableRewards(B), 0);
     }
 }
