@@ -95,26 +95,76 @@ Run slither:
 slither src
 ```
 
+## CollateralRegistry: Redeemable vs Non-Redeemable Collaterals
+
+The `CollateralRegistry` contract maintains two separate collateral lists:
+
+### Redeemable Collaterals
+- Standard branches where Bold can be redeemed for the underlying collateral
+- Limited to a maximum of **10 branches**
+- Used in the `redeemCollateral()` function to proportionally redeem Bold across branches
+- Accessed via `getTroveManager(index)`, `getTroveManagers()`, `getToken(index)`
+
+### Non-Redeemable Collaterals
+- Special branches (typically LP token collaterals) that are exempt from redemptions
+- No limit on the number of branches
+- Useful for volatile or complex collateral types where redemption mechanics could be problematic
+- Accessed via `getNonRedeemableTroveManager(index)`, `getNonRedeemableTroveManagers()`, `getNonRedeemableToken(index)`
+
+### Adding New Branches
+
+New branches can be added via `createNewBranch(token, troveManager, isRedeemable)` by the collateral governor. If the new branch uses an Aero LP collateral, it is automatically registered with the AeroManager.
+
+---
+
 ## AeroManager
 
-The `AeroManager` contract is used to direct and manage AERO token rewards earned from Aerodrome LP positions being used as collateral in the Basedollar protocol.
+The `AeroManager` contract manages AERO token rewards earned from Aerodrome LP positions used as collateral in Basedollar.
 
 ### AERO Flow
 
-AeroManager is integrated into the system through the `AddressesRegistry` and `ActivePool`. When Aerodrome LP tokens are used as collateral:
+1. **Staking**: When LP tokens are deposited as collateral, the `ActivePool` calls `AeroManager.stake()` which deposits the LP tokens into the associated Aerodrome gauge
+2. **Accrual**: AERO rewards accrue from the staked LP positions in the gauge
+3. **Claiming**: Anyone can call `claim(gauge)` to claim AERO rewards from a gauge. A configurable fee (default 10%, max 20%) is sent to the treasury, and the remainder is held by AeroManager
+4. **Distribution**: The governor calls `distributeAero(gauge, recipients)` to allocate rewards to borrowers based on their collateral amounts
+5. **User Claims**: Users call `claimRewards(user)` to withdraw their allocated AERO rewards
 
-1. Each `ActivePool` knows about one Aero gauge for that particular collateral type
-2. When LP collateral is received, it is deposited into the associated Aerodrome gauge
-3. AERO rewards accrue from the Aerodrome LP positions staked in the gauge
-4. The `AeroManager` contract manages these rewards and can interact with Aerodrome gauges to direct reward distribution
+### Key State
 
-The contract maintains references to the `CollateralRegistry` and stores the AERO token address for reward management operations.
+- `stakedAmounts[gauge]`: Total LP tokens staked per gauge
+- `activePools[activePool]`: Registered ActivePools that can stake/withdraw
+- `claimedAeroPerEpoch[epoch][gauge]`: AERO claimed per epoch per gauge
+- `claimableRewards[user]`: AERO available for users to claim
+- `claimFee`: Fee percentage taken on claims (sent to treasury)
 
-### Updates
+### Governance Functions
 
-AeroManager can be updated by the governor through two functions:
+- `setAeroTokenAddress(address)`: Update the AERO token address
+- `setGovernor(address)`: Transfer governor role
+- `updateClaimFee(uint256)`: Change the claim fee (increases require a 7-day delay)
+- `acceptClaimFeeUpdate()`: Finalize a pending fee increase after the delay period
+- `distributeAero(gauge, recipients[])`: Distribute claimed AERO to users for an epoch
 
-- `setAeroTokenAddress(address _aeroTokenAddress)`: Updates the AERO token address used for reward management
-- `setGovernor(address _governor)`: Updates the governor address that has permission to make updates
+---
 
-Both functions are protected by the `onlyGovernor` modifier, ensuring only the current governor can modify these critical parameters.
+## AeroLPTokenPriceFeed
+
+The `AeroLPTokenPriceFeed` contract provides price feeds for Aerodrome LP tokens used as collateral.
+
+### Price Calculation
+
+The feed combines two data sources:
+1. **Cumulative prices** from the Aerodrome pool (`pool.currentCumulativePrices()`)
+2. **Chainlink USD oracles** for both token0 and token1 in the LP pair
+
+### Oracle Validation
+
+- Each Chainlink oracle has a staleness threshold
+- The Aerodrome pool also has a staleness threshold for its cumulative prices
+- If any oracle fails validation, the branch shuts down and falls back to `lastGoodPrice`
+
+### Price Deviation Protection
+
+A 2% deviation threshold is used to compare pool prices against Chainlink prices:
+- For **normal operations**: Takes the more conservative price (min for token1, max for token0) to protect against upward manipulation
+- For **redemptions**: Takes the opposite (max for token1, min for token0) to prevent value leakage during redemptions
