@@ -210,19 +210,25 @@ contract ActivePool is IActivePool {
         // Pull Coll tokens from sender
         collToken.safeTransferFrom(msg.sender, address(this), _amount);
 
-        //TODO might need to make this a factory, to keep positions separate.
-        if (isAeroLPCollateral) {
-            // Send to AeroManager
-            // Then AeroManager deposits the _amount into AeroGauge
-            // IAeroGauge(aeroGaugeAddress).deposit(_amount);
-            IAeroManager(aeroManagerAddress).stake(aeroGaugeAddress, address(collToken), _amount);
-        }
+        _stakeIfAeroLPCollateral(_amount);
     }
 
     function accountForReceivedColl(uint256 _amount) public {
         _requireCallerIsBorrowerOperationsOrDefaultPool();
 
         _accountForReceivedColl(_amount);
+
+        _stakeIfAeroLPCollateral(_amount);
+    }
+
+    //TODO might need to make this a factory, to keep positions separate.
+    function _stakeIfAeroLPCollateral(uint256 _amount) internal {
+        if (isAeroLPCollateral) {
+            // Send to AeroManager
+            // Then AeroManager deposits the _amount into AeroGauge
+            // IAeroGauge(aeroGaugeAddress).deposit(_amount);
+            IAeroManager(aeroManagerAddress).stake(aeroGaugeAddress, address(collToken), _amount);
+        }
     }
 
     function _accountForReceivedColl(uint256 _amount) internal {
