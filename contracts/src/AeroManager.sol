@@ -170,12 +170,13 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         require(recipients.length > 0, "AeroManager: No recipients");
         uint256 currentEpoch = currentEpochs[gauge];
         uint256 rewardAmount = claimedAeroPerEpoch[currentEpoch][gauge];
+        uint256 remainingRewardAmount = rewardAmount;
         for (uint256 i; i < recipients.length; i++) {
-            require(recipients[i].amount <= rewardAmount, "AeroManager: Total amount exceeds reward amount");
-            rewardAmount -= recipients[i].amount;
+            require(recipients[i].amount <= remainingRewardAmount, "AeroManager: Total amount exceeds reward amount");
+            remainingRewardAmount -= recipients[i].amount;
             claimableRewards[recipients[i].borrower] += recipients[i].amount;
         }
-        require(rewardAmount == 0, "AeroManager: Reward amount not fully distributed");
+        require(remainingRewardAmount == 0, "AeroManager: Reward amount not fully distributed");
         emit AeroDistributed(gauge, recipients.length, rewardAmount, currentEpoch);
         currentEpoch++;
         currentEpochs[gauge] = currentEpoch;
