@@ -363,6 +363,10 @@ contract CollateralRegistry is ICollateralRegistry {
         governor = _newGovernor;
     }
 
+    function updateCollateralGovernor(address _newCollateralGovernor) external onlyGovernor {
+        collateralGovernor = _newCollateralGovernor;
+    }
+
     modifier onlyGovernor() {
         require(msg.sender == governor, "CollateralRegistry: Only governor can call this function");
         _;
