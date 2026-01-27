@@ -13,8 +13,7 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
         address _token0UsdOracleAddress,
         address _token1UsdOracleAddress,
         uint256 _token0UsdStalenessThreshold,
-        uint256 _token1UsdStalenessThreshold,
-        uint256 _poolStalenessThreshold
+        uint256 _token1UsdStalenessThreshold
     )
         AeroLPTokenPriceFeedBase(
             _borrowerOperationsAddress, 
@@ -22,8 +21,7 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
             _token0UsdOracleAddress, 
             _token1UsdOracleAddress, 
             _token0UsdStalenessThreshold, 
-            _token1UsdStalenessThreshold, 
-            _poolStalenessThreshold
+            _token1UsdStalenessThreshold
         )
     {
         _fetchPricePrimary(false);
@@ -46,48 +44,96 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
     }
 
     //  _fetchPricePrimary returns:
-    // - The price
+    // - The price (LP token price in USD, 18 decimals)
     // - A bool indicating whether a new oracle failure was detected in the call
     function _fetchPricePrimary(bool _isRedemption) internal virtual returns (uint256, bool) {
         assert(priceSource == PriceSource.primary);
-        // (uint256 price, bool isDown) = _getPrice();
-        (uint256 token0Price, uint256 token1Price, bool isStale) = _getCumulativePrices();
+        
+        // 1. Get Chainlink oracle prices (these are our "canonical" prices)
         (uint256 token0OraclePrice, bool token0OracleIsDown) = _getOracleAnswer(token0UsdOracle);
-        (uint256 token1OraclePrice, bool token1OracleIsDown) = _getOracleAnswer(token1UsdOracle);
-
-        // If the token0 or token1 oracle is down, shut down and switch to the last good price
         if (token0OracleIsDown) {
             return (_shutDownAndSwitchToLastGoodPrice(address(token0UsdOracle.aggregator)), true);
         }
+        
+        (uint256 token1OraclePrice, bool token1OracleIsDown) = _getOracleAnswer(token1UsdOracle);
         if (token1OracleIsDown) {
             return (_shutDownAndSwitchToLastGoodPrice(address(token1UsdOracle.aggregator)), true);
         }
-        // If the last blocktimestamp of cumulative prices from the pool is stale, shut down and switch to the last good price
-        if (isStale) {
+        
+        // 2. Get TWAP exchange rate from pool (how many token1 for 1 token0)
+        (uint256 twapToken1PerToken0, bool twapIsDown) = _getTwapExchangeRate();
+        if (twapIsDown) {
             return (_shutDownAndSwitchToLastGoodPrice(address(pool)), true);
         }
-
-        bool withinPriceDeviationThreshold = 
-            _withinDeviationThreshold(token0Price, token0OraclePrice, TOKEN_PRICE_DEVIATION_THRESHOLD)
-            && _withinDeviationThreshold(token1Price, token1OraclePrice, TOKEN_PRICE_DEVIATION_THRESHOLD);
-
-        // Otherwise, use the primary price calculation:
-        if (_isRedemption && withinPriceDeviationThreshold) {
-            // If it's a redemption and within 2%, take the max of (token0Price, token1Price) to prevent value leakage and convert to token0Price
-            token1Price = LiquityMath._max(token1Price, token1OraclePrice);
-            token0Price = LiquityMath._min(token0Price, token0OraclePrice);
-        }else{
-            // Take the minimum of (market, canonical) in order to mitigate against upward market price manipulation.
-            token1Price = LiquityMath._min(token1Price, token1OraclePrice);
-            token0Price = LiquityMath._max(token0Price, token0OraclePrice);
+        
+        // 3. Derive "market" price for token1 from TWAP and select final prices
+        // If 1 token0 = X token1 (TWAP), and token0 = $Y (Chainlink)
+        // Then token1 market price = $Y / X
+        // Note: token0's "market price" equals its oracle price (we used it as base)
+        (uint256 token0Price, uint256 token1Price) = _selectPrices(
+            token0OraclePrice,
+            token1OraclePrice,
+            twapToken1PerToken0,
+            _isRedemption
+        );
+        
+        // 4. Get pool state and calculate LP token price
+        return _calculateAndReturnLPPrice(token0Price, token1Price);
+    }
+    
+    /// @dev Select token prices based on TWAP validation and operation type
+    function _selectPrices(
+        uint256 token0OraclePrice,
+        uint256 token1OraclePrice,
+        uint256 twapToken1PerToken0,
+        bool _isRedemption
+    ) internal pure returns (uint256 token0Price, uint256 token1Price) {
+        // Derive market price for token1 from TWAP
+        uint256 token1MarketPrice = token0OraclePrice * 1e18 / twapToken1PerToken0;
+        
+        // Check if market price is within deviation threshold of oracle price
+        // Note: token0 market price = oracle price, so it's always within threshold
+        bool withinThreshold = _withinDeviationThreshold(
+            token1MarketPrice, 
+            token1OraclePrice, 
+            TOKEN_PRICE_DEVIATION_THRESHOLD
+        );
+        
+        if (_isRedemption && withinThreshold) {
+            // For redemptions within threshold: maximize LP value to prevent value leakage
+            // max token1 price, min token0 price -> higher LP value
+            token1Price = LiquityMath._max(token1MarketPrice, token1OraclePrice);
+            token0Price = token0OraclePrice; // min(oracle, oracle) = oracle
+        } else {
+            // For borrows (or redemptions outside threshold): minimize LP value
+            // Protects against upward manipulation
+            // min token1 price, max token0 price -> lower LP value
+            token1Price = LiquityMath._min(token1MarketPrice, token1OraclePrice);
+            token0Price = token0OraclePrice; // max(oracle, oracle) = oracle
         }
-
-        // Calculate the price of the pair
-        uint256 price = token1Price * 1e18 / token0Price;
-
+    }
+    
+    /// @dev Get pool state and calculate final LP token price
+    function _calculateAndReturnLPPrice(
+        uint256 token0Price, 
+        uint256 token1Price
+    ) internal returns (uint256, bool) {
+        (uint256 reserve0, uint256 reserve1, uint256 lpTotalSupply, bool poolIsDown) = _getPoolState();
+        if (poolIsDown) {
+            return (_shutDownAndSwitchToLastGoodPrice(address(pool)), true);
+        }
+        
+        uint256 price = _calculateLPTokenPrice(
+            reserve0,
+            reserve1,
+            lpTotalSupply,
+            token0Price,
+            token1Price
+        );
+        
         lastGoodPrice = price;
         return (price, false);
     }
-}   
+}
 
 
