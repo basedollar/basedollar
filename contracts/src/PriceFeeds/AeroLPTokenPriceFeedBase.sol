@@ -10,6 +10,7 @@ import "../Interfaces/IAeroGauge.sol";
 import "../Dependencies/Constants.sol";
 import "../Dependencies/LiquityMath.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 // import "forge-std/console2.sol";
 
@@ -42,6 +43,12 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         bool success;
     }
 
+    struct ExchangeRate {
+        uint256 token1PerToken0;
+        uint256 token0PerToken1;
+        bool isDown;
+    }
+
     error InsufficientGasForExternalCall();
 
     event ShutDownFromOracleFailure(address _failedOracleAddr);
@@ -56,9 +63,9 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
 
     uint8 public token0PoolDecimals;
     uint8 public token1PoolDecimals;
-    uint256 public poolStalenessThreshold;
 
     uint256 public constant TOKEN_PRICE_DEVIATION_THRESHOLD = 2e16; // 2%
+    uint256 public constant TWAP_GRANULARITY = 8; // 8 periods × 30 min = 4 hours
     
     constructor(
         address _borrowerOperationsAddress, 
@@ -66,14 +73,12 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         address _token0UsdOracleAddress,
         address _token1UsdOracleAddress,
         uint256 _token0UsdStalenessThreshold,
-        uint256 _token1UsdStalenessThreshold,
-        uint256 _poolStalenessThreshold
+        uint256 _token1UsdStalenessThreshold
     ) {
         borrowerOperations = IBorrowerOperations(_borrowerOperationsAddress);
         gauge = _gauge;
         pool = IAeroPool(gauge.stakingToken());
 
-        poolStalenessThreshold = _poolStalenessThreshold;
         token0PoolDecimals = IERC20Metadata(pool.token0()).decimals();
         token1PoolDecimals = IERC20Metadata(pool.token1()).decimals();
 
@@ -86,23 +91,99 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         token1UsdOracle.decimals = token1UsdOracle.aggregator.decimals();
     }
 
-    function _getCumulativePrices() internal view returns (uint256 token0Price, uint256 token1Price, bool isStale) {
+    /// @notice Get TWAP-based exchange rate: how many token1 for 1 token0
+    /// @return exchangeRate Exchange rate scaled to 18 decimals
+    function _getTwapExchangeRates() internal view returns (ExchangeRate memory exchangeRate) {
         uint256 gasBefore = gasleft();
 
-        // Try to get the price from the pool
-        try pool.currentCumulativePrices() returns (uint256 token0CumulativePrice, uint256 token1CumulativePrice, uint256 blockTimestampLast) {
-            token0Price = _scaleCumulativePriceTo18decimals(token0CumulativePrice, token0PoolDecimals);
-            token1Price = _scaleCumulativePriceTo18decimals(token1CumulativePrice, token1PoolDecimals);
-            isStale = block.timestamp - blockTimestampLast > poolStalenessThreshold;
+        address token0 = pool.token0();
+        address token1 = pool.token1();
+        
+        try pool.quote(token0, 10 ** token0PoolDecimals, TWAP_GRANULARITY) 
+            returns (uint256 amountOut) 
+        {
+            // amountOut is in token1 decimals - scale to 18
+            exchangeRate.token1PerToken0 = amountOut * 10 ** (18 - token1PoolDecimals);
         } catch {
-            // Require that enough gas was provided to prevent an OOG revert in the external call
-            // causing a shutdown. Instead, just revert. Slightly conservative, as it includes gas used
-            // in the check itself.
             if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
-
-            // If the call to the pool reverts, return a zero price and true for isDown
-            return (0, 0, true);
+            exchangeRate.isDown = true;
+            return exchangeRate;
         }
+
+        gasBefore = gasleft();
+        try pool.quote(token1, 10 ** token1PoolDecimals, TWAP_GRANULARITY) 
+            returns (uint256 amountOut) 
+        {
+            // amountOut is in token0 decimals - scale to 18
+            exchangeRate.token0PerToken1 = amountOut * 10 ** (18 - token0PoolDecimals);
+        } catch {
+            if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
+            exchangeRate.isDown = true;
+            return exchangeRate;
+        }
+
+        exchangeRate.isDown = false;
+        return exchangeRate;
+    }
+
+    /// @notice Get pool reserves and LP total supply
+    /// @return reserve0 Amount of token0 in pool
+    /// @return reserve1 Amount of token1 in pool
+    /// @return lpTotalSupply Total LP tokens outstanding
+    /// @return isDown True if calls failed or total supply is zero
+    function _getPoolState() internal view returns (
+        uint256 reserve0, 
+        uint256 reserve1, 
+        uint256 lpTotalSupply,
+        bool isDown
+    ) {
+        uint256 gasBefore = gasleft();
+        
+        try pool.getReserves() returns (uint256 r0, uint256 r1, uint256) {
+            reserve0 = r0;
+            reserve1 = r1;
+        } catch {
+            if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
+            return (0, 0, 0, true);
+        }
+        
+        gasBefore = gasleft();
+        try IERC20(address(pool)).totalSupply() returns (uint256 supply) {
+            lpTotalSupply = supply;
+            isDown = (supply == 0);
+        } catch {
+            if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
+            return (0, 0, 0, true);
+        }
+    }
+
+    /// @notice Calculate LP token price given reserves, supply, and token prices
+    /// @param reserve0 Amount of token0 in pool
+    /// @param reserve1 Amount of token1 in pool  
+    /// @param lpTotalSupply Total LP tokens outstanding
+    /// @param token0Price USD price of token0 (18 decimals)
+    /// @param token1Price USD price of token1 (18 decimals)
+    /// @return LP token price in USD (18 decimals)
+    function _calculateLPTokenPrice(
+        uint256 reserve0,
+        uint256 reserve1,
+        uint256 lpTotalSupply,
+        uint256 token0Price,
+        uint256 token1Price
+    ) internal view returns (uint256) {
+        // Scale reserves to 18 decimals
+        uint256 reserve0Scaled = reserve0 * 10 ** (18 - token0PoolDecimals);
+        uint256 reserve1Scaled = reserve1 * 10 ** (18 - token1PoolDecimals);
+        
+        // Total value in USD = (reserve0 * price0) + (reserve1 * price1)
+        // Both reserves and prices are 18 decimals, so divide by 1e18
+        uint256 totalValueUsd = (reserve0Scaled * token0Price / 1e18) 
+                              + (reserve1Scaled * token1Price / 1e18);
+        
+        // LP token price = total value / total supply
+        // totalValueUsd is 18 decimals, lpTotalSupply is 18 decimals
+        // Result is 18 decimals
+        return totalValueUsd * 1e18 / lpTotalSupply;
     }
 
     function _shutDownAndSwitchToLastGoodPrice(address _failedOracleAddr) internal returns (uint256) {
@@ -113,15 +194,6 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
 
         emit ShutDownFromOracleFailure(_failedOracleAddr);
         return lastGoodPrice;
-    }
-
-    function _isValidCumulativePriceResponse(uint256 _price0, uint256 _price1, uint256 _lastTimestamp)
-        internal
-        view
-        returns (bool)
-    {
-        return block.timestamp - _lastTimestamp < poolStalenessThreshold
-            && _price0 > 0 && _price1 > 0;
     }
 
     function _getOracleAnswer(Oracle memory _oracle) internal view returns (uint256, bool) {
@@ -179,10 +251,6 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     {
         return chainlinkResponse.success && block.timestamp - chainlinkResponse.timestamp < _stalenessThreshold
             && chainlinkResponse.answer > 0;
-    }
-
-    function _scaleCumulativePriceTo18decimals(uint256 _price, uint256 _decimals) internal pure returns (uint256) {
-        return _price * 10 ** (18 - _decimals);
     }
 
     // Trust assumption: Chainlink won't change the decimal precision on any feed used in v2 after deployment

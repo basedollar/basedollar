@@ -53,16 +53,26 @@ contract AeroLPTokenPriceFeedTest is Test {
 
         gauge = new AeroGaugeMock(address(token0), address(token1));
         pool = gauge.pool();
-        pool.setCumulativePrices(1, 1, block.timestamp);
+        
+        // Set up pool state for LP pricing
+        // 1M USDC (6 decimals) and 500 WETH (18 decimals)
+        pool.setReserves(1_000_000e6, 500e18);
+        pool.setTotalSupply(1000e18); // 1000 LP tokens
+        
+        // Set TWAP: 1 token0 (USDC) = 0.0005 token1 (WETH) -> 1 WETH = 2000 USDC
+        // setQuoteAmounts(token0ToToken1, token1ToToken0)
+        // - token0ToToken1: How much WETH for 1 USDC = 0.0005e18 (in WETH decimals)
+        // - token1ToToken0: How much USDC for 1 WETH = 2000e6 (in USDC decimals)
+        pool.setQuoteAmounts(0.0005e18, 2000e6);
 
         token0UsdOracle = new ChainlinkOracleMock();
         token0UsdOracle.setDecimals(8);
-        token0UsdOracle.setPrice(1e8);
+        token0UsdOracle.setPrice(1e8); // $1 per USDC
         token0UsdOracle.setUpdatedAt(block.timestamp);
 
         token1UsdOracle = new ChainlinkOracleMock();
         token1UsdOracle.setDecimals(8);
-        token1UsdOracle.setPrice(1e8);
+        token1UsdOracle.setPrice(2000e8); // $2000 per WETH
         token1UsdOracle.setUpdatedAt(block.timestamp);
 
         feed = new AeroLPTokenPriceFeedTester(
@@ -71,93 +81,122 @@ contract AeroLPTokenPriceFeedTest is Test {
             address(token0UsdOracle),
             address(token1UsdOracle),
             1 days,
-            1 days,
-            1 hours
+            1 days
         );
     }
 
-    function test_getCumulativePrices_scalesByTokenDecimals() public {
-        pool.setCumulativePrices(
-            123_456, // token0 cumulative price in token0 decimals
-            789, // token1 cumulative price in token1 decimals
-            block.timestamp
-        );
+    // ============ TWAP Exchange Rate Tests ============
 
-        (uint256 p0, uint256 p1, bool isStale) = feed.i_getCumulativePrices();
-
-        // _scaleCumulativePriceTo18decimals(_price, _decimals) = _price * 10 ** (18 - _decimals)
-        assertEq(p0, 123_456 * 10 ** (18 - 6));
-        assertEq(p1, 789 * 10 ** (18 - 18));
-        assertFalse(isStale);
+    function test_getTwapExchangeRate_scalesCorrectly() public {
+        // quote returns 0.0005e18 (token1 has 18 decimals)
+        // Scaled to 18 decimals: 0.0005e18 * 10^(18-18) = 0.0005e18
+        AeroLPTokenPriceFeedBase.ExchangeRate memory exchangeRate = feed.i_getTwapExchangeRates();
+        
+        assertEq(exchangeRate.token1PerToken0, 0.0005e18);
+        assertEq(exchangeRate.token0PerToken1, 2000e18);
+        assertFalse(exchangeRate.isDown);
     }
 
-    function test_getCumulativePrices_staleWhenTimestampExceedsThreshold() public {
-        // poolStalenessThreshold = 1 hour
-        vm.warp(10_000);
-        pool.setCumulativePrices(1, 1, block.timestamp - 1 hours - 1);
-
-        (, , bool isStale) = feed.i_getCumulativePrices();
-        assertTrue(isStale);
-    }
-
-    function test_getCumulativePrices_notStaleAtExactThreshold() public {
-        vm.warp(10_000);
-        pool.setCumulativePrices(1, 1, block.timestamp - 1 hours);
-
-        (, , bool isStale) = feed.i_getCumulativePrices();
-        assertFalse(isStale);
-    }
-
-    function test_getCumulativePrices_returnsZerosOnPoolRevert() public {
+    function test_getTwapExchangeRate_returnsDownOnRevert() public {
         pool.setShouldRevert(true);
 
-        (uint256 p0, uint256 p1, bool isStale) = feed.i_getCumulativePrices();
-        assertEq(p0, 0);
-        assertEq(p1, 0);
-        assertTrue(isStale);
+        AeroLPTokenPriceFeedBase.ExchangeRate memory exchangeRate = feed.i_getTwapExchangeRates();
+        assertEq(exchangeRate.token1PerToken0, 0);
+        assertEq(exchangeRate.token0PerToken1, 0);
+        assertTrue(exchangeRate.isDown);
     }
 
-    function test_fetchPrice_shutsDownAndReturnsLastGoodPrice_whenPoolCumulativePriceIsStale() public {
-        // First: produce a known lastGoodPrice (healthy path)
-        pool.setCumulativePrices(100e6, 200e18, block.timestamp);
-        token0UsdOracle.setPrice(100e8);
-        token0UsdOracle.setUpdatedAt(block.timestamp);
-        token1UsdOracle.setPrice(200e8);
-        token1UsdOracle.setUpdatedAt(block.timestamp);
+    // ============ Pool State Tests ============
 
-        (uint256 lastGoodBefore, bool newFailureBefore) = feed.fetchPrice();
-        assertFalse(newFailureBefore);
-        assertEq(lastGoodBefore, feed.lastGoodPrice());
-        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.primary));
+    function test_getPoolState_returnsCorrectValues() public {
+        (uint256 r0, uint256 r1, uint256 supply, bool isDown) = feed.i_getPoolState();
+        
+        assertEq(r0, 1_000_000e6);
+        assertEq(r1, 500e18);
+        assertEq(supply, 1000e18);
+        assertFalse(isDown);
+    }
 
-        // Now: make pool stale -> should shut down and return lastGoodPrice
-        pool.setCumulativePrices(100e6, 200e18, block.timestamp - 1 hours - 1);
+    function test_getPoolState_returnsDownOnZeroSupply() public {
+        pool.setTotalSupply(0);
 
-        vm.expectCall(address(borrowerOperations), abi.encodeWithSignature("shutdownFromOracleFailure()"));
-        vm.expectEmit();
-        emit AeroLPTokenPriceFeedBase.ShutDownFromOracleFailure(address(pool));
+        (, , , bool isDown) = feed.i_getPoolState();
+        assertTrue(isDown);
+    }
+
+    function test_getPoolState_returnsDownOnRevert() public {
+        pool.setShouldRevert(true);
+
+        (, , , bool isDown) = feed.i_getPoolState();
+        assertTrue(isDown);
+    }
+
+    // ============ LP Token Price Calculation Tests ============
+
+    function test_calculateLPTokenPrice_basicCalculation() public {
+        // Pool has: 1M USDC @ $1 + 500 WETH @ $2000 = $1M + $1M = $2M total
+        // 1000 LP tokens -> each LP = $2000
+        uint256 price = feed.i_calculateLPTokenPrice(
+            1_000_000e6,  // reserve0 (USDC)
+            500e18,       // reserve1 (WETH)
+            1000e18,      // totalSupply
+            1e18,         // token0Price ($1)
+            2000e18       // token1Price ($2000)
+        );
+
+        assertEq(price, 2000e18);
+    }
+
+    function test_calculateLPTokenPrice_asymmetricReserves() public {
+        // Pool has: 2M USDC @ $1 + 250 WETH @ $2000 = $2M + $0.5M = $2.5M total
+        // 1000 LP tokens -> each LP = $2500
+        uint256 price = feed.i_calculateLPTokenPrice(
+            2_000_000e6,  // reserve0 (USDC)
+            250e18,       // reserve1 (WETH)
+            1000e18,      // totalSupply
+            1e18,         // token0Price ($1)
+            2000e18       // token1Price ($2000)
+        );
+
+        assertEq(price, 2500e18);
+    }
+
+    function test_calculateLPTokenPrice_differentDecimals() public {
+        // Test that decimal scaling works correctly
+        // This is implicitly tested by the setup (token0=6 decimals, token1=18 decimals)
+        uint256 price = feed.i_calculateLPTokenPrice(
+            100e6,        // 100 USDC
+            0.05e18,      // 0.05 WETH
+            10e18,        // 10 LP tokens
+            1e18,         // $1 per USDC
+            2000e18       // $2000 per WETH
+        );
+
+        // Total value: 100 * $1 + 0.05 * $2000 = $100 + $100 = $200
+        // Per LP: $200 / 10 = $20
+        assertEq(price, 20e18);
+    }
+
+    // ============ fetchPrice Tests ============
+
+    function test_fetchPrice_calculatesCorrectLPPrice() public {
+        // With setup values:
+        // - 1M USDC @ $1 = $1M
+        // - 500 WETH @ $2000 = $1M  
+        // - Total = $2M, 1000 LP tokens
+        // - LP price = $2000
         (uint256 price, bool newFailure) = feed.fetchPrice();
-
-        assertTrue(newFailure);
-        assertEq(price, lastGoodBefore);
-        assertEq(feed.lastGoodPrice(), lastGoodBefore);
-        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.lastGoodPrice));
+        
+        assertFalse(newFailure);
+        assertEq(price, 2000e18);
+        assertEq(feed.lastGoodPrice(), 2000e18);
     }
 
-    function test_fetchPrice_shutsDownAndReturnsLastGoodPrice_whenToken0OracleIsDown() public {
-        // Healthy baseline: set a non-trivial lastGoodPrice
-        pool.setCumulativePrices(100e6, 200e18, block.timestamp);
-        token0UsdOracle.setPrice(100e8);
-        token0UsdOracle.setUpdatedAt(block.timestamp);
-        token1UsdOracle.setPrice(200e8);
-        token1UsdOracle.setUpdatedAt(block.timestamp);
-
-        (uint256 lastGoodBefore, bool newFailureBefore) = feed.fetchPrice();
-        assertFalse(newFailureBefore);
-        assertEq(lastGoodBefore, feed.lastGoodPrice());
-        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.primary));
-
-        // Make token0 oracle stale (down)
+    function test_fetchPrice_shutsDownOnToken0OracleDown() public {
+        // First establish a lastGoodPrice
+        (uint256 lastGoodBefore, ) = feed.fetchPrice();
+        
+        // Make token0 oracle stale
         token0UsdOracle.setUpdatedAt(block.timestamp - 2 days);
 
         vm.expectCall(address(borrowerOperations), abi.encodeWithSignature("shutdownFromOracleFailure()"));
@@ -167,24 +206,14 @@ contract AeroLPTokenPriceFeedTest is Test {
 
         assertTrue(newFailure);
         assertEq(price, lastGoodBefore);
-        assertEq(feed.lastGoodPrice(), lastGoodBefore);
         assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.lastGoodPrice));
     }
 
-    function test_fetchPrice_shutsDownAndReturnsLastGoodPrice_whenToken1OracleIsDown() public {
-        // Healthy baseline: set a non-trivial lastGoodPrice
-        pool.setCumulativePrices(100e6, 200e18, block.timestamp);
-        token0UsdOracle.setPrice(100e8);
-        token0UsdOracle.setUpdatedAt(block.timestamp);
-        token1UsdOracle.setPrice(200e8);
-        token1UsdOracle.setUpdatedAt(block.timestamp);
-
-        (uint256 lastGoodBefore, bool newFailureBefore) = feed.fetchPrice();
-        assertFalse(newFailureBefore);
-        assertEq(lastGoodBefore, feed.lastGoodPrice());
-        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.primary));
-
-        // Make token1 oracle stale (down)
+    function test_fetchPrice_shutsDownOnToken1OracleDown() public {
+        // First establish a lastGoodPrice
+        (uint256 lastGoodBefore, ) = feed.fetchPrice();
+        
+        // Make token1 oracle stale
         token1UsdOracle.setUpdatedAt(block.timestamp - 2 days);
 
         vm.expectCall(address(borrowerOperations), abi.encodeWithSignature("shutdownFromOracleFailure()"));
@@ -194,56 +223,149 @@ contract AeroLPTokenPriceFeedTest is Test {
 
         assertTrue(newFailure);
         assertEq(price, lastGoodBefore);
-        assertEq(feed.lastGoodPrice(), lastGoodBefore);
         assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.lastGoodPrice));
     }
 
-    function test_fetchRedemptionPrice_withinDeviation_usesMaxMinLogic() public {
-        // Pool prices (scaled inside feed):
-        // - token0 decimals = 6  => token0Price = token0Cum * 1e12
-        // - token1 decimals = 18 => token1Price = token1Cum
-        pool.setCumulativePrices(100e6, 200e18, block.timestamp);
+    function test_fetchPrice_shutsDownOnTwapDown() public {
+        // First establish a lastGoodPrice
+        (uint256 lastGoodBefore, ) = feed.fetchPrice();
+        
+        // Make pool revert
+        pool.setShouldRevert(true);
 
-        // Oracle prices (8 decimals): scaled to 1e18 inside feed
-        // Within 2% deviation for both:
-        // - token0 oracle lower than pool (uses MIN on redemption)
-        // - token1 oracle higher than pool (uses MAX on redemption)
-        token0UsdOracle.setPrice(99e8);
-        token0UsdOracle.setUpdatedAt(block.timestamp);
-        token1UsdOracle.setPrice(202e8);
-        token1UsdOracle.setUpdatedAt(block.timestamp);
+        vm.expectCall(address(borrowerOperations), abi.encodeWithSignature("shutdownFromOracleFailure()"));
+        vm.expectEmit();
+        emit AeroLPTokenPriceFeedBase.ShutDownFromOracleFailure(address(pool));
+        (uint256 price, bool newFailure) = feed.fetchPrice();
+
+        assertTrue(newFailure);
+        assertEq(price, lastGoodBefore);
+        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.lastGoodPrice));
+    }
+
+    function test_fetchPrice_shutsDownOnZeroTotalSupply() public {
+        // First establish a lastGoodPrice
+        (uint256 lastGoodBefore, ) = feed.fetchPrice();
+        
+        // Set zero total supply
+        pool.setTotalSupply(0);
+
+        vm.expectCall(address(borrowerOperations), abi.encodeWithSignature("shutdownFromOracleFailure()"));
+        (uint256 price, bool newFailure) = feed.fetchPrice();
+
+        assertTrue(newFailure);
+        assertEq(price, lastGoodBefore);
+    }
+
+    // ============ Min/Max Price Selection Tests ============
+
+    function test_fetchPrice_usesMinMaxLogic_outsideDeviation() public {
+        // Set TWAP to deviate from Chainlink by >2%
+        // TWAP: 1 USDC = 0.0004 WETH (implies WETH = $2500)
+        // Chainlink: WETH = $2000
+        // Deviation = 25% > 2%
+        // token0ToToken1 = 0.0004e18, token1ToToken0 = 2500e6 (1/0.0004 USDC per WETH)
+        pool.setQuoteAmounts(0.0004e18, 2500e6);
+
+        (uint256 price, bool newFailure) = feed.fetchPrice();
+        assertFalse(newFailure);
+
+        // For non-redemption (borrow): uses conservative prices
+        // token1MarketPrice = $1 / 0.0004 = $2500
+        // token0MarketPrice = $2000 / 2500 = $0.80
+        // Since deviation > 2%, uses min for token1, max for token0:
+        // token1Price = min($2500, $2000) = $2000
+        // token0Price = max($0.80, $1) = $1
+        // LP value = (1M * $1 + 500 * $2000) / 1000 = $2M / 1000 = $2000
+        assertEq(price, 2000e18);
+    }
+
+    function test_fetchRedemptionPrice_withinDeviation_usesMaxMinLogic() public {
+        // Set TWAP within 2% of Chainlink
+        // TWAP: 1 USDC = 0.000505 WETH (implies WETH = $1980.20, ~1% below $2000)
+        // token0ToToken1 = 0.000505e18, token1ToToken0 ≈ 1980.198e6 (1/0.000505 USDC per WETH)
+        pool.setQuoteAmounts(0.000505e18, 1980198019); // ~1980.198 USDC (6 decimals)
 
         (uint256 price, bool newFailure) = feed.fetchRedemptionPrice();
         assertFalse(newFailure);
 
-        uint256 token0Used = 99e18; // min(100, 99)
-        uint256 token1Used = 202e18; // max(200, 202)
-        uint256 expected = token1Used * 1e18 / token0Used;
-
-        assertEq(price, expected);
-        assertEq(feed.lastGoodPrice(), expected);
-        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.primary));
+        // For redemption within threshold: maximize LP value
+        // token1MarketPrice = $1 / 0.000505 ≈ $1980.20
+        // token0MarketPrice = $2000 / 1980.198 ≈ $1.01
+        // Both within 2% of oracle prices, so use max/min for redemption:
+        // token1Price = max($1980.20, $2000) = $2000
+        // token0Price = min($1.01, $1) = $1
+        // LP value = (1M * $1 + 500 * $2000) / 1000 = $2M / 1000 = $2000
+        assertEq(price, 2000e18);
     }
 
     function test_fetchRedemptionPrice_outsideDeviation_usesMinMaxLogic() public {
-        pool.setCumulativePrices(100e6, 200e18, block.timestamp);
-
-        // Make token0 deviate >2% => withinPriceDeviationThreshold == false
-        token0UsdOracle.setPrice(120e8); // 20% above pool token0 price
-        token0UsdOracle.setUpdatedAt(block.timestamp);
-        token1UsdOracle.setPrice(198e8); // within 2% but irrelevant due to AND condition
-        token1UsdOracle.setUpdatedAt(block.timestamp);
+        // Set TWAP to deviate from Chainlink by >2%
+        // TWAP: 1 USDC = 0.0004 WETH (implies WETH = $2500, 25% above $2000)
+        // token0ToToken1 = 0.0004e18, token1ToToken0 = 2500e6 (1/0.0004 USDC per WETH)
+        pool.setQuoteAmounts(0.0004e18, 2500e6);
 
         (uint256 price, bool newFailure) = feed.fetchRedemptionPrice();
         assertFalse(newFailure);
 
-        uint256 token0Used = 120e18; // max(100, 120)
-        uint256 token1Used = 198e18; // min(200, 198)
-        uint256 expected = token1Used * 1e18 / token0Used;
+        // Outside threshold: same as non-redemption (conservative)
+        // token1Price = min($2500, $2000) = $2000
+        // token0Price = max($0.80, $1) = $1
+        assertEq(price, 2000e18);
+    }
 
-        assertEq(price, expected);
-        assertEq(feed.lastGoodPrice(), expected);
+    function test_fetchRedemptionPrice_withinDeviation_higherLPValue() public {
+        // Set up a scenario where TWAP gives higher token1 price than Chainlink
+        // but WITHIN the 2% deviation threshold
+        // TWAP: 1 USDC = 0.000495 WETH (implies WETH = $2020.20, ~1% above $2000)
+        // Deviation = (2020.20 - 2000) / 2000 = 1.01% < 2%
+        // token0ToToken1 = 0.000495e18, token1ToToken0 ≈ 2020.202e6 (1/0.000495 USDC per WETH)
+        pool.setQuoteAmounts(0.000495e18, 2020202020); // ~2020.202 USDC (6 decimals)
+
+        (uint256 redemptionPrice, ) = feed.fetchRedemptionPrice();
+        
+        // Reset quote to get borrow price with same TWAP
+        pool.setQuoteAmounts(0.000495e18, 2020202020);
+        (uint256 borrowPrice, ) = feed.fetchPrice();
+
+        // Calculate expected values:
+        // token1MarketPrice = $1 / 0.000495 = $2020.20
+        // token0MarketPrice = $2000 / 2020.202 ≈ $0.99 
+        // Both within 2% of oracle prices
+        //
+        // Redemption (within 2% threshold): 
+        //   token1Price = max($2020.20, $2000) = $2020.20
+        //   token0Price = min($0.99, $1) = $0.99
+        // Borrow: 
+        //   token1Price = min($2020.20, $2000) = $2000
+        //   token0Price = max($0.99, $1) = $1
+        //
+        // LP value with reserves (1M USDC, 500 WETH) and 1000 LP tokens:
+        // Redemption: (1M * $0.99 + 500 * $2020.20) / 1000 ≈ $2000.10 (higher token1 price wins)
+        // Borrow: (1M * $1 + 500 * $2000) / 1000 = $2000
+        
+        assertGt(redemptionPrice, borrowPrice, "Redemption price should be higher than borrow price");
+    }
+
+    // ============ Edge Cases ============
+
+    function test_fetchPrice_afterShutdown_returnsLastGoodPrice() public {
+        // Get initial price
+        (uint256 initialPrice, ) = feed.fetchPrice();
+        
+        // Trigger shutdown
+        token0UsdOracle.setUpdatedAt(block.timestamp - 2 days);
+        feed.fetchPrice();
+        
+        // Restore oracle but feed should still use lastGoodPrice
+        token0UsdOracle.setUpdatedAt(block.timestamp);
+        
+        (uint256 price, bool newFailure) = feed.fetchPrice();
+        assertFalse(newFailure);
+        assertEq(price, initialPrice);
+    }
+
+    function test_priceSourceStartsAsPrimary() public {
         assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.primary));
     }
 }
-
