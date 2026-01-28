@@ -43,6 +43,12 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         bool success;
     }
 
+    struct ExchangeRate {
+        uint256 token1PerToken0;
+        uint256 token0PerToken1;
+        bool isDown;
+    }
+
     error InsufficientGasForExternalCall();
 
     event ShutDownFromOracleFailure(address _failedOracleAddr);
@@ -86,21 +92,38 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     }
 
     /// @notice Get TWAP-based exchange rate: how many token1 for 1 token0
-    /// @return token1PerToken0 Exchange rate scaled to 18 decimals
-    /// @return isDown True if the call failed
-    function _getTwapExchangeRate() internal view returns (uint256 token1PerToken0, bool isDown) {
+    /// @return exchangeRate Exchange rate scaled to 18 decimals
+    function _getTwapExchangeRates() internal view returns (ExchangeRate memory exchangeRate) {
         uint256 gasBefore = gasleft();
+
+        address token0 = pool.token0();
+        address token1 = pool.token1();
         
-        try pool.quote(pool.token0(), 10 ** token0PoolDecimals, TWAP_GRANULARITY) 
+        try pool.quote(token0, 10 ** token0PoolDecimals, TWAP_GRANULARITY) 
             returns (uint256 amountOut) 
         {
             // amountOut is in token1 decimals - scale to 18
-            token1PerToken0 = amountOut * 10 ** (18 - token1PoolDecimals);
-            isDown = false;
+            exchangeRate.token1PerToken0 = amountOut * 10 ** (18 - token1PoolDecimals);
         } catch {
             if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
-            return (0, true);
+            exchangeRate.isDown = true;
+            return exchangeRate;
         }
+
+        gasBefore = gasleft();
+        try pool.quote(token1, 10 ** token1PoolDecimals, TWAP_GRANULARITY) 
+            returns (uint256 amountOut) 
+        {
+            // amountOut is in token0 decimals - scale to 18
+            exchangeRate.token0PerToken1 = amountOut * 10 ** (18 - token0PoolDecimals);
+        } catch {
+            if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
+            exchangeRate.isDown = true;
+            return exchangeRate;
+        }
+
+        exchangeRate.isDown = false;
+        return exchangeRate;
     }
 
     /// @notice Get pool reserves and LP total supply

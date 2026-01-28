@@ -22,8 +22,8 @@ contract AeroLPTokenPriceFeedTester is AeroLPTokenPriceFeed {
         )
     {}
 
-    function i_getTwapExchangeRate() external view returns (uint256 token1PerToken0, bool isDown) {
-        return _getTwapExchangeRate();
+    function i_getTwapExchangeRates() external view returns (ExchangeRate memory exchangeRate) {
+        return _getTwapExchangeRates();
     }
     
     function i_getPoolState() external view returns (

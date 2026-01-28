@@ -61,19 +61,19 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
         }
         
         // 2. Get TWAP exchange rate from pool (how many token1 for 1 token0)
-        (uint256 twapToken1PerToken0, bool twapIsDown) = _getTwapExchangeRate();
-        if (twapIsDown) {
+        ExchangeRate memory twapExchangeRate = _getTwapExchangeRates();
+        if (twapExchangeRate.isDown) {
             return (_shutDownAndSwitchToLastGoodPrice(address(pool)), true);
         }
         
         // 3. Derive "market" price for token1 from TWAP and select final prices
         // If 1 token0 = X token1 (TWAP), and token0 = $Y (Chainlink)
         // Then token1 market price = $Y / X
-        // Note: token0's "market price" equals its oracle price (we used it as base)
         (uint256 token0Price, uint256 token1Price) = _selectPrices(
             token0OraclePrice,
             token1OraclePrice,
-            twapToken1PerToken0,
+            twapExchangeRate.token1PerToken0,
+            twapExchangeRate.token0PerToken1,
             _isRedemption
         );
         
@@ -86,30 +86,30 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
         uint256 token0OraclePrice,
         uint256 token1OraclePrice,
         uint256 twapToken1PerToken0,
+        uint256 twapToken0PerToken1,
         bool _isRedemption
     ) internal pure returns (uint256 token0Price, uint256 token1Price) {
         // Derive market price for token1 from TWAP
         uint256 token1MarketPrice = token0OraclePrice * 1e18 / twapToken1PerToken0;
-        
+        // Derive market price for token0 from TWAP
+        uint256 token0MarketPrice = token1OraclePrice * 1e18 / twapToken0PerToken1;
+
         // Check if market price is within deviation threshold of oracle price
-        // Note: token0 market price = oracle price, so it's always within threshold
-        bool withinThreshold = _withinDeviationThreshold(
-            token1MarketPrice, 
-            token1OraclePrice, 
-            TOKEN_PRICE_DEVIATION_THRESHOLD
-        );
+        bool withinThreshold = 
+            _withinDeviationThreshold(token1MarketPrice, token1OraclePrice, TOKEN_PRICE_DEVIATION_THRESHOLD) &&
+            _withinDeviationThreshold(token0MarketPrice, token0OraclePrice, TOKEN_PRICE_DEVIATION_THRESHOLD);
         
         if (_isRedemption && withinThreshold) {
             // For redemptions within threshold: maximize LP value to prevent value leakage
             // max token1 price, min token0 price -> higher LP value
             token1Price = LiquityMath._max(token1MarketPrice, token1OraclePrice);
-            token0Price = token0OraclePrice; // min(oracle, oracle) = oracle
+            token0Price = LiquityMath._min(token0MarketPrice, token0OraclePrice);
         } else {
             // For borrows (or redemptions outside threshold): minimize LP value
             // Protects against upward manipulation
             // min token1 price, max token0 price -> lower LP value
             token1Price = LiquityMath._min(token1MarketPrice, token1OraclePrice);
-            token0Price = token0OraclePrice; // max(oracle, oracle) = oracle
+            token0Price = LiquityMath._max(token0MarketPrice, token0OraclePrice);
         }
     }
     

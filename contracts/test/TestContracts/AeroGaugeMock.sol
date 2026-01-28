@@ -26,7 +26,8 @@ contract AeroPoolMock {
     uint256 internal _reserve0;
     uint256 internal _reserve1;
     uint256 internal _totalSupply;
-    uint256 internal _quoteAmountOut;
+    uint256 internal _quoteToken0ToToken1; // How much token1 for 1 token0
+    uint256 internal _quoteToken1ToToken0; // How much token0 for 1 token1
 
     bool internal _shouldRevert;
 
@@ -52,8 +53,12 @@ contract AeroPoolMock {
         _totalSupply = supply;
     }
     
-    function setQuoteAmountOut(uint256 amountOut) external {
-        _quoteAmountOut = amountOut;
+    /// @notice Set quote amounts for both directions
+    /// @param token0ToToken1 How much token1 returned when quoting 1 unit of token0
+    /// @param token1ToToken0 How much token0 returned when quoting 1 unit of token1
+    function setQuoteAmounts(uint256 token0ToToken1, uint256 token1ToToken0) external {
+        _quoteToken0ToToken1 = token0ToToken1;
+        _quoteToken1ToToken0 = token1ToToken0;
     }
 
     function setShouldRevert(bool v) external {
@@ -71,9 +76,14 @@ contract AeroPoolMock {
         return _totalSupply;
     }
     
-    function quote(address, uint256, uint256) external view returns (uint256) {
+    function quote(address tokenIn, uint256, uint256) external view returns (uint256) {
         if (_shouldRevert) revert("AeroPoolMock: revert");
-        return _quoteAmountOut;
+        // Return appropriate quote based on input token direction
+        if (tokenIn == token0) {
+            return _quoteToken0ToToken1;
+        } else {
+            return _quoteToken1ToToken0;
+        }
     }
 
     // Legacy getter (kept for backward compatibility)

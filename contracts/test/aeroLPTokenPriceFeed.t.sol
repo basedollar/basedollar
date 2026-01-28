@@ -60,8 +60,10 @@ contract AeroLPTokenPriceFeedTest is Test {
         pool.setTotalSupply(1000e18); // 1000 LP tokens
         
         // Set TWAP: 1 token0 (USDC) = 0.0005 token1 (WETH) -> 1 WETH = 2000 USDC
-        // quote() returns how many token1 for 1 token0 (in token1 decimals)
-        pool.setQuoteAmountOut(0.0005e18); // 0.0005 WETH per USDC
+        // setQuoteAmounts(token0ToToken1, token1ToToken0)
+        // - token0ToToken1: How much WETH for 1 USDC = 0.0005e18 (in WETH decimals)
+        // - token1ToToken0: How much USDC for 1 WETH = 2000e6 (in USDC decimals)
+        pool.setQuoteAmounts(0.0005e18, 2000e6);
 
         token0UsdOracle = new ChainlinkOracleMock();
         token0UsdOracle.setDecimals(8);
@@ -88,18 +90,20 @@ contract AeroLPTokenPriceFeedTest is Test {
     function test_getTwapExchangeRate_scalesCorrectly() public {
         // quote returns 0.0005e18 (token1 has 18 decimals)
         // Scaled to 18 decimals: 0.0005e18 * 10^(18-18) = 0.0005e18
-        (uint256 rate, bool isDown) = feed.i_getTwapExchangeRate();
+        AeroLPTokenPriceFeedBase.ExchangeRate memory exchangeRate = feed.i_getTwapExchangeRates();
         
-        assertEq(rate, 0.0005e18);
-        assertFalse(isDown);
+        assertEq(exchangeRate.token1PerToken0, 0.0005e18);
+        assertEq(exchangeRate.token0PerToken1, 2000e18);
+        assertFalse(exchangeRate.isDown);
     }
 
     function test_getTwapExchangeRate_returnsDownOnRevert() public {
         pool.setShouldRevert(true);
 
-        (uint256 rate, bool isDown) = feed.i_getTwapExchangeRate();
-        assertEq(rate, 0);
-        assertTrue(isDown);
+        AeroLPTokenPriceFeedBase.ExchangeRate memory exchangeRate = feed.i_getTwapExchangeRates();
+        assertEq(exchangeRate.token1PerToken0, 0);
+        assertEq(exchangeRate.token0PerToken1, 0);
+        assertTrue(exchangeRate.isDown);
     }
 
     // ============ Pool State Tests ============
@@ -260,15 +264,18 @@ contract AeroLPTokenPriceFeedTest is Test {
         // TWAP: 1 USDC = 0.0004 WETH (implies WETH = $2500)
         // Chainlink: WETH = $2000
         // Deviation = 25% > 2%
-        pool.setQuoteAmountOut(0.0004e18);
+        // token0ToToken1 = 0.0004e18, token1ToToken0 = 2500e6 (1/0.0004 USDC per WETH)
+        pool.setQuoteAmounts(0.0004e18, 2500e6);
 
         (uint256 price, bool newFailure) = feed.fetchPrice();
         assertFalse(newFailure);
 
         // For non-redemption (borrow): uses conservative prices
-        // token0Price = max(market, oracle) = max($1, $1) = $1 (same, since token0 is base)
         // token1MarketPrice = $1 / 0.0004 = $2500
-        // token1Price = min(market, oracle) = min($2500, $2000) = $2000
+        // token0MarketPrice = $2000 / 2500 = $0.80
+        // Since deviation > 2%, uses min for token1, max for token0:
+        // token1Price = min($2500, $2000) = $2000
+        // token0Price = max($0.80, $1) = $1
         // LP value = (1M * $1 + 500 * $2000) / 1000 = $2M / 1000 = $2000
         assertEq(price, 2000e18);
     }
@@ -276,15 +283,18 @@ contract AeroLPTokenPriceFeedTest is Test {
     function test_fetchRedemptionPrice_withinDeviation_usesMaxMinLogic() public {
         // Set TWAP within 2% of Chainlink
         // TWAP: 1 USDC = 0.000505 WETH (implies WETH = $1980.20, ~1% below $2000)
-        pool.setQuoteAmountOut(0.000505e18);
+        // token0ToToken1 = 0.000505e18, token1ToToken0 ≈ 1980.198e6 (1/0.000505 USDC per WETH)
+        pool.setQuoteAmounts(0.000505e18, 1980198019); // ~1980.198 USDC (6 decimals)
 
         (uint256 price, bool newFailure) = feed.fetchRedemptionPrice();
         assertFalse(newFailure);
 
         // For redemption within threshold: maximize LP value
-        // token0Price = min(market, oracle) = min($1, $1) = $1
         // token1MarketPrice = $1 / 0.000505 ≈ $1980.20
-        // token1Price = max(market, oracle) = max($1980.20, $2000) = $2000
+        // token0MarketPrice = $2000 / 1980.198 ≈ $1.01
+        // Both within 2% of oracle prices, so use max/min for redemption:
+        // token1Price = max($1980.20, $2000) = $2000
+        // token0Price = min($1.01, $1) = $1
         // LP value = (1M * $1 + 500 * $2000) / 1000 = $2M / 1000 = $2000
         assertEq(price, 2000e18);
     }
@@ -292,13 +302,15 @@ contract AeroLPTokenPriceFeedTest is Test {
     function test_fetchRedemptionPrice_outsideDeviation_usesMinMaxLogic() public {
         // Set TWAP to deviate from Chainlink by >2%
         // TWAP: 1 USDC = 0.0004 WETH (implies WETH = $2500, 25% above $2000)
-        pool.setQuoteAmountOut(0.0004e18);
+        // token0ToToken1 = 0.0004e18, token1ToToken0 = 2500e6 (1/0.0004 USDC per WETH)
+        pool.setQuoteAmounts(0.0004e18, 2500e6);
 
         (uint256 price, bool newFailure) = feed.fetchRedemptionPrice();
         assertFalse(newFailure);
 
         // Outside threshold: same as non-redemption (conservative)
         // token1Price = min($2500, $2000) = $2000
+        // token0Price = max($0.80, $1) = $1
         assertEq(price, 2000e18);
     }
 
@@ -307,24 +319,30 @@ contract AeroLPTokenPriceFeedTest is Test {
         // but WITHIN the 2% deviation threshold
         // TWAP: 1 USDC = 0.000495 WETH (implies WETH = $2020.20, ~1% above $2000)
         // Deviation = (2020.20 - 2000) / 2000 = 1.01% < 2%
-        pool.setQuoteAmountOut(0.000495e18);
+        // token0ToToken1 = 0.000495e18, token1ToToken0 ≈ 2020.202e6 (1/0.000495 USDC per WETH)
+        pool.setQuoteAmounts(0.000495e18, 2020202020); // ~2020.202 USDC (6 decimals)
 
         (uint256 redemptionPrice, ) = feed.fetchRedemptionPrice();
         
         // Reset quote to get borrow price with same TWAP
-        pool.setQuoteAmountOut(0.000495e18);
+        pool.setQuoteAmounts(0.000495e18, 2020202020);
         (uint256 borrowPrice, ) = feed.fetchPrice();
 
         // Calculate expected values:
-        // TWAP-derived token1 market price = $1 / 0.000495 = $2020.20
-        // Chainlink token1 price = $2000
+        // token1MarketPrice = $1 / 0.000495 = $2020.20
+        // token0MarketPrice = $2000 / 2020.202 ≈ $0.99 
+        // Both within 2% of oracle prices
         //
-        // Redemption (within 2% threshold): max(2020.20, 2000) = 2020.20
-        // Borrow: min(2020.20, 2000) = 2000
+        // Redemption (within 2% threshold): 
+        //   token1Price = max($2020.20, $2000) = $2020.20
+        //   token0Price = min($0.99, $1) = $0.99
+        // Borrow: 
+        //   token1Price = min($2020.20, $2000) = $2000
+        //   token0Price = max($0.99, $1) = $1
         //
         // LP value with reserves (1M USDC, 500 WETH) and 1000 LP tokens:
-        // Redemption: (1M * $1 + 500 * $2020.20) / 1000 = (1M + 1.0101M) / 1000 = $2010.10
-        // Borrow: (1M * $1 + 500 * $2000) / 1000 = (1M + 1M) / 1000 = $2000
+        // Redemption: (1M * $0.99 + 500 * $2020.20) / 1000 ≈ $2000.10 (higher token1 price wins)
+        // Borrow: (1M * $1 + 500 * $2000) / 1000 = $2000
         
         assertGt(redemptionPrice, borrowPrice, "Redemption price should be higher than borrow price");
     }
