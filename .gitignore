@@ -6,3 +6,7 @@ CLAUDE.md
 package-lock.json
 
 .env
+
+.agents/
+.cursor/
+.opencode/

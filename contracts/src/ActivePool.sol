@@ -181,10 +181,8 @@ contract ActivePool is IActivePool {
 
         _accountForSendColl(_amount);
 
-        if (isAeroLPCollateral) {
-            // IAeroGauge(aeroGaugeAddress).withdraw(_amount);
-            IAeroManager(aeroManagerAddress).withdraw(aeroGaugeAddress, address(collToken), _amount);
-        }
+        _unstakeIfAeroLPCollateral(_amount);
+
         collToken.safeTransfer(_account, _amount);
     }
 
@@ -192,6 +190,8 @@ contract ActivePool is IActivePool {
         _requireCallerIsTroveManager();
 
         _accountForSendColl(_amount);
+
+        _unstakeIfAeroLPCollateral(_amount);
 
         IDefaultPool(defaultPoolAddress).receiveColl(_amount);
     }
@@ -228,6 +228,14 @@ contract ActivePool is IActivePool {
             // Then AeroManager deposits the _amount into AeroGauge
             // IAeroGauge(aeroGaugeAddress).deposit(_amount);
             IAeroManager(aeroManagerAddress).stake(aeroGaugeAddress, address(collToken), _amount);
+        }
+    }
+
+    function _unstakeIfAeroLPCollateral(uint256 _amount) internal {
+        if (isAeroLPCollateral) {
+            // AeroManager withdraws the _amount from AeroGauge
+            // IAeroGauge(aeroGaugeAddress).withdraw(_amount);
+            IAeroManager(aeroManagerAddress).withdraw(aeroGaugeAddress, address(collToken), _amount);
         }
     }
 
