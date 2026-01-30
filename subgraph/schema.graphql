@@ -53,6 +53,20 @@ type AeroClaim @entity(immutable: true) {
   gauge: Bytes!
   total: BigInt!
   claimFee: BigInt!
+  epoch: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+# Raw AeroManager distribution events, when AERO rewards are distributed to borrowers.
+type AeroDistribution @entity(immutable: true) {
+  id: ID! # txHash:logIndex
+  collateral: Collateral!
+  gauge: Bytes!
+  recipients: BigInt!
+  totalRewardAmount: BigInt!
+  epoch: BigInt!
   blockNumber: BigInt!
   timestamp: BigInt!
   transactionHash: Bytes!
