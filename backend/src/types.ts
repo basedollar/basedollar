@@ -15,6 +15,7 @@ export interface ClaimedEvent {
   claimFee: bigint;
   epoch: bigint;
   blockNumber: bigint;
+  timestamp: bigint;
   transactionHash: `0x${string}`;
 }
 
@@ -24,6 +25,7 @@ export interface DistributedEvent {
   totalRewardAmount: bigint;
   epoch: bigint;
   blockNumber: bigint;
+  timestamp: bigint;
   transactionHash: `0x${string}`;
 }
 
@@ -74,16 +76,29 @@ export interface DistributionPeriod {
   endTimestamp: bigint;
 }
 
+// Per-gauge distribution information derived from epochs
+export interface GaugeDistributionInfo {
+  gauge: Address;
+  token: Address;
+  period: DistributionPeriod;
+  latestDistributedEpoch: bigint;
+  claimEpoch: bigint; // latestDistributedEpoch + 1
+  totalRewards: bigint; // sum of claims for this gauge at claimEpoch
+}
+
 // Aero LP collateral info
 export interface AeroLPCollateral {
   token: Address;
   gauge: Address;
 }
 
-// Distribution calculation result
-export interface DistributionResult {
+// Per-gauge distribution result
+export interface GaugeDistributionResult {
+  gauge: Address;
+  token: Address;
   period: DistributionPeriod;
-  lpCollaterals: AeroLPCollateral[];
-  totalClaimedAero: bigint;
+  latestDistributedEpoch: bigint;
+  claimEpoch: bigint;
+  totalRewards: bigint;
   distributions: TroveDistribution[];
 }

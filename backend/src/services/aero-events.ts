@@ -1,8 +1,16 @@
 import type { Address } from "viem";
 import type { Config } from "../config.js";
-import type { AeroLPCollateral, ClaimedEvent, DistributedEvent, DistributionPeriod, StakedEvent } from "../types.js";
+import type {
+  AeroLPCollateral,
+  ClaimedEvent,
+  DistributedEvent,
+  DistributionPeriod,
+  GaugeDistributionInfo,
+  StakedEvent,
+} from "../types.js";
 
 const SUBGRAPH_QUERY_LIMIT = 1000;
+const ORIGIN_TIMESTAMP = 0n;
 
 export class AeroEventsService {
   private config: Config;
@@ -152,6 +160,7 @@ export class AeroEventsService {
           claimFee: BigInt(row.claimFee),
           epoch: BigInt(row.epoch),
           blockNumber: BigInt(row.blockNumber),
+          timestamp: BigInt(row.timestamp),
           transactionHash: row.transactionHash as `0x${string}`,
         });
       }
@@ -221,6 +230,7 @@ export class AeroEventsService {
           totalRewardAmount: BigInt(row.totalRewardAmount),
           epoch: BigInt(row.epoch),
           blockNumber: BigInt(row.blockNumber),
+          timestamp: BigInt(row.timestamp),
           transactionHash: row.transactionHash as `0x${string}`,
         });
       }
@@ -305,5 +315,79 @@ export class AeroEventsService {
     // If nothing indexed yet, fall back to wall-clock time.
     if (ts === 0n) return BigInt(Math.floor(Date.now() / 1000));
     return ts;
+  }
+
+  /**
+   * Get the latest distributed event per gauge.
+   * Returns a map of gauge address to {epoch, timestamp}.
+   */
+  async getLatestDistributedEpochPerGauge(): Promise<Map<Address, { epoch: bigint; timestamp: bigint }>> {
+    const events = await this.getDistributedEvents();
+
+    const latestPerGauge = new Map<Address, { epoch: bigint; timestamp: bigint }>();
+    for (const event of events) {
+      const current = latestPerGauge.get(event.gauge);
+      if (!current || event.epoch > current.epoch) {
+        latestPerGauge.set(event.gauge, {
+          epoch: event.epoch,
+          timestamp: event.timestamp,
+        });
+      }
+    }
+
+    return latestPerGauge;
+  }
+
+  /**
+   * Build per-gauge distribution info based on epoch data.
+   * For each gauge:
+   * - Start timestamp = timestamp of latest distributed event for that gauge
+   * - End timestamp = current timestamp
+   * - Total rewards = sum of claim events where gauge matches AND epoch = latestDistributedEpoch + 1
+   */
+  async getGaugeDistributionInfo(currentTimestamp: bigint): Promise<GaugeDistributionInfo[]> {
+    // Get LP collaterals (gauge -> token mapping)
+    const lpCollaterals = await this.getAeroLPCollaterals();
+    if (lpCollaterals.length === 0) {
+      return [];
+    }
+
+    // Get latest distributed epoch per gauge
+    const latestDistributed = await this.getLatestDistributedEpochPerGauge();
+
+    // Get all claim events (unfiltered by time)
+    const allClaims = await this.getClaimedEvents();
+
+    // Build distribution info per gauge
+    const result: GaugeDistributionInfo[] = [];
+
+    for (const lp of lpCollaterals) {
+      const distributed = latestDistributed.get(lp.gauge);
+
+      const claimEpoch = distributed ? distributed.epoch + 1n : 0n;
+
+      // Sum claims for this gauge at claimEpoch
+      let totalRewards = 0n;
+      for (const claim of allClaims) {
+        if (claim.gauge === lp.gauge && claim.epoch === claimEpoch) {
+          // total includes the fee, subtract it for distribution amount
+          totalRewards += claim.total - claim.claimFee;
+        }
+      }
+
+      result.push({
+        gauge: lp.gauge,
+        token: lp.token,
+        period: {
+          startTimestamp: distributed?.timestamp ?? ORIGIN_TIMESTAMP,
+          endTimestamp: currentTimestamp,
+        },
+        latestDistributedEpoch: distributed?.epoch ?? 0n,
+        claimEpoch,
+        totalRewards,
+      });
+    }
+
+    return result;
   }
 }
