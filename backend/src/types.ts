@@ -13,6 +13,16 @@ export interface ClaimedEvent {
   gauge: Address;
   total: bigint;
   claimFee: bigint;
+  epoch: bigint;
+  blockNumber: bigint;
+  transactionHash: `0x${string}`;
+}
+
+export interface DistributedEvent {
+  gauge: Address;
+  recipients: bigint;
+  totalRewardAmount: bigint;
+  epoch: bigint;
   blockNumber: bigint;
   transactionHash: `0x${string}`;
 }

@@ -1,6 +1,6 @@
 import type { Address } from "viem";
 import type { Config } from "../config.js";
-import type { AeroLPCollateral, ClaimedEvent, DistributionPeriod, StakedEvent } from "../types.js";
+import type { AeroLPCollateral, ClaimedEvent, DistributedEvent, DistributionPeriod, StakedEvent } from "../types.js";
 
 const SUBGRAPH_QUERY_LIMIT = 1000;
 
@@ -108,6 +108,7 @@ export class AeroEventsService {
           gauge: string;
           total: string;
           claimFee: string;
+          epoch: string;
           blockNumber: string;
           timestamp: string;
           transactionHash: string;
@@ -129,6 +130,7 @@ export class AeroEventsService {
             gauge
             total
             claimFee
+            epoch
             blockNumber
             timestamp
             transactionHash
@@ -148,6 +150,7 @@ export class AeroEventsService {
           gauge: row.gauge as Address,
           total: BigInt(row.total),
           claimFee: BigInt(row.claimFee),
+          epoch: BigInt(row.epoch),
           blockNumber: BigInt(row.blockNumber),
           transactionHash: row.transactionHash as `0x${string}`,
         });
@@ -155,6 +158,75 @@ export class AeroEventsService {
 
       if (data.aeroClaims.length < SUBGRAPH_QUERY_LIMIT) break;
       cursor = data.aeroClaims[data.aeroClaims.length - 1].id;
+    }
+
+    return events;
+  }
+
+  /**
+   * Fetch all AeroDistributed events from AeroManager contract
+   */
+  async getDistributedEvents(period?: DistributionPeriod): Promise<DistributedEvent[]> {
+    const events: DistributedEvent[] = [];
+    let cursor = "";
+
+    for (;;) {
+      const data = await this.query<{
+        aeroDistributions: Array<{
+          id: string;
+          gauge: string;
+          recipients: string;
+          totalRewardAmount: string;
+          epoch: string;
+          blockNumber: string;
+          timestamp: string;
+          transactionHash: string;
+        }>;
+      }>(
+        `
+        query AeroDistributions($cursor: ID!, $limit: Int!, $start: BigInt, $end: BigInt) {
+          aeroDistributions(
+            where: {
+              id_gt: $cursor
+              timestamp_gte: $start
+              timestamp_lt: $end
+            }
+            orderBy: id
+            orderDirection: asc
+            first: $limit
+          ) {
+            id
+            gauge
+            recipients
+            totalRewardAmount
+            epoch
+            blockNumber
+            timestamp
+            transactionHash
+          }
+        }
+        `,
+        {
+          cursor,
+          limit: SUBGRAPH_QUERY_LIMIT,
+          start: period ? period.startTimestamp.toString() : null,
+          end: period ? period.endTimestamp.toString() : null,
+        },
+      );
+
+      for (const row of data.aeroDistributions) {
+        events.push({
+          gauge: row.gauge as Address,
+          recipients: BigInt(row.recipients),
+          totalRewardAmount: BigInt(row.totalRewardAmount),
+          epoch: BigInt(row.epoch),
+          blockNumber: BigInt(row.blockNumber),
+          transactionHash: row.transactionHash as `0x${string}`,
+        });
+      }
+
+      if (data.aeroDistributions.length < SUBGRAPH_QUERY_LIMIT) break;
+      cursor = data.aeroDistributions[data.aeroDistributions.length - 1].id;
     }
 
     return events;
@@ -212,11 +284,13 @@ export class AeroEventsService {
     const data = await this.query<{
       aeroClaims: Array<{ timestamp: string }>;
       aeroStakes: Array<{ timestamp: string }>;
+      aeroDistributions: Array<{ timestamp: string }>;
     }>(
       `
       query LatestAeroTimestamps {
         aeroClaims(first: 1, orderBy: timestamp, orderDirection: desc) { timestamp }
         aeroStakes(first: 1, orderBy: timestamp, orderDirection: desc) { timestamp }
+        aeroDistributions(first: 1, orderBy: timestamp, orderDirection: desc) { timestamp }
       }
       `,
       {},
@@ -224,7 +298,9 @@ export class AeroEventsService {
 
     const claimTs = data.aeroClaims.length > 0 ? BigInt(data.aeroClaims[0].timestamp) : 0n;
     const stakeTs = data.aeroStakes.length > 0 ? BigInt(data.aeroStakes[0].timestamp) : 0n;
-    const ts = claimTs > stakeTs ? claimTs : stakeTs;
+    const distTs = data.aeroDistributions.length > 0 ? BigInt(data.aeroDistributions[0].timestamp) : 0n;
+    let ts = claimTs > stakeTs ? claimTs : stakeTs;
+    ts = ts > distTs ? ts : distTs;
 
     // If nothing indexed yet, fall back to wall-clock time.
     if (ts === 0n) return BigInt(Math.floor(Date.now() / 1000));
