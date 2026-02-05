@@ -1,20 +1,17 @@
-import type { DistributionResult, TroveCollateralTWA, TroveDistribution } from "../types.js";
+import type { TroveCollateralTWA, TroveDistribution } from "../types.js";
 
 /**
  * Rewards Calculator Service
  *
  * This service is responsible for calculating AERO reward distributions
  * based on time-weighted average collateral amounts.
- *
- * TODO: Implement the reward calculation logic based on your specific requirements.
- * The placeholder function below provides the structure - fill in the math.
  */
 export class RewardsCalculatorService {
   /**
    * Calculate AERO rewards per troveId based on time-weighted average collateral.
    *
-   * Suggested approach:
-   * 1. Compute a weight per trove (default: TWA * activeTime)
+   * Approach:
+   * 1. Compute a weight per trove (TWA * activeTime)
    * 2. Sum weights across all troves
    * 3. Allocate pro-rata: reward = totalAeroToDistribute * weight / totalWeight
    *
@@ -45,22 +42,5 @@ export class RewardsCalculatorService {
         rewardAmount,
       };
     });
-  }
-
-  /**
-   * Build the final distribution result.
-   *
-   * @param distributions - Calculated user distributions
-   * @param result - Partial distribution result with period and other metadata
-   * @returns Complete distribution result
-   */
-  buildDistributionResult(
-    distributions: TroveDistribution[],
-    result: Omit<DistributionResult, "distributions">,
-  ): DistributionResult {
-    return {
-      ...result,
-      distributions,
-    };
   }
 }
