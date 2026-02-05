@@ -137,14 +137,17 @@ templates:
       entities:
         - AeroStake
         - AeroClaim
+        - AeroDistribution
       abis:
         - name: AeroManager
           file: ../contracts/out/AeroManager.sol/AeroManager.json
       eventHandlers:
         - event: Staked(indexed address,address,uint256)
           handler: handleStaked
-        - event: Claimed(indexed address,uint256,uint256)
+        - event: Claimed(indexed address,uint256,uint256,indexed uint256)
           handler: handleClaimed
+        - event: AeroDistributed(indexed address,uint256,uint256,indexed uint256)
+          handler: handleAeroDistributed
   - name: CollateralRegistry
     kind: ethereum/contract
     network: mainnet
