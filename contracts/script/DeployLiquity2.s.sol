@@ -32,7 +32,6 @@ import "src/PriceFeeds/RETHPriceFeed.sol";
 import "src/PriceFeeds/cbBTCPriceFeed.sol";
 import "src/PriceFeeds/cbETHPriceFeed.sol";
 import "src/PriceFeeds/WeETHPriceFeed.sol";
-import "src/PriceFeeds/SuperOETHbPriceFeed.sol";
 import "src/PriceFeeds/AEROPriceFeed.sol";
 import "src/PriceFeeds/AeroLPTokenPriceFeed.sol";
 import {IAeroGauge} from "src/Interfaces/IAeroGauge.sol";
@@ -96,7 +95,6 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     address CBBTC_ADDRESS = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
     address CBETH_ADDRESS = 0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22;
     address WEETH_ADDRESS = 0x04C0599Ae5A44757c0af6F9eC3b93da8976c150A;
-    address SUPEROETHB_ADDRESS = 0xDBFeFD2e8460a6Ee4955A68582F85708BAEA60A3; // (Not Wrapped) Super OETH on Base
     address AERO_ADDRESS = 0x940181a94A35A4569E4529A3CDfB74e38FD98631;
 
     // Aerodrome LP gauge address (for LP token price feed)
@@ -105,16 +103,15 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     // AeroManager treasury address (receives fee from AERO claims)
     address TREASURY_ADDRESS = address(0); // TODO: Set this to the actual treasury address
 
-    // Oracle addresses (Base Mainnet - Chainlink)
-    address ETH_ORACLE_ADDRESS = 0x77003c51B6febe7b88d1215004b91D4d3493Fa30;
-    address BTC_ORACLE_ADDRESS = 0xCAc4d304032a46C8D0947396B7cBb07986826A36; // Skips OEV rewards (OEV rewards version not available yet)
-    address CBBTC_ORACLE_ADDRESS = 0x021d31211F81BC37ED7c9D535380CfAdDD62C111;
-    address CBETH_ETH_ORACLE_ADDRESS = 0x806b4Ac04501c29769051e42783cF04dCE41440b; // TODO: Not available yet
-    address WEETH_ETH_ORACLE_ADDRESS = 0xFC1415403EbB0c693f9a7844b92aD2Ff24775C65; // TODO: Not available yet
-    address SUPEROETHB_ORACLE_ADDRESS = 0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70; // TODO: Not available yet
-    address AERO_ORACLE_ADDRESS = 0x6C655693f733FB26EA28e7757DD4a5Ad59061e75;
-    address STETH_ORACLE_ADDRESS = 0x00cAeDA3cB375a17A084b1BdCE7136bB01BBd13D; // wstETH/stETH oracle
-    address RETH_ORACLE_ADDRESS = 0xD75F2752DEd6995106B163dA472B96186CCF0441; // rETH/ETH oracle
+    // Oracle addresses (Base Mainnet - API3)
+    address ETH_USD_ORACLE_ADDRESS = 0x5b0cf2b36a65a6BB085D501B971e4c102B9Cd473;
+    address STETH_USD_ORACLE_ADDRESS = address(0); // TODO: Not activated yet
+    address RETH_ETH_ORACLE_ADDRESS = 0x3Ce8154d55426e8c71F1F0EffDDc6183a92bE45f;
+    address BTC_USD_ORACLE_ADDRESS = 0xCAc4d304032a46C8D0947396B7cBb07986826A36;
+    address CBBTC_USD_ORACLE_ADDRESS = 0xa4183Cbf2eE868dDFccd325531C4f53F737FFF68;
+    address CBETH_ETH_ORACLE_ADDRESS = address(0); // TODO: Not activated yet
+    address WEETH_ETH_ORACLE_ADDRESS = address(0); // TODO: Not activated yet
+    address AERO_USD_ORACLE_ADDRESS = 0x201bC62f44f018B70E0c5eC8fF524fB26261959c;
 
     // Staleness thresholds
     uint256 ETH_USD_STALENESS_THRESHOLD = 24 hours;
@@ -124,7 +121,6 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     uint256 BTC_USD_STALENESS_THRESHOLD = 24 hours;
     uint256 CBETH_ETH_STALENESS_THRESHOLD = 24 hours;
     uint256 WEETH_ETH_STALENESS_THRESHOLD = 24 hours;
-    uint256 SUPEROETHB_USD_STALENESS_THRESHOLD = 24 hours;
     uint256 AERO_USD_STALENESS_THRESHOLD = 24 hours;
     uint256 AERO_LP_POOL_STALENESS_THRESHOLD = 1 hours;
 
@@ -444,21 +440,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_WEETH
         });
 
-        // superOETHb
-        troveManagerParamsArray[6] = TroveManagerParams({
-            isAeroLPCollateral: false,
-            aeroGauge: address(0),
-            CCR: CCR_SUPEROETHB,
-            MCR: MCR_SUPEROETHB,
-            SCR: SCR_SUPEROETHB,
-            BCR: BCR_ALL,
-            debtLimit: SUPEROETHB_DEBT_LIMIT,
-            LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_SUPEROETHB,
-            LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_SUPEROETHB
-        });
-
         // AERO
-        troveManagerParamsArray[7] = TroveManagerParams({
+        troveManagerParamsArray[6] = TroveManagerParams({
             isAeroLPCollateral: false,
             aeroGauge: address(0),
             CCR: CCR_AERO,
@@ -470,8 +453,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_AERO
         });
 
-        string[] memory collNames = new string[](7);
-        string[] memory collSymbols = new string[](7);
+        string[] memory collNames = new string[](6);
+        string[] memory collSymbols = new string[](6);
         collNames[0] = "Wrapped liquid staked Ether 2.0";
         collSymbols[0] = "wstETH";
         collNames[1] = "Rocket Pool ETH";
@@ -482,10 +465,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         collSymbols[3] = "cbETH";
         collNames[4] = "Wrapped eETH";
         collSymbols[4] = "weETH";
-        collNames[5] = "Super OETH";
-        collSymbols[5] = "superOETHb";
-        collNames[6] = "Aerodrome";
-        collSymbols[6] = "AERO";
+        collNames[5] = "Aerodrome";
+        collSymbols[5] = "AERO";
 
         DeployGovernanceParams memory deployGovernanceParams = DeployGovernanceParams({
             epochStart: epochStart,
@@ -729,11 +710,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             // weETH
             vars.collaterals[5] = IERC20Metadata(WEETH_ADDRESS);
 
-            // superOETHb
-            vars.collaterals[6] = IERC20Metadata(SUPEROETHB_ADDRESS);
-
             // AERO
-            vars.collaterals[7] = IERC20Metadata(AERO_ADDRESS);
+            vars.collaterals[6] = IERC20Metadata(AERO_ADDRESS);
         } else {
             // Sepolia or local
             // Use WETH as collateral for the first branch
@@ -953,13 +931,13 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             // Base mainnet
             // WETH
             if (_collTokenAddress == address(WETH)) {
-                return new WETHPriceFeed(ETH_ORACLE_ADDRESS, ETH_USD_STALENESS_THRESHOLD, _borrowerOperationsAddress);
+                return new WETHPriceFeed(ETH_USD_ORACLE_ADDRESS, ETH_USD_STALENESS_THRESHOLD, _borrowerOperationsAddress);
             }
             // wstETH
             if (_collTokenAddress == WSTETH_ADDRESS) {
                 return new WSTETHPriceFeed(
-                    ETH_ORACLE_ADDRESS,
-                    STETH_ORACLE_ADDRESS,
+                    ETH_USD_ORACLE_ADDRESS,
+                    STETH_USD_ORACLE_ADDRESS,
                     WSTETH_ADDRESS,
                     ETH_USD_STALENESS_THRESHOLD,
                     STETH_USD_STALENESS_THRESHOLD,
@@ -969,8 +947,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             // rETH
             if (_collTokenAddress == RETH_ADDRESS) {
                 return new RETHPriceFeed(
-                    ETH_ORACLE_ADDRESS,
-                    RETH_ORACLE_ADDRESS,
+                    ETH_USD_ORACLE_ADDRESS,
+                    RETH_ETH_ORACLE_ADDRESS,
                     RETH_ADDRESS,
                     ETH_USD_STALENESS_THRESHOLD,
                     RETH_ETH_STALENESS_THRESHOLD,
@@ -981,8 +959,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             if (_collTokenAddress == CBBTC_ADDRESS) {
                 return new cbBTCPriceFeed(
                     _borrowerOperationsAddress,
-                    CBBTC_ORACLE_ADDRESS,
-                    BTC_ORACLE_ADDRESS,
+                    CBBTC_USD_ORACLE_ADDRESS,
+                    BTC_USD_ORACLE_ADDRESS,
                     CBBTC_USD_STALENESS_THRESHOLD,
                     BTC_USD_STALENESS_THRESHOLD
                 );
@@ -991,7 +969,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             if (_collTokenAddress == CBETH_ADDRESS) {
                 return new cbETHPriceFeed(
                     _borrowerOperationsAddress,
-                    ETH_ORACLE_ADDRESS,
+                    ETH_USD_ORACLE_ADDRESS,
                     CBETH_ETH_ORACLE_ADDRESS,
                     ETH_USD_STALENESS_THRESHOLD,
                     CBETH_ETH_STALENESS_THRESHOLD
@@ -1001,26 +979,17 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             if (_collTokenAddress == WEETH_ADDRESS) {
                 return new WeETHPriceFeed(
                     _borrowerOperationsAddress,
-                    ETH_ORACLE_ADDRESS,
+                    ETH_USD_ORACLE_ADDRESS,
                     WEETH_ETH_ORACLE_ADDRESS,
                     ETH_USD_STALENESS_THRESHOLD,
                     WEETH_ETH_STALENESS_THRESHOLD
                 );
             }
-            // superOETHb
-            if (_collTokenAddress == SUPEROETHB_ADDRESS) {
-                SuperOETHbPriceFeed priceFeed = new SuperOETHbPriceFeed(
-                    _borrowerOperationsAddress,
-                    SUPEROETHB_ORACLE_ADDRESS,
-                    SUPEROETHB_USD_STALENESS_THRESHOLD
-                );
-                return priceFeed;
-            }
             // AERO
             if (_collTokenAddress == AERO_ADDRESS) {
                 AEROPriceFeed priceFeed = new AEROPriceFeed(
                     _borrowerOperationsAddress,
-                    AERO_ORACLE_ADDRESS,
+                    AERO_USD_ORACLE_ADDRESS,
                     AERO_USD_STALENESS_THRESHOLD
                 );
                 return priceFeed;
