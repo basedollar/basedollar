@@ -41,6 +41,7 @@ contract CollateralRegistry is ICollateralRegistry {
     event BaseRateUpdated(uint256 _baseRate);
     event LastFeeOpTimeUpdated(uint256 _lastFeeOpTime);
     event CollateralBranchAdded(uint256 _totalCollaterals, uint256 _index, IERC20Metadata _token, ITroveManager _troveManager, bool _isRedeemable);
+    event CollateralGovernorUpdated(address oldGovernor, address newGovernor);
 
     constructor(IBoldToken _boldToken, IERC20Metadata[] memory _tokens, ITroveManager[] memory _troveManagers, IAeroManager _aeroManager, address _governor) {
         uint256 numTokens = _tokens.length;
@@ -361,6 +362,12 @@ contract CollateralRegistry is ICollateralRegistry {
 
     function updateGovernor(address _newGovernor) external onlyGovernor {
         governor = _newGovernor;
+    }
+
+    function updateCollateralGovernor(address _newCollateralGovernor) external onlyGovernor {
+        address oldGovernor = collateralGovernor;
+        collateralGovernor = _newCollateralGovernor;
+        emit CollateralGovernorUpdated(oldGovernor, _newCollateralGovernor);
     }
 
     modifier onlyGovernor() {
