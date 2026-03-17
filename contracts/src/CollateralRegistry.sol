@@ -6,6 +6,8 @@ import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.s
 
 import "./Interfaces/ITroveManager.sol";
 import "./Interfaces/IBoldToken.sol";
+import "./Interfaces/IAddressesRegistry.sol";
+import "./Interfaces/IActivePool.sol";
 import "./Dependencies/Constants.sol";
 import "./Dependencies/LiquityMath.sol";
 
@@ -69,18 +71,28 @@ contract CollateralRegistry is ICollateralRegistry {
 
     /*
     @notice Creates a new branch for the collateral registry
-    @param _token The collateral token for the new branch
-    @param _troveManager The trove manager for the new branch
+    @param _addressesRegistry The addresses registry for the new branch
     @param _isRedeemable Whether the new branch is redeemable
 
     @dev If the new branch is redeemable, it will be added to the redeemable branches array, but only 10 are allowed
     Alos, make sure that is doesnt already exist. Do not add a new branch using an existing known trove manager. Governor is expected to be trusted on this.
     */
-    function createNewBranch(IERC20Metadata _token, ITroveManager _troveManager, bool _isRedeemable) external {
+    function createNewBranch(IAddressesRegistry _addressesRegistry, bool _isRedeemable) external {
         require(msg.sender == collateralGovernor, "CR: Only collateral governor can create new branches");
+
+        IERC20Metadata _token = _addressesRegistry.collToken();
+        ITroveManager _troveManager = _addressesRegistry.troveManager();
+        address _stabilityPool = address(_addressesRegistry.stabilityPool());
+        address _borrowerOperations = address(_addressesRegistry.borrowerOperations());
+        IActivePool _activePool = _addressesRegistry.activePool();
+
         require(address(_token) != address(0), "CR: Token cannot be the zero address");
         require(address(_troveManager) != address(0), "CR: Trove manager cannot be the zero address");
         require(address(_token) != address(boldToken), "CR: Token cannot be the bold token");
+        require(_stabilityPool != address(0), "CR: Stability pool cannot be the zero address");
+        require(_borrowerOperations != address(0), "CR: Borrower operations cannot be the zero address");
+        require(address(_activePool) != address(0), "CR: Active pool cannot be the zero address");
+        require(address(_activePool) == address(_troveManager.activePool()), "CR: Active pool does not match trove manager");
 
         uint256 index;
         if(_isRedeemable){
@@ -93,13 +105,21 @@ contract CollateralRegistry is ICollateralRegistry {
             nonRedeemableBranchesTokens.push(_token);
             nonRedeemableBranchesTroveManagers.push(_troveManager);
         }
+        
+        // Add branch addresses in bold token
+        boldToken.setBranchAddressesViaCollateralRegistry(
+            address(_troveManager), 
+            _stabilityPool, 
+            _borrowerOperations, 
+            address(_activePool)
+        );
+        
         totalCollaterals++;
         emit CollateralBranchAdded(totalCollaterals, index, _token, _troveManager, _isRedeemable);
 
         // If AERO LP collateral, add to AeroManager
-        IActivePool activePool = _troveManager.activePool();
-        if (activePool.isAeroLPCollateral()) {
-            aeroManager.addActivePool(address(activePool));
+        if (_activePool.isAeroLPCollateral()) {
+            aeroManager.addActivePool(address(_activePool));
         }
     }
 
