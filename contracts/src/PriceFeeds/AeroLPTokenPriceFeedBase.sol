@@ -7,7 +7,7 @@ import "../BorrowerOperations.sol";
 import "../Interfaces/IPriceFeed.sol";
 import "../Interfaces/IAeroPool.sol";
 import "../Interfaces/IAeroGauge.sol";
-import "../Dependencies/Constants.sol";
+import {DECIMAL_PRECISION} from "../Dependencies/Constants.sol";
 import "../Dependencies/LiquityMath.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -16,7 +16,7 @@ import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     // Determines where the PriceFeed sources data from. Possible states:
-    // - primary: Uses the primary price calcuation, which depends on the specific feed
+    // - primary: Uses the primary price calculation, which depends on the specific feed
     // - lastGoodPrice: the last good price recorded by this PriceFeed.
 
      enum PriceSource {
@@ -77,6 +77,8 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     ) {
         borrowerOperations = IBorrowerOperations(_borrowerOperationsAddress);
         gauge = _gauge;
+        require(address(_gauge) != address(0), "Gauge is 0 address");
+
         pool = IAeroPool(gauge.stakingToken());
 
         token0PoolDecimals = IERC20Metadata(pool.token0()).decimals();
@@ -89,6 +91,8 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         token1UsdOracle.aggregator = AggregatorV3Interface(_token1UsdOracleAddress);
         token1UsdOracle.stalenessThreshold = _token1UsdStalenessThreshold;
         token1UsdOracle.decimals = token1UsdOracle.aggregator.decimals();
+
+        require(token0UsdOracle.decimals == token1UsdOracle.decimals, "Token0 and token1 decimals do not match");
     }
 
     /// @notice Get TWAP-based exchange rate: how many token1 for 1 token0

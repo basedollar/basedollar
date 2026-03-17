@@ -10,7 +10,7 @@ import "../BorrowerOperations.sol";
 
 abstract contract TokenPriceFeedBase is IPriceFeed {
     // Determines where the PriceFeed sources data from. Possible states:
-    // - primary: Uses the primary price calcuation, which depends on the specific feed
+    // - primary: Uses the primary price calculation, which depends on the specific feed
     // - lastGoodPrice: the last good price recorded by this PriceFeed.
 
      enum PriceSource {
