@@ -1,20 +1,20 @@
-# Basedollar
+# Base Dollar
 
 ## Changes in Basedollar compared to Liquity V2
-1. Stablecoin renamed to $BD
-2. ["Redemption Protected" branches](./contracts/README.md), which can't be redeemed against but have other requirements
+1. Stablecoin renamed to $BD.
+2. ["Redemption Protected" branches](./contracts/README.md), which can't be redeemed against but have a higher minimum interest rate.
 3. Debt limits for each collateral branch, can be raised or lowered by governance. 
-4. Administrative features: Governance can now update
+4. Administrative features: Governance can now add new collaterals according the CollateralGovernor process and other parameters.
 5. Maximized AERO synergy: 
-  - Selected vAMM and sAMM LP tokens can be borrowed against
+  - Selected vAMM and sAMM LP tokens can be borrowed against. These are not in the deployment script, but will added shortly after launch.
   - LP tokens are staked to earn $AERO
   - A percent of $AERO (percentage is governed) earned from staking goes to the protocol timelock treasury to be used to direct more incentives to BD pools
   - Withdrawal queue and liquidation system updates for staked assets
-6. Updated pricefeeds for all collaterals
-7. Ability for governance to add new collateral branches in the future, or safely wind down existing ones
-8. Raised cap on limit of numbers of total collateral branches possible, and redemption optimization that allows this
+6. Updated pricefeeds for all collaterals.
+7. Ability for governance to add new collateral branches in the future, with a cap of 10 redeemable branches. 
+8. Raised cap on limit of numbers of total collateral branches possible, and redemption optimization that allows this.
 9. 25% of revenue is sent to a timelocked treasury at launch, instead of directed by gauges which is the default for Liquity itself. This can be updated to gauges, as Liquity V2 uses, in the future.
-10. New normal branch collateral types, deployment script updates, and OEV pricefeeds: ETH, wstETH, rETH, superOETHb, cbBTC, AERO
+10. New normal branch collateral types, deployment script updates, and OEV pricefeeds: ETH, wstETH, rETH, cbBTC, AERO
 11. Updated launch parameters for safety and Base specific parameter changes: gas deposit requirement, minimum redemption size, etc..
 
 
