@@ -38,7 +38,7 @@ contract AeroLPE2E is Test, TestAccounts {
 
     // Constants
     uint256 constant INITIAL_PRICE = 200e18;
-    uint256 constant MIN_DEBT = 2000e18;
+    //uint256 constant MIN_DEBT = 2000e18;// get this from constants.
     uint256 constant CCR_BUFFER = 10e16; // 10% buffer above CCR
 
     function setUp() public virtual {

@@ -92,9 +92,10 @@ uint256 constant COLL_GAS_COMPENSATION_DIVISOR = 200; // dividing by 200 yields 
 uint256 constant COLL_GAS_COMPENSATION_CAP = 2 ether; // Max coll gas compensation capped at 2 ETH
 
 // Minimum amount of net Bold debt a trove must have
-uint256 constant MIN_DEBT = 2000e18;
+uint256 constant MIN_DEBT = 200e18;
 
 uint256 constant MIN_ANNUAL_INTEREST_RATE = _1pct / 2; // 0.5%
+uint256 constant MIN_ANNUAL_INTEREST_RATE_REDEMPTION_PROTECTED_INITIAL = 3 * _1pct; // 3%
 uint256 constant MAX_ANNUAL_INTEREST_RATE = 250 * _1pct;
 
 // Batch management params

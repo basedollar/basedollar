@@ -40,7 +40,7 @@ contract AeroLPFuzz is Test, TestAccounts {
     // Constants for fuzzing bounds
     uint256 constant MIN_COLL = 1e18;
     uint256 constant MAX_COLL = 1_000_000e18;
-    uint256 constant MIN_DEBT_AMOUNT = 2000e18;
+    uint256 constant MIN_DEBT_AMOUNT = 200e18;
     uint256 constant MAX_DEBT = 10_000_000e18;
     uint256 constant MIN_INTEREST_RATE = 5e15; // 0.5%
     uint256 constant MAX_INTEREST_RATE = 25e16; // 25%

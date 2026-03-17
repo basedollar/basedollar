@@ -664,6 +664,10 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         return abi.encodePacked(_creationCode, abi.encode(_addressesRegistry));
     }
 
+    function getBytecode(bytes memory _creationCode, address _addressesRegistry, bool _isRedemptionProtectedBranch) public pure returns (bytes memory) {
+        return abi.encodePacked(_creationCode, abi.encode(_addressesRegistry, _isRedemptionProtectedBranch));
+    }
+
     function getBytecode(bytes memory _creationCode, address _addressesRegistry, bool _isAeroLPCollateral, address _aeroGaugeAddress) public pure returns (bytes memory) {
         return abi.encodePacked(_creationCode, abi.encode(_addressesRegistry, _isAeroLPCollateral, _aeroGaugeAddress));
     }
@@ -840,7 +844,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
         contracts.interestRouter = IInterestRouter(_governance);
         addresses.borrowerOperations = vm.computeCreate2Address(
-            SALT, keccak256(getBytecode(type(BorrowerOperations).creationCode, address(contracts.addressesRegistry)))
+            SALT, keccak256(getBytecode(type(BorrowerOperations).creationCode, address(contracts.addressesRegistry), false))
         );
         addresses.troveManager = _troveManagerAddress;
         addresses.troveNFT = vm.computeCreate2Address(
@@ -890,7 +894,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         });
         contracts.addressesRegistry.setAddresses(addressVars);
 
-        contracts.borrowerOperations = new BorrowerOperations{salt: SALT}(contracts.addressesRegistry);
+        contracts.borrowerOperations = new BorrowerOperations{salt: SALT}(contracts.addressesRegistry, false);
         contracts.troveManager = new TroveManager{salt: SALT}(contracts.addressesRegistry);
         contracts.troveNFT = new TroveNFT{salt: SALT}(contracts.addressesRegistry);
         contracts.stabilityPool = new StabilityPool{salt: SALT}(contracts.addressesRegistry);
