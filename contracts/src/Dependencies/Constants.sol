@@ -53,14 +53,6 @@ uint256 constant WEETH_DEBT_LIMIT = 1000000000000000000000000000000000000000;
 uint256 constant LIQUIDATION_PENALTY_SP_WEETH = 5 * _1pct;
 uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_WEETH = 20 * _1pct;
 
-// superOETHb (Super OETH on Base) parameters
-uint256 constant CCR_SUPEROETHB = 160 * _1pct;
-uint256 constant MCR_SUPEROETHB = 120 * _1pct;
-uint256 constant SCR_SUPEROETHB = 120 * _1pct;
-uint256 constant SUPEROETHB_DEBT_LIMIT = 1000000000000000000000000000000000000000;
-uint256 constant LIQUIDATION_PENALTY_SP_SUPEROETHB = 5 * _1pct;
-uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_SUPEROETHB = 20 * _1pct;
-
 // AERO (Aerodrome token) parameters
 uint256 constant CCR_AERO = 200 * _1pct;
 uint256 constant MCR_AERO = 150 * _1pct;
@@ -92,9 +84,10 @@ uint256 constant COLL_GAS_COMPENSATION_DIVISOR = 200; // dividing by 200 yields 
 uint256 constant COLL_GAS_COMPENSATION_CAP = 2 ether; // Max coll gas compensation capped at 2 ETH
 
 // Minimum amount of net Bold debt a trove must have
-uint256 constant MIN_DEBT = 2000e18;
+uint256 constant MIN_DEBT = 200e18;
 
 uint256 constant MIN_ANNUAL_INTEREST_RATE = _1pct / 2; // 0.5%
+uint256 constant MIN_ANNUAL_INTEREST_RATE_REDEMPTION_PROTECTED_INITIAL = 3 * _1pct; // 3%
 uint256 constant MAX_ANNUAL_INTEREST_RATE = 250 * _1pct;
 
 // Batch management params
@@ -130,6 +123,8 @@ uint256 constant UPFRONT_INTEREST_PERIOD = 7 days;
 uint256 constant INTEREST_RATE_ADJ_COOLDOWN = 7 days;
 
 uint256 constant SP_YIELD_SPLIT = 75 * _1pct; // 75%
+
+uint256 constant GOVERNOR_TRANSFER_TIMELOCK = 3 days;
 
 uint256 constant MIN_BOLD_IN_SP = 1e18;
 

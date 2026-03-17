@@ -89,6 +89,10 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
         uint256 twapToken0PerToken1,
         bool _isRedemption
     ) internal pure returns (uint256 token0Price, uint256 token1Price) {
+
+        require(twapToken1PerToken0 > 0, "TWAP token1 per token0 is 0");
+        require(twapToken0PerToken1 > 0, "TWAP token0 per token1 is 0");
+
         // Derive market price for token1 from TWAP
         uint256 token1MarketPrice = token0OraclePrice * 1e18 / twapToken1PerToken0;
         // Derive market price for token0 from TWAP

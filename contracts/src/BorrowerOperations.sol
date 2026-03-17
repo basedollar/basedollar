@@ -42,6 +42,9 @@ contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperatio
     // Extra buffer of collateral ratio to join a batch or adjust a trove inside a batch (on top of MCR)
     uint256 public immutable BCR;
 
+    // Minimum annual interest rate for redemption protected branches
+    uint256 public immutable MIN_USER_SET_INTEREST_RATE;
+
     /*
     * Mapping from TroveId to individual delegate for interest rate setting.
     *
@@ -162,7 +165,7 @@ contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperatio
 
     event ShutDown(uint256 _tcr);
 
-    constructor(IAddressesRegistry _addressesRegistry)
+    constructor(IAddressesRegistry _addressesRegistry, bool _isRedemptionProtectedBranch)
         AddRemoveManagers(_addressesRegistry)
         LiquityBase(_addressesRegistry)
     {
@@ -192,6 +195,14 @@ contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperatio
 
         // Allow funds movements between Liquity contracts
         collToken.approve(address(activePool), type(uint256).max);
+
+        // Set the minimum annual interest rate for redemption protected branches or normal branches.
+        //@dev note: BO is very close to contract size limit, so we need to keep this as a constant.
+        if(_isRedemptionProtectedBranch) {
+            MIN_USER_SET_INTEREST_RATE = MIN_ANNUAL_INTEREST_RATE_REDEMPTION_PROTECTED_INITIAL;
+        } else {
+            MIN_USER_SET_INTEREST_RATE = MIN_ANNUAL_INTEREST_RATE;
+        }
     }
 
     // --- Borrower Trove Operations ---
@@ -1493,8 +1504,8 @@ contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperatio
         }
     }
 
-    function _requireValidAnnualInterestRate(uint256 _annualInterestRate) internal pure {
-        if (_annualInterestRate < MIN_ANNUAL_INTEREST_RATE) {
+    function _requireValidAnnualInterestRate(uint256 _annualInterestRate) internal view {
+        if (_annualInterestRate < MIN_USER_SET_INTEREST_RATE) {
             revert InterestRateTooLow();
         }
         if (_annualInterestRate > MAX_ANNUAL_INTEREST_RATE) {
