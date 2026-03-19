@@ -29,6 +29,18 @@ contract cbETHPriceFeed is MainnetPriceFeedBase {
     }
 
     function fetchPrice() public returns (uint256, bool) {
+        // If branch is live and the primary oracle setup has been working, try to use it
+        if (priceSource == PriceSource.primary) return _fetchPricePrimary();
+
+        // Otherwise if branch is shut down and already using the lastGoodPrice, continue with it
+        assert(priceSource == PriceSource.lastGoodPrice);
+        return (lastGoodPrice, false);
+    }
+    
+    //  _fetchPricePrimary returns:
+    // - The price
+    // - A bool indicating whether a new oracle failure was detected in the call
+    function _fetchPricePrimary() internal returns (uint256, bool) {
         assert(priceSource == PriceSource.primary);
         (uint256 cbEthPrice, bool cbEthOracleDown) = _getOracleAnswer(cbEthEthOracle);
         (uint256 ethUsdPrice, bool ethUsdOracleDown) = _getOracleAnswer(ethUsdOracle);
@@ -43,7 +55,6 @@ contract cbETHPriceFeed is MainnetPriceFeedBase {
         lastGoodPrice = cbEthUsdPrice;
         return (cbEthUsdPrice, false);
     }
-    
 }   
 
 
