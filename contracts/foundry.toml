@@ -13,6 +13,9 @@ fs_permissions = [
     { access = "read", path = "./addresses/" }
 ]
 
+[lint]
+lint_on_build = false
+
 [invariant]
 call_override = false
 fail_on_revert = true
