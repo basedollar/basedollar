@@ -103,6 +103,8 @@ contract ActivePool is IActivePool {
 
         // Allow AeroManager to pull LP tokens from ActivePool
         if (_isAeroLPCollateral) {
+            require(_aeroGaugeAddress != address(0), "ActivePool: AeroGauge address cannot be 0");
+            require(IAeroGauge(_aeroGaugeAddress).stakingToken() == address(collToken), "ActivePool: staking token mismatch");
             collToken.approve(aeroManagerAddress, type(uint256).max);
         }
     }
