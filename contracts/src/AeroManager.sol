@@ -21,6 +21,8 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
 
     ICollateralRegistry public collateralRegistry;
     address public aeroTokenAddress;
+    address public pendingAeroTokenAddress;
+    uint256 public pendingAeroTokenAddressTimestamp;
     address public governor;
 
     address public treasuryAddress;
@@ -42,6 +44,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     uint256 public pendingNewClaimFeeTimestamp;
     
     uint256 public claimFeeChangeDelayPeriod = 7 days;
+    uint256 public aeroTokenChangeDelayPeriod = 7 days;
 
     event Staked(address indexed gauge, address token, uint256 amount);
     event ActivePoolAdded(address indexed activePool);
@@ -51,6 +54,8 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event CollateralRegistryAdded(address collateralRegistry);
     event ClaimFeeUpdated(uint256 oldFee, uint256 newFee);
     event ClaimFeeUpdatePending(uint256 oldFee, uint256 newFee, uint256 timestamp, uint256 delayPeriod);
+    event AeroTokenAddressUpdated(address oldAeroTokenAddress, address newAeroTokenAddress);
+    event AeroTokenAddressUpdatePending(address oldAeroTokenAddress, address newAeroTokenAddress, uint256 timestamp, uint256 delayPeriod);
 
     constructor(address _aeroTokenAddress, address _governor, address _treasuryAddress) Ownable(msg.sender) {
         require(_treasuryAddress != address(0), "AeroManager: Treasury address cannot be 0");
@@ -99,8 +104,22 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
 
     //admin functions
     function setAeroTokenAddress(address _aeroTokenAddress) external onlyGovernor {
+        require(_aeroTokenAddress != address(0), "AeroManager: Aero token address cannot be 0");
+        require(aeroTokenAddress != _aeroTokenAddress, "AeroManager: New aero token address is the same as the current aero token address");
         aeroTokenAddress = _aeroTokenAddress;
-        emit AeroTokenAddressUpdated(_aeroTokenAddress);
+        pendingAeroTokenAddress = _aeroTokenAddress;
+        pendingAeroTokenAddressTimestamp = block.timestamp;
+        emit AeroTokenAddressUpdatePending(aeroTokenAddress, _aeroTokenAddress, block.timestamp, aeroTokenChangeDelayPeriod);
+    }
+
+    function acceptAeroTokenAddressUpdate() external onlyGovernor {
+        require(pendingAeroTokenAddress != address(0), "AeroManager: No pending aero token address update");
+        require(block.timestamp >= pendingAeroTokenAddressTimestamp + aeroTokenChangeDelayPeriod, "AeroManager: Aero token address update delay period not passed");
+        address oldAeroTokenAddress = aeroTokenAddress;
+        aeroTokenAddress = pendingAeroTokenAddress;
+        pendingAeroTokenAddress = address(0);
+        pendingAeroTokenAddressTimestamp = 0;
+        emit AeroTokenAddressUpdated(oldAeroTokenAddress, aeroTokenAddress);
     }
 
     function setGovernor(address _governor) external onlyGovernor {
