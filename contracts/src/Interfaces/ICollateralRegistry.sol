@@ -28,10 +28,12 @@ interface ICollateralRegistry {
     function getEffectiveRedemptionFeeInBold(uint256 _redeemAmount) external view returns (uint256);
 
     function updateDebtLimit(uint256 _indexTroveManager, uint256 _newDebtLimit) external;
+    function updateNonRedeemableDebtLimit(uint256 _indexTroveManager, uint256 _newDebtLimit) external;
     function proposeGovernor(address _newGovernor) external;
     function acceptGovernor() external;
     function cancelGovernorProposal() external;
     function pendingGovernor() external view returns (address);
     function pendingGovernorTimestamp() external view returns (uint256);
     function getDebtLimit(uint256 _indexTroveManager) external view returns (uint256); 
+    function getNonRedeemableDebtLimit(uint256 _indexTroveManager) external view returns (uint256);
 }
