@@ -31,6 +31,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     mapping(address activePool => bool) public activePools;
 
     mapping(address gauge => uint256 epoch) public currentEpochs;
+    mapping(address gauge => mapping(uint256 epoch => bool isClosed)) public epochClosed;
     mapping(uint256 epoch => mapping(address gauge => uint256 amount)) public claimedAeroPerEpoch;
 
     mapping(address user => uint256 amount) public claimableRewards;
@@ -56,6 +57,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event ClaimFeeUpdatePending(uint256 oldFee, uint256 newFee, uint256 timestamp, uint256 delayPeriod);
     event AeroTokenAddressUpdated(address oldAeroTokenAddress, address newAeroTokenAddress);
     event AeroTokenAddressUpdatePending(address oldAeroTokenAddress, address newAeroTokenAddress, uint256 timestamp, uint256 delayPeriod);
+    event EpochClosed(address indexed gauge, uint256 indexed epoch);
 
     constructor(address _aeroTokenAddress, address _governor, address _treasuryAddress) Ownable(msg.sender) {
         require(_treasuryAddress != address(0), "AeroManager: Treasury address cannot be 0");
@@ -165,6 +167,9 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     }
 
     function claim(address gauge) external nonReentrant {
+        uint256 currentEpoch = currentEpochs[gauge];
+        require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
+
         // Claim AERO from AeroGauge
         uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
         IAeroGauge(gauge).getReward(address(this));
@@ -179,15 +184,24 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         uint256 rewardAmount = claimedAmount - _claimFee;
         claimedAero += rewardAmount; // Subtract the fee from the total claimed amount
         
-        uint256 currentEpoch = currentEpochs[gauge];
         claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
 
         emit Claimed(gauge, claimedAmount, _claimFee, currentEpoch);
     }
 
-    function distributeAero(address gauge, AeroRecipient[] memory recipients) external onlyGovernor {
-        require(recipients.length > 0, "AeroManager: No recipients");
+    // Close the current epoch for distribution
+    function closeCurrentEpoch(address gauge) external onlyGovernor {
         uint256 currentEpoch = currentEpochs[gauge];
+        require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
+        epochClosed[gauge][currentEpoch] = true;
+        emit EpochClosed(gauge, currentEpoch);
+    }
+
+    function distributeAero(address gauge, AeroRecipient[] memory recipients) external onlyGovernor {
+        uint256 currentEpoch = currentEpochs[gauge];
+        require(epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is not closed yet to distribute rewards");
+        require(recipients.length > 0, "AeroManager: No recipients");
+        
         uint256 rewardAmount = claimedAeroPerEpoch[currentEpoch][gauge];
         uint256 remainingRewardAmount = rewardAmount;
         for (uint256 i; i < recipients.length; i++) {
