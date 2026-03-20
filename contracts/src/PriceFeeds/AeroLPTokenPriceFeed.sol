@@ -40,7 +40,12 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
     }
 
     function fetchRedemptionPrice() external returns (uint256, bool) {
-        return _fetchPricePrimary(true);
+        // If branch is live and the primary oracle setup has been working, try to use it
+        if (priceSource == PriceSource.primary) return _fetchPricePrimary(true);
+
+        // Otherwise if branch is shut down and already using the lastGoodPrice, continue with it
+        assert(priceSource == PriceSource.lastGoodPrice);
+        return (lastGoodPrice, false);
     }
 
     //  _fetchPricePrimary returns:
