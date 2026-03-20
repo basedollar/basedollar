@@ -17,7 +17,7 @@ import "../Interfaces/ILiquityBase.sol";
 contract LiquityBase is ILiquityBase {
     IActivePool public activePool;
     IDefaultPool internal defaultPool;
-    IPriceFeed internal priceFeed;
+    IPriceFeed public priceFeed;
 
     event ActivePoolAddressChanged(address _newActivePoolAddress);
     event DefaultPoolAddressChanged(address _newDefaultPoolAddress);
