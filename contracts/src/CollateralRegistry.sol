@@ -335,7 +335,7 @@ contract CollateralRegistry is ICollateralRegistry {
         return redeemableBranchesTroveManagers[_index];
     }
 
-    function getNonRedeemableTroveManager(uint256 _index) external view returns(ITroveManager){
+    function getNonRedeemableTroveManager(uint256 _index) public view returns(ITroveManager){
         return nonRedeemableBranchesTroveManagers[_index];
     }
 
@@ -371,6 +371,20 @@ contract CollateralRegistry is ICollateralRegistry {
 
     function getDebtLimit(uint256 _indexTroveManager) external view returns (uint256) {
         return getTroveManager(_indexTroveManager).getDebtLimit();
+    }
+
+        // Update the debt limit for a specific TroveManager
+    function updateNonRedeemableDebtLimit(uint256 _indexTroveManager, uint256 _newDebtLimit) external onlyGovernor {
+        //limited to increasing by 2x at a time, maximum. Decrease by any amount.
+        uint256 currentDebtLimit = getNonRedeemableTroveManager(_indexTroveManager).getDebtLimit();
+        if (_newDebtLimit > currentDebtLimit) {
+            require(_newDebtLimit <= currentDebtLimit * 2 || _newDebtLimit <= getNonRedeemableTroveManager(_indexTroveManager).getInitalDebtLimit(), "CollateralRegistry: Debt limit increase by more than 2x is not allowed");
+        }
+        getNonRedeemableTroveManager(_indexTroveManager).setDebtLimit(_newDebtLimit);
+    }
+
+    function getNonRedeemableDebtLimit(uint256 _indexTroveManager) external view returns (uint256) {
+        return getNonRedeemableTroveManager(_indexTroveManager).getDebtLimit();
     }
 
     // require functions
