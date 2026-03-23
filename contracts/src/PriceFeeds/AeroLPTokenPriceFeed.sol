@@ -65,6 +65,10 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
         if (twapExchangeRate.isDown) {
             return (_shutDownAndSwitchToLastGoodPrice(address(pool)), true);
         }
+
+        if (twapExchangeRate.token1PerToken0 == 0 || twapExchangeRate.token0PerToken1 == 0) {
+            return (_shutDownAndSwitchToLastGoodPrice(address(pool)), true);
+        }
         
         // 3. Derive "market" price for token1 from TWAP and select final prices
         // If 1 token0 = X token1 (TWAP), and token0 = $Y (Chainlink)
