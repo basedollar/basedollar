@@ -45,14 +45,6 @@ uint256 constant CBETH_DEBT_LIMIT = 1000000000000000000000000000000000000000;
 uint256 constant LIQUIDATION_PENALTY_SP_CBETH = 5 * _1pct;
 uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_CBETH = 20 * _1pct;
 
-// weETH (Wrapped eETH from EtherFi) parameters
-uint256 constant CCR_WEETH = 160 * _1pct;
-uint256 constant MCR_WEETH = 120 * _1pct;
-uint256 constant SCR_WEETH = 120 * _1pct;
-uint256 constant WEETH_DEBT_LIMIT = 1000000000000000000000000000000000000000;
-uint256 constant LIQUIDATION_PENALTY_SP_WEETH = 5 * _1pct;
-uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_WEETH = 20 * _1pct;
-
 // AERO (Aerodrome token) parameters
 uint256 constant CCR_AERO = 200 * _1pct;
 uint256 constant MCR_AERO = 150 * _1pct;
