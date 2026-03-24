@@ -18,14 +18,8 @@ contract DeployRedemptionHelper is Script, UseDeployment {
 
         _loadDeploymentFromManifest(string.concat("addresses/", block.chainid.toString(), ".json"));
 
-        IAddressesRegistry[] memory addresses = new IAddressesRegistry[](branches.length);
-        for (uint256 i = 0; i < branches.length; ++i) {
-            addresses[i] = branches[i].addressesRegistry;
-        }
-
         vm.startBroadcast();
-        RedemptionHelper redemptionHelper =
-            new RedemptionHelper({_collateralRegistry: collateralRegistry, _addresses: addresses});
+        RedemptionHelper redemptionHelper = new RedemptionHelper({_collateralRegistry: collateralRegistry});
 
         console.log("redemptionHelper:", address(redemptionHelper));
     }

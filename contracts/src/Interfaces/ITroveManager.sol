@@ -8,6 +8,7 @@ import "./IBorrowerOperations.sol";
 import "./IStabilityPool.sol";
 import "./IBoldToken.sol";
 import "./ISortedTroves.sol";
+import "./IPriceFeed.sol";
 import "../Types/LatestTroveData.sol";
 import "../Types/LatestBatchData.sol";
 
@@ -28,6 +29,7 @@ interface ITroveManager is ILiquityBase {
     //function boldToken() external view returns (IBoldToken);
     function sortedTroves() external view returns (ISortedTroves);
     function borrowerOperations() external view returns (IBorrowerOperations);
+    function getPriceFeed() external view returns (IPriceFeed);
 
     function Troves(uint256 _id)
         external

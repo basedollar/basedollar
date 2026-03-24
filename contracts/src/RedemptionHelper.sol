@@ -25,15 +25,9 @@ contract RedemptionHelper is IRedemptionHelper {
     ICollateralRegistry public immutable collateralRegistry;
     IBoldToken public immutable boldToken;
 
-    constructor(ICollateralRegistry _collateralRegistry, IAddressesRegistry[] memory _addresses) {
-        uint256 n = _collateralRegistry.getTroveManagers().length;
-        require(_addresses.length == n, "Wrong number of registries");
+    constructor(ICollateralRegistry _collateralRegistry) {
         collateralRegistry = _collateralRegistry;
         boldToken = _collateralRegistry.boldToken();
-
-        for (uint256 i = 0; i < n; ++i) {
-            require(_collateralRegistry.getTroveManager(i) == _addresses[i].troveManager(), "TroveManager mismatch");
-        }
     }
 
     /// @notice Number of redeemable collateral branches (matches `CollateralRegistry.redeemCollateral` iteration).
@@ -139,7 +133,7 @@ contract RedemptionHelper is IRedemptionHelper {
 
         for (uint256 i = 0; i < n; ++i) {
             if (branch[i].redeemable && branch[i].proportion > 0) {
-                (uint256 redemptionPrice,) = collateralRegistry.getTroveManager(i).priceFeed().fetchRedemptionPrice();
+                (uint256 redemptionPrice,) = collateralRegistry.getTroveManager(i).getPriceFeed().fetchRedemptionPrice();
                 redeemed[i].bold = truncatedBold * branch[i].proportion / totalProportions;
                 redeemed[i].coll = redeemed[i].bold * (DECIMAL_PRECISION - feePct) / redemptionPrice;
             }

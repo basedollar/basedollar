@@ -770,7 +770,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             _uniV3Quoter: uniV3Quoter
         });
 
-        r.redemptionHelper = new RedemptionHelper(r.collateralRegistry, vars.addressesRegistries);
+        r.redemptionHelper = new RedemptionHelper(r.collateralRegistry);
     }
 
     function _deployAddressesRegistry(TroveManagerParams memory _troveManagerParams)

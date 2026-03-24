@@ -230,6 +230,10 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
         return TroveIds[_index];
     }
 
+    function getPriceFeed() external view returns (IPriceFeed) {
+        return priceFeed;
+    }
+
     // --- Trove Liquidation functions ---
 
     // --- Inner single liquidation functions ---
