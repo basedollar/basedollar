@@ -27,6 +27,7 @@ import "src/Zappers/WETHZapper.sol";
 import "src/Zappers/GasCompZapper.sol";
 import "src/Zappers/LeverageLSTZapper.sol";
 import "src/Zappers/LeverageWETHZapper.sol";
+import "src/Zappers/WrappedTokenZapper.sol";
 import "src/Zappers/Modules/FlashLoans/BalancerFlashLoan.sol";
 import "src/Zappers/Interfaces/IFlashLoanProvider.sol";
 import "src/Zappers/Interfaces/IExchange.sol";
@@ -128,6 +129,7 @@ contract TestDeployer is MetadataDeployment {
         ILeverageZapper leverageZapperCurve;
         ILeverageZapper leverageZapperUniV3;
         ILeverageZapper leverageZapperHybrid;
+        WrappedTokenZapper wrappedTokenZapper;
     }
 
     struct LiquityContractAddresses {
@@ -409,6 +411,103 @@ contract TestDeployer is MetadataDeployment {
         result.aeroManager.setAddresses(result.collateralRegistry);
     }
 
+    function deployAndConnectContracts(TroveManagerParams[] memory troveManagerParamsArray, IWETH _WETH, IWrappedToken _wrappedToken)
+        public
+        returns (DeployAndConnectContractsResults memory result)
+    {
+        DeploymentVarsDev memory vars;
+        vars.numCollaterals = troveManagerParamsArray.length;
+        // Deploy Bold
+        vars.bytecode = abi.encodePacked(type(BoldToken).creationCode, abi.encode(address(this)));
+        vars.boldTokenAddress = getAddress(address(this), vars.bytecode, SALT);
+        result.boldToken = new BoldToken{salt: SALT}(address(this));
+        assert(address(result.boldToken) == vars.boldTokenAddress);
+
+        result.aeroManager = new AeroManager(AERO_TOKEN_ADDRESS, GOVERNOR_ADDRESS, TREASURY_ADDRESS);
+
+        result.contractsArray = new LiquityContractsDev[](vars.numCollaterals);
+        result.zappersArray = new Zappers[](vars.numCollaterals);
+        vars.collaterals = new IERC20Metadata[](vars.numCollaterals);
+        vars.addressesRegistries = new IAddressesRegistry[](vars.numCollaterals);
+        vars.troveManagers = new ITroveManager[](vars.numCollaterals);
+        vars.aeroParams = new AeroParams[](vars.numCollaterals);
+
+        // Deploy the first branch with WETH collateral
+        vars.collaterals[0] = _WETH;
+        (IAddressesRegistry addressesRegistry, address troveManagerAddress) =
+            _deployAddressesRegistryDev(troveManagerParamsArray[0]);
+        vars.addressesRegistries[0] = addressesRegistry;
+        vars.troveManagers[0] = ITroveManager(troveManagerAddress);
+        vars.aeroParams[0] = AeroParams(
+            result.aeroManager, troveManagerParamsArray[0].isAeroLPCollateral, troveManagerParamsArray[0].aeroGaugeAddress
+        );
+        for (vars.i = 1; vars.i < vars.numCollaterals; vars.i++) {
+            IERC20Metadata collToken;
+            if (vars.i == 1) {
+                collToken = IERC20Metadata(address(_wrappedToken));
+            } else {
+                collToken = new ERC20Faucet(
+                    _nameToken(vars.i), // _name
+                    _symboltoken(vars.i), // _symbol
+                    100 ether, //     _tapAmount
+                    1 days //         _tapPeriod
+                );
+            }
+            vars.collaterals[vars.i] = collToken;
+            // Addresses registry and TM address
+            (addressesRegistry, troveManagerAddress) = _deployAddressesRegistryDev(troveManagerParamsArray[vars.i]);
+            vars.addressesRegistries[vars.i] = addressesRegistry;
+            vars.troveManagers[vars.i] = ITroveManager(troveManagerAddress);
+            vars.aeroParams[vars.i] = AeroParams(result.aeroManager, troveManagerParamsArray[vars.i].isAeroLPCollateral, troveManagerParamsArray[vars.i].aeroGaugeAddress);
+        }
+
+        result.collateralRegistry = new CollateralRegistry(result.boldToken, vars.collaterals, vars.troveManagers, result.aeroManager, GOVERNOR_ADDRESS); //TODO: fix this later
+        result.hintHelpers = new HintHelpers(result.collateralRegistry);
+        result.multiTroveGetter = new MultiTroveGetter(result.collateralRegistry);
+
+        (result.contractsArray[0], result.zappersArray[0]) = _deployAndConnectCollateralContractsDev(
+            _WETH,
+            result.boldToken,
+            result.collateralRegistry,
+            _WETH,
+            vars.addressesRegistries[0],
+            address(vars.troveManagers[0]),
+            result.hintHelpers,
+            result.multiTroveGetter,
+            vars.aeroParams[0]
+        );
+
+        (result.contractsArray[1], result.zappersArray[1]) = _deployAndConnectCollateralContractsDevWithWrappedToken(
+            _wrappedToken,
+            result.boldToken,
+            result.collateralRegistry,
+            _WETH,
+            vars.addressesRegistries[1],
+            address(vars.troveManagers[1]),
+            result.hintHelpers,
+            result.multiTroveGetter,
+            vars.aeroParams[1]
+        );
+
+        // Deploy the remaining branches with LST collateral
+        for (vars.i = 2; vars.i < vars.numCollaterals; vars.i++) {
+            (result.contractsArray[vars.i], result.zappersArray[vars.i]) = _deployAndConnectCollateralContractsDev(
+                vars.collaterals[vars.i],
+                result.boldToken,
+                result.collateralRegistry,
+                _WETH,
+                vars.addressesRegistries[vars.i],
+                address(vars.troveManagers[vars.i]),
+                result.hintHelpers,
+                result.multiTroveGetter,
+                vars.aeroParams[vars.i]
+            );
+        }
+
+        result.boldToken.setCollateralRegistry(address(result.collateralRegistry));
+        result.aeroManager.setAddresses(result.collateralRegistry);
+    }
+
     function _deployAddressesRegistryDev(TroveManagerParams memory _troveManagerParams)
         internal
         returns (IAddressesRegistry, address)
@@ -551,6 +650,124 @@ contract TestDeployer is MetadataDeployment {
             _weth,
             contracts.priceFeed,
             ICurveStableswapNGPool(address(0)),
+            false,
+            zappers
+        );
+    }
+
+    function _deployAndConnectCollateralContractsDevWithWrappedToken(
+        IERC20Metadata _collToken,
+        IBoldToken _boldToken,
+        ICollateralRegistry _collateralRegistry,
+        IWETH _weth,
+        IAddressesRegistry _addressesRegistry,
+        address _troveManagerAddress,
+        IHintHelpers _hintHelpers,
+        IMultiTroveGetter _multiTroveGetter,
+        AeroParams memory _aeroParams
+    ) internal returns (LiquityContractsDev memory contracts, Zappers memory zappers) {
+        LiquityContractAddresses memory addresses;
+        contracts.collToken = _collToken;
+
+        // Deploy all contracts, using testers for TM and PriceFeed
+        contracts.addressesRegistry = _addressesRegistry;
+        contracts.priceFeed = new PriceFeedTestnet();
+        contracts.interestRouter = new MockInterestRouter();
+
+        // Deploy Metadata
+        MetadataNFT metadataNFT = deployMetadata(SALT);
+        addresses.metadataNFT = getAddress(
+            address(this), getBytecode(type(MetadataNFT).creationCode, address(initializedFixedAssetReader)), SALT
+        );
+        assert(address(metadataNFT) == addresses.metadataNFT);
+
+        // Pre-calc addresses
+        addresses.borrowerOperations = getAddress(
+            address(this),
+            getBytecode(type(BorrowerOperationsTester).creationCode, address(contracts.addressesRegistry)),
+            SALT
+        );
+        addresses.troveManager = _troveManagerAddress;
+        addresses.troveNFT = getAddress(
+            address(this), getBytecode(type(TroveNFT).creationCode, address(contracts.addressesRegistry)), SALT
+        );
+        addresses.stabilityPool = getAddress(
+            address(this), getBytecode(type(StabilityPool).creationCode, address(contracts.addressesRegistry)), SALT
+        );
+        addresses.activePool = getAddress(
+            address(this), getBytecode(type(ActivePool).creationCode, address(contracts.addressesRegistry), _aeroParams.isAeroLPCollateral, _aeroParams.aeroGaugeAddress), SALT
+        );
+        addresses.defaultPool = getAddress(
+            address(this), getBytecode(type(DefaultPool).creationCode, address(contracts.addressesRegistry)), SALT
+        );
+        addresses.gasPool = getAddress(
+            address(this), getBytecode(type(GasPool).creationCode, address(contracts.addressesRegistry)), SALT
+        );
+        addresses.collSurplusPool = getAddress(
+            address(this), getBytecode(type(CollSurplusPool).creationCode, address(contracts.addressesRegistry)), SALT
+        );
+        addresses.sortedTroves = getAddress(
+            address(this), getBytecode(type(SortedTroves).creationCode, address(contracts.addressesRegistry)), SALT
+        );
+
+        // Deploy contracts
+        IAddressesRegistry.AddressVars memory addressVars = IAddressesRegistry.AddressVars({
+            collToken: _collToken,
+            borrowerOperations: IBorrowerOperations(addresses.borrowerOperations),
+            troveManager: ITroveManager(addresses.troveManager),
+            troveNFT: ITroveNFT(addresses.troveNFT),
+            metadataNFT: IMetadataNFT(addresses.metadataNFT),
+            stabilityPool: IStabilityPool(addresses.stabilityPool),
+            priceFeed: contracts.priceFeed,
+            activePool: IActivePool(addresses.activePool),
+            defaultPool: IDefaultPool(addresses.defaultPool),
+            gasPoolAddress: addresses.gasPool,
+            collSurplusPool: ICollSurplusPool(addresses.collSurplusPool),
+            sortedTroves: ISortedTroves(addresses.sortedTroves),
+            interestRouter: contracts.interestRouter,
+            hintHelpers: _hintHelpers,
+            multiTroveGetter: _multiTroveGetter,
+            collateralRegistry: _collateralRegistry,
+            boldToken: _boldToken,
+            WETH: _weth,
+            aeroManager: _aeroParams.aeroManager
+        });
+        contracts.addressesRegistry.setAddresses(addressVars);
+
+        contracts.borrowerOperations = new BorrowerOperationsTester{salt: SALT}(contracts.addressesRegistry);
+        contracts.troveManager = new TroveManagerTester{salt: SALT}(contracts.addressesRegistry);
+        contracts.troveNFT = new TroveNFT{salt: SALT}(contracts.addressesRegistry);
+        contracts.stabilityPool = new StabilityPool{salt: SALT}(contracts.addressesRegistry);
+        contracts.activePool = new ActivePool{salt: SALT}(contracts.addressesRegistry, _aeroParams.isAeroLPCollateral, _aeroParams.aeroGaugeAddress);
+        contracts.pools.defaultPool = new DefaultPool{salt: SALT}(contracts.addressesRegistry);
+        contracts.pools.gasPool = new GasPool{salt: SALT}(contracts.addressesRegistry);
+        contracts.pools.collSurplusPool = new CollSurplusPool{salt: SALT}(contracts.addressesRegistry);
+        contracts.sortedTroves = new SortedTroves{salt: SALT}(contracts.addressesRegistry);
+
+        assert(address(contracts.borrowerOperations) == addresses.borrowerOperations);
+        assert(address(contracts.troveManager) == addresses.troveManager);
+        assert(address(contracts.troveNFT) == addresses.troveNFT);
+        assert(address(contracts.stabilityPool) == addresses.stabilityPool);
+        assert(address(contracts.activePool) == addresses.activePool);
+        assert(address(contracts.pools.defaultPool) == addresses.defaultPool);
+        assert(address(contracts.pools.gasPool) == addresses.gasPool);
+        assert(address(contracts.pools.collSurplusPool) == addresses.collSurplusPool);
+        assert(address(contracts.sortedTroves) == addresses.sortedTroves);
+
+        // Connect contracts
+        _boldToken.setBranchAddresses(
+            address(contracts.troveManager),
+            address(contracts.stabilityPool),
+            address(contracts.borrowerOperations),
+            address(contracts.activePool)
+        );
+
+        // deploy zappers
+        _deployWrappedTokenZappers(
+            contracts.addressesRegistry,
+            contracts.collToken,
+            _boldToken,
+            contracts.priceFeed,
             false,
             zappers
         );
@@ -883,6 +1100,21 @@ contract TestDeployer is MetadataDeployment {
         IExchange curveExchange = new CurveExchange(_collToken, _boldToken, curvePool, 1, 0);
 
         return curveExchange;
+    }
+
+    function _deployWrappedTokenZappers(
+        IAddressesRegistry _addressesRegistry,
+        IERC20 _collToken,
+        IBoldToken _boldToken,
+        IPriceFeed _priceFeed,
+        bool _mainnet,
+        Zappers memory zappers // result
+    ) internal {
+        IFlashLoanProvider flashLoanProvider = new BalancerFlashLoan();
+        IExchange curveExchange = _deployCurveExchange(_collToken, _boldToken, _priceFeed, _mainnet);
+
+        // TODO: Deploy base zappers versions with Uni V3 exchange
+        zappers.wrappedTokenZapper = new WrappedTokenZapper(IWrappedToken(address(_collToken)), _addressesRegistry, flashLoanProvider, curveExchange);
     }
 
     function _deployLeverageZappers(
