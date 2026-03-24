@@ -82,12 +82,7 @@ contract RedemptionHelperTest is DevTestSetup {
             }
         }
 
-        IAddressesRegistry[] memory addresses = new IAddressesRegistry[](branch.length);
-        for (uint256 i = 0; i < branch.length; ++i) {
-            addresses[i] = branch[i].addressesRegistry;
-        }
-
-        redemptionHelper = new RedemptionHelper(collateralRegistry, addresses);
+        redemptionHelper = new RedemptionHelper(collateralRegistry);
     }
 
     function findAmountToBorrow(uint256 branchIdx, uint256 targetDebt, uint256 interestRate)

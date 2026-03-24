@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import "./IActivePool.sol";
 import "./IDefaultPool.sol";
-import "./IPriceFeed.sol";
 
 interface ILiquityBase {
     function activePool() external view returns (IActivePool);
