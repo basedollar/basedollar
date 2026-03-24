@@ -22,13 +22,16 @@ contract RedemptionHelper is IRedemptionHelper {
         uint256 collBalanceBefore;
     }
 
-    uint256 public immutable numBranches;
+    uint256 public numBranches;
     ICollateralRegistry public immutable collateralRegistry;
     IBoldToken public immutable boldToken;
     IAddressesRegistry[] public addresses; // only used off-chain, so we don't care about storage cost
 
+    event CollateralBranchAdded(uint256 indexed index, IAddressesRegistry addressesRegistry);
+
     constructor(ICollateralRegistry _collateralRegistry, IAddressesRegistry[] memory _addresses) {
-        require(_addresses.length == _collateralRegistry.totalCollaterals(), "Wrong number of registries");
+        uint256 totalRedeemableCollaterals = _collateralRegistry.getTroveManagers().length;
+        require(_addresses.length == totalRedeemableCollaterals, "Wrong number of registries");
         numBranches = _addresses.length;
         collateralRegistry = _collateralRegistry;
         boldToken = _collateralRegistry.boldToken();
@@ -39,12 +42,24 @@ contract RedemptionHelper is IRedemptionHelper {
         }
     }
 
+    function addCollateralBranch(IAddressesRegistry _addressesRegistry) external {
+        require(msg.sender == collateralRegistry.collateralGovernor(), "Only collateral governor can call this function");
+        require(numBranches < collateralRegistry.getTroveManagers().length, "No redeemable branches to add");
+        uint256 index = numBranches;
+        require(collateralRegistry.getTroveManager(index) == _addressesRegistry.troveManager(), "TroveManager mismatch");
+        require(collateralRegistry.getToken(index) == _addressesRegistry.collToken(), "Collateral token mismatch");
+        addresses.push(_addressesRegistry);
+        numBranches++;
+        emit CollateralBranchAdded(index, _addressesRegistry);
+    }
+
     // Meant to be called off-chain
     // Not a view because price fetching has side-effects
     function simulateRedemption(uint256 _bold, uint256 _maxIterationsPerCollateral)
         public
         returns (SimulationContext[] memory branch, uint256 totalProportions)
     {
+        _requireValidRedeemableBranchLength(numBranches);
         branch = new SimulationContext[](numBranches);
 
         // First priority: proportional to unbacked debt
@@ -146,6 +161,7 @@ contract RedemptionHelper is IRedemptionHelper {
         uint256 _maxFeePct,
         uint256[] memory _minCollRedeemed
     ) external {
+        _requireValidRedeemableBranchLength(numBranches);
         require(_bold > 0, "Redeemed amount must be non-zero");
         require(_minCollRedeemed.length == numBranches, "Wrong _minCollRedeemed length");
 
@@ -169,5 +185,9 @@ contract RedemptionHelper is IRedemptionHelper {
 
         uint256 boldRemaining = boldToken.balanceOf(address(this)) - boldBalanceBefore;
         if (boldRemaining > 0) boldToken.transfer(msg.sender, boldRemaining);
+    }
+
+    function _requireValidRedeemableBranchLength(uint256 _length) internal view {
+        require(_length == collateralRegistry.getTroveManagers().length, "Wrong number of redeemable branches");
     }
 }

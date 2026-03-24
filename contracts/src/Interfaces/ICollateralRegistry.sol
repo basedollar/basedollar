@@ -13,6 +13,8 @@ interface ICollateralRegistry {
     function redeemCollateral(uint256 _boldamount, uint256 _maxIterations, uint256 _maxFeePercentage) external;
     // getters
     function totalCollaterals() external view returns (uint256);
+    function governor() external view returns (address);
+    function collateralGovernor() external view returns (address);
     function getToken(uint256 _index) external view returns (IERC20Metadata);
     function getTroveManager(uint256 _index) external view returns (ITroveManager);
     function getNonRedeemableToken(uint256 _index) external view returns(IERC20Metadata);
