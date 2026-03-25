@@ -118,10 +118,10 @@ contract InterestBatchManagementTest is DevTestSetup {
         registerBatchManager(B);
 
         // Open trove
-        uint256 troveId = openTroveNoHints100pct(A, 100e18, 5000e18, 5e16);
+        uint256 troveId = openTroveNoHints100pct(A, 10e18, 500e18, 5e16);
 
         // Redeem from trove
-        redeem(A, 4000e18);
+        redeem(A, 400e18);
 
         // Try to set interest batch manager
         vm.startPrank(A);
@@ -743,7 +743,7 @@ contract InterestBatchManagementTest is DevTestSetup {
 
     function testApplyBatchInterestPermissionlessReinsertsIntoSortedTrovesIfInBatch() public {
         priceFeed.setPrice(2000e18);
-        uint256 troveDebtRequest = 2000e18;
+        uint256 troveDebtRequest = 200e18;
         uint256 interestRate = 25e16;
 
         uint256 ATroveId = openTroveAndJoinBatchManager(A, 3 ether, troveDebtRequest, B, interestRate);
@@ -751,7 +751,7 @@ contract InterestBatchManagementTest is DevTestSetup {
         assertEq(sortedTroves.isBatchedNode(ATroveId), true, "A should be batched in SortedTroves");
 
         // redeem from A
-        redeem(A, 500e18);
+        redeem(A, 50e18);
 
         // Check A is zombie
         assertEq(uint8(troveManager.getTroveStatus(ATroveId)), uint8(ITroveManager.Status.zombie));
@@ -1273,18 +1273,18 @@ contract InterestBatchManagementTest is DevTestSetup {
 
     function testAnZombieTroveGoesBackToTheBatch() public {
         // A opens trove and joins batch manager B
-        uint256 troveId = openTroveAndJoinBatchManager(A, 100 ether, 2000e18, B, 5e16);
+        uint256 troveId = openTroveAndJoinBatchManager(A, 10 ether, 200e18, B, 5e16);
 
         // Open another trove with higher interest
-        openTroveNoHints100pct(C, 100 ether, 2000e18, 10e16);
+        openTroveNoHints100pct(C, 10 ether, 200e18, 10e16);
 
         vm.warp(block.timestamp + 10 days);
 
         // C redeems and makes A zombie
-        redeem(C, 1000e18);
+        redeem(C, 100e18);
 
         // A adjusts back to normal
-        adjustZombieTrove(A, troveId, 0, false, 1000e18, true);
+        adjustZombieTrove(A, troveId, 0, false, 100e18, true);
 
         assertEq(borrowerOperations.interestBatchManagerOf(troveId), B, "A should be in batch (BO)");
         (,,,,,,,, address tmBatchManagerAddress,) = troveManager.Troves(troveId);

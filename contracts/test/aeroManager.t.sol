@@ -241,6 +241,9 @@ contract AeroManagerTest is DevTestSetup {
         uint256 rewardEpoch0 = aeroManagerImpl.claimedAeroPerEpoch(epoch0, address(gauge));
         assertGt(rewardEpoch0, 0);
 
+        vm.prank(governor);
+        aeroManagerImpl.closeCurrentEpoch(address(gauge));
+
         // Allocate all epoch-0 rewards
         AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](2);
         uint256 aAmt = rewardEpoch0 / 3;
@@ -282,6 +285,9 @@ contract AeroManagerTest is DevTestSetup {
         uint256 reward0 = aeroManagerImpl.claimedAeroPerEpoch(epoch0, address(gauge));
         assertGt(reward0, 0);
 
+        vm.prank(governor);
+        aeroManagerImpl.closeCurrentEpoch(address(gauge));
+
         uint256 a0 = reward0 / 2;
         uint256 b0 = reward0 - a0;
         AeroManager.AeroRecipient[] memory recipients0 = new AeroManager.AeroRecipient[](2);
@@ -297,6 +303,9 @@ contract AeroManagerTest is DevTestSetup {
         assertEq(epoch1, 1);
         uint256 reward1 = aeroManagerImpl.claimedAeroPerEpoch(epoch1, address(gauge));
         assertGt(reward1, 0);
+
+        vm.prank(governor);
+        aeroManagerImpl.closeCurrentEpoch(address(gauge));
 
         uint256 a1 = reward1 / 4;
         uint256 b1 = reward1 - a1;

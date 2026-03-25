@@ -295,8 +295,8 @@ contract ZapperGasCompTest is DevTestSetup {
 
     function testCanRepayBold() external {
         uint256 collAmount = 10 ether;
-        uint256 boldAmount1 = 10000e18;
-        uint256 boldAmount2 = 1000e18;
+        uint256 boldAmount1 = 1000e18;
+        uint256 boldAmount2 = 100e18;
 
         IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
             owner: A,
@@ -345,8 +345,8 @@ contract ZapperGasCompTest is DevTestSetup {
 
     function testCanWithdrawBold() external {
         uint256 collAmount = 10 ether;
-        uint256 boldAmount1 = 10000e18;
-        uint256 boldAmount2 = 1000e18;
+        uint256 boldAmount1 = 1000e18;
+        uint256 boldAmount2 = 100e18;
 
         IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
             owner: A,
@@ -606,8 +606,8 @@ contract ZapperGasCompTest is DevTestSetup {
     function testCanAdjustZombieTroveWithdrawCollAndBold() external {
         uint256 collAmount1 = 10 ether;
         uint256 collAmount2 = 1 ether;
-        uint256 boldAmount1 = 10000e18;
-        uint256 boldAmount2 = 1000e18;
+        uint256 boldAmount1 = 1000e18;
+        uint256 boldAmount2 = 100e18;
 
         IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
             owner: A,
@@ -618,7 +618,7 @@ contract ZapperGasCompTest is DevTestSetup {
             lowerHint: 0,
             annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
             batchManager: address(0),
-            maxUpfrontFee: 1000e18,
+            maxUpfrontFee: 100e18,
             addManager: address(0),
             removeManager: address(0),
             receiver: address(0)
@@ -839,7 +839,7 @@ contract ZapperGasCompTest is DevTestSetup {
         // Adjust trove: remove 1 ETH and try to repay 9k (only will repay ~8k, up to MIN_DEBT)
         vm.startPrank(A);
         boldToken.approve(address(gasCompZapper), type(uint256).max);
-        gasCompZapper.adjustTrove(troveId, 1 ether, false, 9000e18, false, 0);
+        gasCompZapper.adjustTrove(troveId, 1 ether, false, 9900e18, false, 0);
         vm.stopPrank();
 
         assertEq(boldToken.balanceOf(A), boldAmount + MIN_DEBT - boldDebtBefore, "BOLD bal mismatch");
@@ -878,7 +878,7 @@ contract ZapperGasCompTest is DevTestSetup {
         // Adjust trove: try to repay 9k (only will repay ~8k, up to MIN_DEBT)
         vm.startPrank(A);
         boldToken.approve(address(gasCompZapper), type(uint256).max);
-        gasCompZapper.repayBold(troveId, 9000e18);
+        gasCompZapper.repayBold(troveId, 9900e18);
         vm.stopPrank();
 
         assertEq(boldToken.balanceOf(A), boldAmount + MIN_DEBT - boldDebtBefore, "BOLD bal mismatch");
