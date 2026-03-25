@@ -251,8 +251,8 @@ contract DevTestSetup is BaseTest {
         // fast-forward to pass bootstrap phase
         vm.warp(block.timestamp + 14 days);
 
-        coll = 20 ether;
-        debtRequest = 20200e18;
+        coll = 2 ether;
+        debtRequest = 2020e18;
         if (_batched) {
             troveIDs.A = openTroveAndJoinBatchManager(A, coll, debtRequest, A, _troveInterestRates.A);
             troveIDs.B = openTroveAndJoinBatchManager(B, coll, debtRequest, B, _troveInterestRates.B);

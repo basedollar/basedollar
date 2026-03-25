@@ -284,8 +284,8 @@ contract ZapperWETHTest is DevTestSetup {
 
     function testCanRepayBold() external {
         uint256 ethAmount = 10 ether;
-        uint256 boldAmount1 = 10000e18;
-        uint256 boldAmount2 = 1000e18;
+        uint256 boldAmount1 = 1000e18;
+        uint256 boldAmount2 = 100e18;
 
         IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
             owner: A,
@@ -334,8 +334,8 @@ contract ZapperWETHTest is DevTestSetup {
 
     function testCanWithdrawBold() external {
         uint256 ethAmount = 10 ether;
-        uint256 boldAmount1 = 10000e18;
-        uint256 boldAmount2 = 1000e18;
+        uint256 boldAmount1 = 1000e18;
+        uint256 boldAmount2 = 100e18;
 
         IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
             owner: A,
@@ -560,8 +560,8 @@ contract ZapperWETHTest is DevTestSetup {
     function testCanAdjustZombieTroveWithdrawCollAndBold() external {
         uint256 ethAmount1 = 10 ether;
         uint256 ethAmount2 = 1 ether;
-        uint256 boldAmount1 = 10000e18;
-        uint256 boldAmount2 = 1000e18;
+        uint256 boldAmount1 = 1000e18;
+        uint256 boldAmount2 = 100e18;
 
         IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
             owner: A,
@@ -572,7 +572,7 @@ contract ZapperWETHTest is DevTestSetup {
             lowerHint: 0,
             annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
             batchManager: address(0),
-            maxUpfrontFee: 1000e18,
+            maxUpfrontFee: 100e18,
             addManager: address(0),
             removeManager: address(0),
             receiver: address(0)
@@ -657,7 +657,7 @@ contract ZapperWETHTest is DevTestSetup {
             owner: A,
             ownerIndex: 0,
             collAmount: 0, // not needed
-            boldAmount: 10000e18,
+            boldAmount: 1000e18,
             upperHint: 0,
             lowerHint: 0,
             annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
@@ -677,11 +677,11 @@ contract ZapperWETHTest is DevTestSetup {
         vm.stopPrank();
 
         uint256 ethAmount2 = 1 ether;
-        uint256 boldAmount2 = 1000e18;
+        uint256 boldAmount2 = 100e18;
 
         // Redeem to make trove zombie
         vm.startPrank(A);
-        collateralRegistry.redeemCollateral(10000e18 - boldAmount2, 10, 1e18);
+        collateralRegistry.redeemCollateral(1000e18 - boldAmount2, 10, 1e18);
         vm.stopPrank();
 
         uint256 troveCollBefore = troveManager.getTroveEntireColl(troveId);
@@ -709,7 +709,7 @@ contract ZapperWETHTest is DevTestSetup {
             owner: A,
             ownerIndex: 0,
             collAmount: 0, // not needed
-            boldAmount: 10000e18,
+            boldAmount: 1000e18,
             upperHint: 0,
             lowerHint: 0,
             annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
@@ -731,11 +731,11 @@ contract ZapperWETHTest is DevTestSetup {
         vm.stopPrank();
 
         uint256 ethAmount2 = 1 ether;
-        uint256 boldAmount2 = 1000e18;
+        uint256 boldAmount2 = 100e18;
 
         // Redeem to make trove zombie
         vm.startPrank(A);
-        collateralRegistry.redeemCollateral(10000e18 - boldAmount2, 10, 1e18);
+        collateralRegistry.redeemCollateral(1000e18 - boldAmount2, 10, 1e18);
         vm.stopPrank();
 
         // Adjust (add coll and withdraw Bold)
@@ -883,7 +883,7 @@ contract ZapperWETHTest is DevTestSetup {
         // Adjust trove: remove 1 ETH and try to repay 9k (only will repay ~8k, up to MIN_DEBT)
         vm.startPrank(A);
         boldToken.approve(address(wethZapper), type(uint256).max);
-        wethZapper.adjustTroveWithRawETH(troveId, 1 ether, false, 9000e18, false, 0);
+        wethZapper.adjustTroveWithRawETH(troveId, 1 ether, false, 9900e18, false, 0);
         vm.stopPrank();
 
         assertEq(boldToken.balanceOf(A), boldAmount + MIN_DEBT - boldDebtBefore, "BOLD bal mismatch");
@@ -922,7 +922,7 @@ contract ZapperWETHTest is DevTestSetup {
         // Adjust trove: try to repay 9k (only will repay ~8k, up to MIN_DEBT)
         vm.startPrank(A);
         boldToken.approve(address(wethZapper), type(uint256).max);
-        wethZapper.repayBold(troveId, 9000e18);
+        wethZapper.repayBold(troveId, 9900e18);
         vm.stopPrank();
 
         assertEq(boldToken.balanceOf(A), boldAmount + MIN_DEBT - boldDebtBefore, "BOLD bal mismatch");

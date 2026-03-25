@@ -143,9 +143,9 @@ contract InterestIndividualDelegationTest is DevTestSetup {
         vm.stopPrank();
 
         // Open trove
-        uint256 troveId = openTroveNoHints100pct(A, 100e18, 5000e18, 5e16);
+        uint256 troveId = openTroveNoHints100pct(A, 10e18, 500e18, 5e16);
         // Make trove zombie
-        redeem(A, 4000e18);
+        redeem(A, 400e18);
         // Check A’s trove is zombie
         assertEq(troveManager.checkTroveIsZombie(troveId), true, "A trove should be zombie");
 

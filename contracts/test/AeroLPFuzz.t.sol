@@ -522,6 +522,9 @@ contract AeroLPFuzz is Test, TestAccounts {
         assertEq(am.claimedAero(), netReward, "claimedAero should track net rewards");
         assertEq(am.claimedAeroPerEpoch(0, address(gauge1)), netReward, "Epoch rewards should be tracked");
 
+        vm.prank(governor);
+        am.closeCurrentEpoch(address(gauge1));
+
         // Distribute rewards
         AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](1);
         recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: netReward});
@@ -695,6 +698,9 @@ contract AeroLPFuzz is Test, TestAccounts {
         uint256 claimed = am.claimedAero();
         
         assertTrue(claimed > 0, "Should have claimed some rewards");
+
+        vm.prank(governor);
+        am.closeCurrentEpoch(address(gauge1));
 
         // Distribute to A
         AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](1);
