@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 /// @notice Arithmetic library with operations for fixed-point numbers.
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/utils/FixedPointMathLib.sol)
 /// @author Inspired by USM (https://github.com/usmfum/USM/blob/master/contracts/WadMath.sol)
+/// from dudesahn (https://github.com/dudesahn/PessimisticVelodromeLPOracle/blob/main/contracts/FixedPointMathLib.sol)
 library FixedPointMathLib {
     /*//////////////////////////////////////////////////////////////
                     SIMPLIFIED FIXED POINT OPERATIONS
