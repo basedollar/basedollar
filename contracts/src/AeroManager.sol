@@ -108,7 +108,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     function setAeroTokenAddress(address _aeroTokenAddress) external onlyGovernor {
         require(_aeroTokenAddress != address(0), "AeroManager: Aero token address cannot be 0");
         require(aeroTokenAddress != _aeroTokenAddress, "AeroManager: New aero token address is the same as the current aero token address");
-        aeroTokenAddress = _aeroTokenAddress;
+
         pendingAeroTokenAddress = _aeroTokenAddress;
         pendingAeroTokenAddressTimestamp = block.timestamp;
         emit AeroTokenAddressUpdatePending(aeroTokenAddress, _aeroTokenAddress, block.timestamp, aeroTokenChangeDelayPeriod);
@@ -169,6 +169,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     function claim(address gauge) external nonReentrant {
         uint256 currentEpoch = currentEpochs[gauge];
         require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
+        require(IAeroGauge(gauge).rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
 
         // Claim AERO from AeroGauge
         uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
