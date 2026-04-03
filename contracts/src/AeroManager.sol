@@ -169,6 +169,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     function claim(address gauge) external nonReentrant {
         uint256 currentEpoch = currentEpochs[gauge];
         require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
+        require(IAeroGauge(gauge).rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
 
         // Claim AERO from AeroGauge
         uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
