@@ -108,7 +108,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     function setAeroTokenAddress(address _aeroTokenAddress) external onlyGovernor {
         require(_aeroTokenAddress != address(0), "AeroManager: Aero token address cannot be 0");
         require(aeroTokenAddress != _aeroTokenAddress, "AeroManager: New aero token address is the same as the current aero token address");
-        aeroTokenAddress = _aeroTokenAddress;
+        
         pendingAeroTokenAddress = _aeroTokenAddress;
         pendingAeroTokenAddressTimestamp = block.timestamp;
         emit AeroTokenAddressUpdatePending(aeroTokenAddress, _aeroTokenAddress, block.timestamp, aeroTokenChangeDelayPeriod);
@@ -270,7 +270,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         emit ActivePoolAdded(activePool);
     }
 
-    function _requireClaimFeeLimit(uint256 newFee) internal view {
+    function _requireClaimFeeLimit(uint256 newFee) internal pure {
         require(newFee <= MAX_AERO_MANAGER_FEE, "AeroManager: Fee is greater than max aero manager fee limit");
     }
 
