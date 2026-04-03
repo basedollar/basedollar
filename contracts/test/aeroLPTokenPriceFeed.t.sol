@@ -134,8 +134,8 @@ contract AeroLPTokenPriceFeedTest is Test {
     // ============ LP Token Price Calculation Tests ============
 
     function test_calculateLPTokenPrice_basicCalculation() public {
-        // Pool has: 1M USDC @ $1 + 500 WETH @ $2000 = $1M + $1M = $2M total
-        // 1000 LP tokens -> each LP = $2000
+        // Fair-reserve pricing for volatile pairs is based on sqrt(r0 * r1), so
+        // the result is effectively $2000 here, with a 1 wei rounding loss.
         uint256 price = feed.i_calculateLPTokenPrice(
             1_000_000e6,  // reserve0 (USDC)
             500e18,       // reserve1 (WETH)
@@ -144,12 +144,13 @@ contract AeroLPTokenPriceFeedTest is Test {
             2000e18       // token1Price ($2000)
         );
 
-        assertEq(price, 2000e18);
+        assertApproxEqAbs(price, 2000e18, 1);
     }
 
     function test_calculateLPTokenPrice_asymmetricReserves() public {
-        // Pool has: 2M USDC @ $1 + 250 WETH @ $2000 = $2M + $0.5M = $2.5M total
-        // 1000 LP tokens -> each LP = $2500
+        // Fair-reserve pricing ignores naive reserve-sum inflation/deflation.
+        // Here r0 * p0 == r1 * p1 is unchanged from the balanced setup, so the
+        // fair LP value stays near $2000 rather than moving to a naive $2500.
         uint256 price = feed.i_calculateLPTokenPrice(
             2_000_000e6,  // reserve0 (USDC)
             250e18,       // reserve1 (WETH)
@@ -158,7 +159,7 @@ contract AeroLPTokenPriceFeedTest is Test {
             2000e18       // token1Price ($2000)
         );
 
-        assertEq(price, 2500e18);
+        assertApproxEqAbs(price, 2000e18, 1);
     }
 
     function test_calculateLPTokenPrice_differentDecimals() public {
@@ -172,9 +173,7 @@ contract AeroLPTokenPriceFeedTest is Test {
             2000e18       // $2000 per WETH
         );
 
-        // Total value: 100 * $1 + 0.05 * $2000 = $100 + $100 = $200
-        // Per LP: $200 / 10 = $20
-        assertEq(price, 20e18);
+        assertApproxEqAbs(price, 20e18, 4);
     }
 
     // ============ fetchPrice Tests ============
@@ -183,13 +182,12 @@ contract AeroLPTokenPriceFeedTest is Test {
         // With setup values:
         // - 1M USDC @ $1 = $1M
         // - 500 WETH @ $2000 = $1M  
-        // - Total = $2M, 1000 LP tokens
-        // - LP price = $2000
+        // Fair-reserve volatile pricing returns essentially $2000 here.
         (uint256 price, bool newFailure) = feed.fetchPrice();
         
         assertFalse(newFailure);
-        assertEq(price, 2000e18);
-        assertEq(feed.lastGoodPrice(), 2000e18);
+        assertApproxEqAbs(price, 2000e18, 1);
+        assertApproxEqAbs(feed.lastGoodPrice(), 2000e18, 1);
     }
 
     function test_fetchPrice_shutsDownOnToken0OracleDown() public {
@@ -276,8 +274,8 @@ contract AeroLPTokenPriceFeedTest is Test {
         // Since deviation > 2%, uses min for token1, max for token0:
         // token1Price = min($2500, $2000) = $2000
         // token0Price = max($0.80, $1) = $1
-        // LP value = (1M * $1 + 500 * $2000) / 1000 = $2M / 1000 = $2000
-        assertEq(price, 2000e18);
+        // Conservative pricing keeps the fair LP value near the baseline.
+        assertApproxEqAbs(price, 2000e18, 1);
     }
 
     function test_fetchRedemptionPrice_withinDeviation_usesMaxMinLogic() public {
@@ -295,8 +293,7 @@ contract AeroLPTokenPriceFeedTest is Test {
         // Both within 2% of oracle prices, so use max/min for redemption:
         // token1Price = max($1980.20, $2000) = $2000
         // token0Price = min($1.01, $1) = $1
-        // LP value = (1M * $1 + 500 * $2000) / 1000 = $2M / 1000 = $2000
-        assertEq(price, 2000e18);
+        assertApproxEqAbs(price, 2000e18, 1);
     }
 
     function test_fetchRedemptionPrice_outsideDeviation_usesMinMaxLogic() public {
@@ -309,9 +306,7 @@ contract AeroLPTokenPriceFeedTest is Test {
         assertFalse(newFailure);
 
         // Outside threshold: same as non-redemption (conservative)
-        // token1Price = min($2500, $2000) = $2000
-        // token0Price = max($0.80, $1) = $1
-        assertEq(price, 2000e18);
+        assertApproxEqAbs(price, 2000e18, 1);
     }
 
     function test_fetchRedemptionPrice_withinDeviation_higherLPValue() public {
