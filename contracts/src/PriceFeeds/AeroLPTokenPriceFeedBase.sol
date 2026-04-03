@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0
 
 pragma solidity 0.8.24;
 
@@ -11,6 +11,7 @@ import {DECIMAL_PRECISION} from "../Dependencies/Constants.sol";
 import "../Dependencies/LiquityMath.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "../Dependencies/FixedPointMathLib.sol";
 
 // import "forge-std/console2.sol";
 
@@ -19,7 +20,7 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     // - primary: Uses the primary price calculation, which depends on the specific feed
     // - lastGoodPrice: the last good price recorded by this PriceFeed.
 
-     enum PriceSource {
+    enum PriceSource {
         primary,
         TokenUSDxCanonical,
         lastGoodPrice
@@ -58,6 +59,8 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     IAeroPool public immutable pool;
     IAeroGauge public immutable gauge;
 
+    bool public immutable isStablePair;
+
     Oracle public token0UsdOracle;
     Oracle public token1UsdOracle;
 
@@ -80,6 +83,7 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         require(address(_gauge) != address(0), "Gauge is 0 address");
 
         pool = IAeroPool(gauge.stakingToken());
+        isStablePair = pool.stable();
 
         token0PoolDecimals = IERC20Metadata(pool.token0()).decimals();
         token1PoolDecimals = IERC20Metadata(pool.token1()).decimals();
@@ -162,6 +166,8 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     }
 
     /// @notice Calculate LP token price given reserves, supply, and token prices
+    /// This is used to calculate the fair price based on fair asset reserves of the pool.
+    /// Code implementation based on Pessimistic Velodrome LP Oracle from dudesahn: https://github.com/dudesahn/PessimisticVelodromeLPOracle.
     /// @param reserve0 Amount of token0 in pool
     /// @param reserve1 Amount of token1 in pool  
     /// @param lpTotalSupply Total LP tokens outstanding
@@ -178,16 +184,72 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         // Scale reserves to 18 decimals
         uint256 reserve0Scaled = reserve0 * 10 ** (18 - token0PoolDecimals);
         uint256 reserve1Scaled = reserve1 * 10 ** (18 - token1PoolDecimals);
-        
-        // Total value in USD = (reserve0 * price0) + (reserve1 * price1)
-        // Both reserves and prices are 18 decimals, so divide by 1e18
-        uint256 totalValueUsd = (reserve0Scaled * token0Price / 1e18) 
-                              + (reserve1Scaled * token1Price / 1e18);
-        
-        // LP token price = total value / total supply
-        // totalValueUsd is 18 decimals, lpTotalSupply is 18 decimals
-        // Result is 18 decimals
-        return totalValueUsd * 1e18 / lpTotalSupply;
+
+        if (isStablePair) {
+            return _calculate_stable_lp_token_price(lpTotalSupply, token0Price, token1Price, reserve0Scaled, reserve1Scaled);
+        } else {
+            return _calculate_volatile_lp_token_price(lpTotalSupply, token0Price, token1Price, reserve0Scaled, reserve1Scaled);
+        }
+    }
+
+    /// @notice Calculate volatile LP token price via fair asset reserves
+    /// @param total_supply Total supply of LP tokens
+    /// @param price0 Price of token0 in 18 decimals
+    /// @param price1 Price of token1 in 18 decimals
+    /// @param reserve0 Reserve of token0 in 18 decimals
+    /// @param reserve1 Reserve of token1 in 18 decimals
+    /// @return LP token price in 18 decimals
+    function _calculate_volatile_lp_token_price(
+        uint256 total_supply,
+        uint256 price0,
+        uint256 price1,
+        uint256 reserve0,
+        uint256 reserve1
+    ) internal pure returns (uint256) {
+        uint256 k = FixedPointMathLib.sqrt(reserve0 * reserve1); // xy = k, p0r0' = p1r1', this is in 1e18
+        uint256 p = FixedPointMathLib.sqrt(price0 * 1e16 * price1); // boost this to 1e16 to give us more precision
+
+        // we want k and total supply to have same number of decimals so price has 18 decimals
+        return (2 * p * k) / (1e8 * total_supply);
+    }
+
+    //solves for cases where curve is x^3 * y + y^3 * x = k
+    //fair reserves math formula author: @ksyao2002
+    //modified from dudesahn/PessimisticVelodromeLPOracle: https://github.com/dudesahn/PessimisticVelodromeLPOracle/blob/575ac4cd226fae22a69bddb945fb45700c68ee83/contracts/PessimisticVelodromeLPOracle.sol#L459-L498
+    function _calculate_stable_lp_token_price(
+        uint256 total_supply,
+        uint256 price0, // must be in 18 decimals
+        uint256 price1, // must be in 18 decimals
+        uint256 reserve0,
+        uint256 reserve1
+    ) internal pure returns (uint256) {
+        uint256 k = _getK(reserve0, reserve1);
+        //fair_reserves = ( (k * (price0 ** 3) * (price1 ** 3)) )^(1/4) / ((price0 ** 2) + (price1 ** 2));
+        uint256 a = FixedPointMathLib.rpow(price0, 3, 1e18); //keep same decimals as chainlink
+        uint256 b = FixedPointMathLib.rpow(price1, 3, 1e18);
+        uint256 c = FixedPointMathLib.rpow(price0, 2, 1e18);
+        uint256 d = FixedPointMathLib.rpow(price1, 2, 1e18);
+
+        uint256 p0 = k * FixedPointMathLib.mulWadDown(a, b); //2*18 decimals
+
+        uint256 fair = p0 / (c + d); // number of decimals is 18
+
+        // each sqrt divides the num decimals by 2. So need to replenish the decimals midway through with another 1e18
+        uint256 frth_fair = FixedPointMathLib.sqrt(
+            FixedPointMathLib.sqrt(fair * 1e18) * 1e18
+        ); // number of decimals is 18
+
+        return 2 * ((frth_fair * 1e18) / total_supply);
+    }
+
+    function _getK(uint256 x, uint256 y) internal pure returns (uint256) {
+        //x, n, scalar
+        uint256 x_cubed = FixedPointMathLib.rpow(x, 3, 1e18);
+        uint256 newX = FixedPointMathLib.mulWadDown(x_cubed, y);
+        uint256 y_cubed = FixedPointMathLib.rpow(y, 3, 1e18);
+        uint256 newY = FixedPointMathLib.mulWadDown(y_cubed, x);
+
+        return newX + newY; //18 decimals
     }
 
     function _shutDownAndSwitchToLastGoodPrice(address _failedOracleAddr) internal returns (uint256) {

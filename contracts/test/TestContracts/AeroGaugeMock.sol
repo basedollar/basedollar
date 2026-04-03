@@ -30,10 +30,15 @@ contract AeroPoolMock {
     uint256 internal _quoteToken1ToToken0; // How much token0 for 1 token1
 
     bool internal _shouldRevert;
+    bool internal _isStable;
 
     constructor(address token0_, address token1_) {
         token0 = token0_;
         token1 = token1_;
+    }
+
+    function setStable(bool v) external {
+        _isStable = v;
     }
 
     // Legacy setter (kept for backward compatibility)
@@ -94,5 +99,9 @@ contract AeroPoolMock {
     {
         if (_shouldRevert) revert("AeroPoolMock: revert");
         return (_reserve0Cumulative, _reserve1Cumulative, _blockTimestampLast);
+    }
+
+    function stable() external view returns (bool) {
+        return _isStable;
     }
 }
