@@ -271,7 +271,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         emit ActivePoolAdded(activePool);
     }
 
-    function _requireClaimFeeLimit(uint256 newFee) internal pure {
+    function _requireClaimFeeLimit(uint256 newFee) internal view {
         require(newFee <= MAX_AERO_MANAGER_FEE, "AeroManager: Fee is greater than max aero manager fee limit");
     }
 
