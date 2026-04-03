@@ -59,7 +59,7 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     IAeroPool public immutable pool;
     IAeroGauge public immutable gauge;
 
-    bool public isStablePair;
+    bool public immutable isStablePair;
 
     Oracle public token0UsdOracle;
     Oracle public token1UsdOracle;
