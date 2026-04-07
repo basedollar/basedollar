@@ -64,7 +64,7 @@ contract cbBTCPriceFeed is CompositePriceFeed {
         return (cbbtcUsdPrice, false);
     }
 
-    function _getCanonicalRate() internal view override returns (uint256, bool) {
+    function _getCanonicalRate() internal pure override returns (uint256, bool) {
         return (1 * 10 ** 18, false); // always return 1 BTC per cbBTC by default.
     }
 }   
