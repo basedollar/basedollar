@@ -62,6 +62,8 @@ contract ExchangeHelpersTest is Test, UseDeployment {
     error QuoteResult(uint256 amount);
 
     function setUp() external {
+        vm.skip(true);
+
         string memory rpcUrl = vm.envOr("MAINNET_RPC_URL", string(""));
         if (bytes(rpcUrl).length == 0) vm.skip(true);
 

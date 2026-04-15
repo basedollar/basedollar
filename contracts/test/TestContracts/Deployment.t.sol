@@ -376,7 +376,7 @@ contract TestDeployer is MetadataDeployment {
             vars.aeroParams[vars.i] = AeroParams(result.aeroManager, troveManagerParamsArray[vars.i].isAeroLPCollateral, troveManagerParamsArray[vars.i].aeroGaugeAddress);
         }
 
-        result.collateralRegistry = new CollateralRegistry(result.boldToken, vars.collaterals, vars.troveManagers, result.aeroManager, GOVERNOR_ADDRESS); //TODO: fix this later
+        result.collateralRegistry = new CollateralRegistryTester(result.boldToken, vars.collaterals, vars.troveManagers, result.aeroManager, GOVERNOR_ADDRESS); //TODO: fix this later
         result.hintHelpers = new HintHelpers(result.collateralRegistry);
         result.multiTroveGetter = new MultiTroveGetter(result.collateralRegistry);
 
@@ -461,7 +461,7 @@ contract TestDeployer is MetadataDeployment {
             vars.aeroParams[vars.i] = AeroParams(result.aeroManager, troveManagerParamsArray[vars.i].isAeroLPCollateral, troveManagerParamsArray[vars.i].aeroGaugeAddress);
         }
 
-        result.collateralRegistry = new CollateralRegistry(result.boldToken, vars.collaterals, vars.troveManagers, result.aeroManager, GOVERNOR_ADDRESS); //TODO: fix this later
+        result.collateralRegistry = new CollateralRegistryTester(result.boldToken, vars.collaterals, vars.troveManagers, result.aeroManager, GOVERNOR_ADDRESS); //TODO: fix this later
         result.hintHelpers = new HintHelpers(result.collateralRegistry);
         result.multiTroveGetter = new MultiTroveGetter(result.collateralRegistry);
 
@@ -535,7 +535,7 @@ contract TestDeployer is MetadataDeployment {
         address aeroGaugeAddress;
     }
 
-    function _deployAndConnectCollateralContractsDev(
+    function __deployCollateralBranchDevCore(
         IERC20Metadata _collToken,
         IBoldToken _boldToken,
         ICollateralRegistry _collateralRegistry,
@@ -634,14 +634,6 @@ contract TestDeployer is MetadataDeployment {
         assert(address(contracts.pools.collSurplusPool) == addresses.collSurplusPool);
         assert(address(contracts.sortedTroves) == addresses.sortedTroves);
 
-        // Connect contracts
-        _boldToken.setBranchAddresses(
-            address(contracts.troveManager),
-            address(contracts.stabilityPool),
-            address(contracts.borrowerOperations),
-            address(contracts.activePool)
-        );
-
         // deploy zappers
         _deployZappers(
             contracts.addressesRegistry,
@@ -652,6 +644,62 @@ contract TestDeployer is MetadataDeployment {
             ICurveStableswapNGPool(address(0)),
             false,
             zappers
+        );
+    }
+
+    function _deployAndConnectCollateralContractsDev(
+        IERC20Metadata _collToken,
+        IBoldToken _boldToken,
+        ICollateralRegistry _collateralRegistry,
+        IWETH _weth,
+        IAddressesRegistry _addressesRegistry,
+        address _troveManagerAddress,
+        IHintHelpers _hintHelpers,
+        IMultiTroveGetter _multiTroveGetter,
+        AeroParams memory _aeroParams
+    ) internal returns (LiquityContractsDev memory contracts, Zappers memory zappers) {
+        (contracts, zappers) = __deployCollateralBranchDevCore(
+            _collToken,
+            _boldToken,
+            _collateralRegistry,
+            _weth,
+            _addressesRegistry,
+            _troveManagerAddress,
+            _hintHelpers,
+            _multiTroveGetter,
+            _aeroParams
+        );
+        _boldToken.setBranchAddresses(
+            address(contracts.troveManager),
+            address(contracts.stabilityPool),
+            address(contracts.borrowerOperations),
+            address(contracts.activePool)
+        );
+    }
+
+    /// @dev Deploys a full branch stack wired to an existing registry and BOLD token, but does not register
+    ///      branch addresses on BOLD (that happens via `CollateralRegistry.createNewBranch`).
+    function deployAdditionalBranchDev(
+        TroveManagerParams memory _troveManagerParams,
+        IERC20Metadata _collToken,
+        IBoldToken _boldToken,
+        ICollateralRegistry _collateralRegistry,
+        IWETH _weth,
+        IHintHelpers _hintHelpers,
+        IMultiTroveGetter _multiTroveGetter,
+        AeroParams memory _aeroParams
+    ) external returns (LiquityContractsDev memory contracts, Zappers memory zappers) {
+        (IAddressesRegistry ar, address tmAddr) = _deployAddressesRegistryDev(_troveManagerParams);
+        (contracts, zappers) = __deployCollateralBranchDevCore(
+            _collToken,
+            _boldToken,
+            _collateralRegistry,
+            _weth,
+            ar,
+            tmAddr,
+            _hintHelpers,
+            _multiTroveGetter,
+            _aeroParams
         );
     }
 
