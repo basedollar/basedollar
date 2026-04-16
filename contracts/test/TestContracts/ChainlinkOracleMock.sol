@@ -13,6 +13,9 @@ contract ChainlinkOracleMock is AggregatorV3Interface {
 
     uint256 lastUpdateTime;
 
+    /// @dev When true, `latestRoundData` reverts (exercises `_getCurrentChainlinkResponse` catch path)
+    bool public revertLatestRoundData;
+
     // We use 8 decimals unless set to 18
     function decimals() external view returns (uint8) {
         return decimal;
@@ -23,10 +26,15 @@ contract ChainlinkOracleMock is AggregatorV3Interface {
         view
         returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
+        if (revertLatestRoundData) revert("ChainlinkOracleMock: revert");
         // console2.log(lastUpdateTime, "lastUpdateTime");
         // console2.log(block.timestamp, "block.timestamp");
         // console2.log(price, "price returned by oracle");
         return (0, price, 0, lastUpdateTime, 0);
+    }
+
+    function setRevertLatestRoundData(bool v) external {
+        revertLatestRoundData = v;
     }
 
     function setDecimals(uint8 _decimals) external {

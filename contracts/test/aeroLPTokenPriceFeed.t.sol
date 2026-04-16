@@ -5,6 +5,9 @@ import "forge-std/Test.sol";
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
+import "src/Dependencies/AggregatorV3Interface.sol";
+import "src/Dependencies/Constants.sol";
+import "src/Interfaces/IAeroGauge.sol";
 import "src/PriceFeeds/AeroLPTokenPriceFeed.sol";
 import "src/PriceFeeds/AeroLPTokenPriceFeedBase.sol";
 
@@ -106,6 +109,20 @@ contract AeroLPTokenPriceFeedTest is Test {
         assertTrue(exchangeRate.isDown);
     }
 
+    function test_getTwapExchangeRate_returnsDownWhenFirstQuoteReverts() public {
+        pool.setRevertQuoteToken0(true);
+        AeroLPTokenPriceFeedBase.ExchangeRate memory exchangeRate = feed.i_getTwapExchangeRates();
+        assertTrue(exchangeRate.isDown);
+    }
+
+    function test_getTwapExchangeRate_returnsDownWhenSecondQuoteReverts() public {
+        pool.setRevertQuoteToken1(true);
+        AeroLPTokenPriceFeedBase.ExchangeRate memory exchangeRate = feed.i_getTwapExchangeRates();
+        assertEq(exchangeRate.token1PerToken0, 0.0005e18);
+        assertEq(exchangeRate.token0PerToken1, 0);
+        assertTrue(exchangeRate.isDown);
+    }
+
     // ============ Pool State Tests ============
 
     function test_getPoolState_returnsCorrectValues() public {
@@ -127,6 +144,18 @@ contract AeroLPTokenPriceFeedTest is Test {
     function test_getPoolState_returnsDownOnRevert() public {
         pool.setShouldRevert(true);
 
+        (, , , bool isDown) = feed.i_getPoolState();
+        assertTrue(isDown);
+    }
+
+    function test_getPoolState_returnsDownWhenOnlyTotalSupplyReverts() public {
+        pool.setFailTotalSupplyOnly(true);
+        (, , , bool isDown) = feed.i_getPoolState();
+        assertTrue(isDown);
+    }
+
+    function test_getPoolState_returnsDownWhenOnlyGetReservesReverts() public {
+        pool.setFailGetReservesOnly(true);
         (, , , bool isDown) = feed.i_getPoolState();
         assertTrue(isDown);
     }
@@ -176,6 +205,41 @@ contract AeroLPTokenPriceFeedTest is Test {
         assertApproxEqAbs(price, 20e18, 4);
     }
 
+    function test_calculateLPTokenPrice_stablePair() public {
+        ERC20DecimalsMock s0 = new ERC20DecimalsMock("S0", "S0", 18);
+        ERC20DecimalsMock s1 = new ERC20DecimalsMock("S1", "S1", 18);
+        AeroGaugeMock g = new AeroGaugeMock(address(s0), address(s1));
+        AeroPoolMock p = g.pool();
+        p.setStable(true);
+        p.setReserves(1_000_000e18, 1_000_000e18);
+        p.setTotalSupply(1_000_000e18);
+        p.setQuoteAmounts(1e18, 1e18);
+
+        ChainlinkOracleMock o0 = new ChainlinkOracleMock();
+        o0.setDecimals(8);
+        o0.setPrice(1e8);
+        o0.setUpdatedAt(block.timestamp);
+        ChainlinkOracleMock o1 = new ChainlinkOracleMock();
+        o1.setDecimals(8);
+        o1.setPrice(1e8);
+        o1.setUpdatedAt(block.timestamp);
+
+        AeroLPTokenPriceFeedTester stableFeed = new AeroLPTokenPriceFeedTester(
+            address(borrowerOperations),
+            IAeroGauge(address(g)),
+            address(o0),
+            address(o1),
+            1 days,
+            1 days
+        );
+
+        uint256 price = stableFeed.i_calculateLPTokenPrice(
+            1_000_000e18, 1_000_000e18, 1_000_000e18, 1e18, 1e18
+        );
+        assertGt(price, 0);
+        assertApproxEqAbs(price, 2e18, 10);
+    }
+
     // ============ fetchPrice Tests ============
 
     function test_fetchPrice_calculatesCorrectLPPrice() public {
@@ -222,6 +286,47 @@ contract AeroLPTokenPriceFeedTest is Test {
         assertTrue(newFailure);
         assertEq(price, lastGoodBefore);
         assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.lastGoodPrice));
+    }
+
+    function test_fetchPrice_shutsDownWhenTwapQuoteReturnsZero() public {
+        (uint256 lastGoodBefore,) = feed.fetchPrice();
+        pool.setQuoteAmounts(0, 2000e6);
+
+        vm.expectCall(address(borrowerOperations), abi.encodeWithSignature("shutdownFromOracleFailure()"));
+        (uint256 price, bool newFailure) = feed.fetchPrice();
+        assertTrue(newFailure);
+        assertEq(price, lastGoodBefore);
+        assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.lastGoodPrice));
+    }
+
+    function test_fetchPrice_shutsDownWhenSecondTwapQuoteReverts() public {
+        (uint256 lastGoodBefore,) = feed.fetchPrice();
+        pool.setRevertQuoteToken1(true);
+
+        vm.expectCall(address(borrowerOperations), abi.encodeWithSignature("shutdownFromOracleFailure()"));
+        (uint256 price, bool newFailure) = feed.fetchPrice();
+        assertTrue(newFailure);
+        assertEq(price, lastGoodBefore);
+    }
+
+    function test_fetchPrice_shutsDownWhenTotalSupplyCallReverts() public {
+        (uint256 lastGoodBefore,) = feed.fetchPrice();
+        pool.setFailTotalSupplyOnly(true);
+
+        vm.expectCall(address(borrowerOperations), abi.encodeWithSignature("shutdownFromOracleFailure()"));
+        (uint256 price, bool newFailure) = feed.fetchPrice();
+        assertTrue(newFailure);
+        assertEq(price, lastGoodBefore);
+    }
+
+    function test_fetchPrice_shutsDownOnToken0OracleLatestRoundDataRevert() public {
+        (uint256 lastGoodBefore,) = feed.fetchPrice();
+        token0UsdOracle.setRevertLatestRoundData(true);
+
+        vm.expectCall(address(borrowerOperations), abi.encodeWithSignature("shutdownFromOracleFailure()"));
+        (uint256 price, bool newFailure) = feed.fetchPrice();
+        assertTrue(newFailure);
+        assertEq(price, lastGoodBefore);
     }
 
     function test_fetchPrice_shutsDownOnTwapDown() public {
@@ -362,5 +467,75 @@ contract AeroLPTokenPriceFeedTest is Test {
 
     function test_priceSourceStartsAsPrimary() public {
         assertEq(uint8(feed.priceSource()), uint8(AeroLPTokenPriceFeedBase.PriceSource.primary));
+    }
+
+    // ============ Base helpers (Chainlink / deviation) ============
+
+    function test_i_getCurrentChainlinkResponse_returnsFailureOnRevert() public {
+        token0UsdOracle.setRevertLatestRoundData(true);
+        AeroLPTokenPriceFeedBase.ChainlinkResponse memory r =
+            feed.i_getCurrentChainlinkResponse(AggregatorV3Interface(address(token0UsdOracle)));
+        assertFalse(r.success);
+    }
+
+    function test_i_getOracleAnswer_marksDownForZeroPrice() public {
+        token0UsdOracle.setPrice(0);
+        AeroLPTokenPriceFeedBase.Oracle memory o = AeroLPTokenPriceFeedBase.Oracle({
+            aggregator: AggregatorV3Interface(address(token0UsdOracle)),
+            stalenessThreshold: 1 days,
+            decimals: 8
+        });
+        (uint256 scaled, bool down) = feed.i_getOracleAnswer(o);
+        assertTrue(down);
+        assertEq(scaled, 0);
+    }
+
+    function test_i_getOracleAnswer_marksDownForNegativePrice() public {
+        token0UsdOracle.setPrice(-1);
+        AeroLPTokenPriceFeedBase.Oracle memory o = AeroLPTokenPriceFeedBase.Oracle({
+            aggregator: AggregatorV3Interface(address(token0UsdOracle)),
+            stalenessThreshold: 1 days,
+            decimals: 8
+        });
+        (uint256 scaled, bool down) = feed.i_getOracleAnswer(o);
+        assertTrue(down);
+        assertEq(scaled, 0);
+    }
+
+    function test_i_isValidChainlinkPrice_requiresSuccessFreshAndPositive() public {
+        AeroLPTokenPriceFeedBase.ChainlinkResponse memory ok = AeroLPTokenPriceFeedBase.ChainlinkResponse({
+            roundId: 1,
+            answer: 100e8,
+            timestamp: block.timestamp,
+            success: true
+        });
+        assertTrue(feed.i_isValidChainlinkPrice(ok, 1 days));
+
+        AeroLPTokenPriceFeedBase.ChainlinkResponse memory badSuccess = ok;
+        badSuccess.success = false;
+        assertFalse(feed.i_isValidChainlinkPrice(badSuccess, 1 days));
+
+        AeroLPTokenPriceFeedBase.ChainlinkResponse memory stale = ok;
+        stale.timestamp = block.timestamp - 2 days;
+        assertFalse(feed.i_isValidChainlinkPrice(stale, 1 days));
+
+        AeroLPTokenPriceFeedBase.ChainlinkResponse memory zeroAns = ok;
+        zeroAns.answer = 0;
+        assertFalse(feed.i_isValidChainlinkPrice(zeroAns, 1 days));
+    }
+
+    function test_i_scaleChainlinkPriceTo18decimals_eightDecimals() public {
+        assertEq(feed.i_scaleChainlinkPriceTo18decimals(2_000e8, 8), 2000e18);
+    }
+
+    function test_i_withinDeviationThreshold_boundaryInclusive() public {
+        uint256 ref = 1e18;
+        uint256 thr = 2e16;
+        uint256 min = ref * (DECIMAL_PRECISION - thr) / 1e18;
+        uint256 max = ref * (DECIMAL_PRECISION + thr) / 1e18;
+        assertTrue(feed.i_withinDeviationThreshold(min, ref, thr));
+        assertTrue(feed.i_withinDeviationThreshold(max, ref, thr));
+        assertFalse(feed.i_withinDeviationThreshold(min - 1, ref, thr));
+        assertFalse(feed.i_withinDeviationThreshold(max + 1, ref, thr));
     }
 }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
+import "src/Dependencies/AggregatorV3Interface.sol";
 import "src/PriceFeeds/AeroLPTokenPriceFeed.sol";
 
 contract AeroLPTokenPriceFeedTester is AeroLPTokenPriceFeed {
@@ -43,5 +44,37 @@ contract AeroLPTokenPriceFeedTester is AeroLPTokenPriceFeed {
         uint256 token1Price
     ) external view returns (uint256) {
         return _calculateLPTokenPrice(reserve0, reserve1, lpTotalSupply, token0Price, token1Price);
+    }
+
+    function i_getOracleAnswer(Oracle memory o) external view returns (uint256 scaledPrice, bool oracleIsDown) {
+        return _getOracleAnswer(o);
+    }
+
+    function i_getCurrentChainlinkResponse(AggregatorV3Interface agg)
+        external
+        view
+        returns (ChainlinkResponse memory chainlinkResponse)
+    {
+        return _getCurrentChainlinkResponse(agg);
+    }
+
+    function i_isValidChainlinkPrice(ChainlinkResponse memory r, uint256 staleness)
+        external
+        view
+        returns (bool)
+    {
+        return _isValidChainlinkPrice(r, staleness);
+    }
+
+    function i_scaleChainlinkPriceTo18decimals(int256 price, uint256 decimals) external pure returns (uint256) {
+        return _scaleChainlinkPriceTo18decimals(price, decimals);
+    }
+
+    function i_withinDeviationThreshold(uint256 priceToCheck, uint256 referencePrice, uint256 deviationThreshold)
+        external
+        pure
+        returns (bool)
+    {
+        return _withinDeviationThreshold(priceToCheck, referencePrice, deviationThreshold);
     }
 }
