@@ -213,9 +213,16 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         return (2 * p * k) / (1e8 * total_supply);
     }
 
-    //solves for cases where curve is x^3 * y + y^3 * x = k
-    //fair reserves math formula author: @ksyao2002
-    //modified from dudesahn/PessimisticVelodromeLPOracle: https://github.com/dudesahn/PessimisticVelodromeLPOracle/blob/575ac4cd226fae22a69bddb945fb45700c68ee83/contracts/PessimisticVelodromeLPOracle.sol#L459-L498
+    /// @notice Calculate stable LP token price via fair asset reserves
+    /// @dev Solves for fair reserves of stables where the curve is x^3 * y + y^3 * x = k. 
+    ///      Fair reserves math formula author: ksyao2002
+    ///      Modified from dudesahn/PessimisticVelodromeLPOracle: https://github.com/dudesahn/PessimisticVelodromeLPOracle/blob/575ac4cd226fae22a69bddb945fb45700c68ee83/contracts/PessimisticVelodromeLPOracle.sol#L459-L498
+    /// @param total_supply Total LP token supply (same decimals as pool LP token)
+    /// @param price0 USD price of token0 (18 decimals)
+    /// @param price1 USD price of token1 (18 decimals)
+    /// @param reserve0 Pool reserve of token0 (18 decimals)
+    /// @param reserve1 Pool reserve of token1 (18 decimals)
+    /// @return USD price of one LP token (18 decimals)
     function _calculate_stable_lp_token_price(
         uint256 total_supply,
         uint256 price0, // must be in 18 decimals
@@ -242,6 +249,10 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         return 2 * ((frth_fair * 1e18) / total_supply);
     }
 
+    /// @notice Calculates K for the stable invariant x^3 * y + y^3 * x = k
+    /// @param x Reserve (or price-scaled reserve) of first asset, 18 decimals
+    /// @param y Reserve of second asset, 18 decimals
+    /// @return k Invariant term (18 decimals)
     function _getK(uint256 x, uint256 y) internal pure returns (uint256) {
         //x, n, scalar
         uint256 x_cubed = FixedPointMathLib.rpow(x, 3, 1e18);
@@ -252,6 +263,9 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         return newX + newY; //18 decimals
     }
 
+    /// @notice Shut down the collateral branch on oracle failure and pin this feed to `lastGoodPrice`
+    /// @param _failedOracleAddr Oracle aggregator that failed validation (emitted for ops)
+    /// @return The stored `lastGoodPrice` now used as the feed source
     function _shutDownAndSwitchToLastGoodPrice(address _failedOracleAddr) internal returns (uint256) {
         // Shut down the branch
         borrowerOperations.shutdownFromOracleFailure();
@@ -262,6 +276,10 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         return lastGoodPrice;
     }
 
+    /// @notice Read and validate a Chainlink USD feed configured in `Oracle`
+    /// @param _oracle Aggregator, staleness threshold, and reported decimals
+    /// @return scaledPrice Answer scaled to 18 decimals when the round is valid; zero if invalid
+    /// @return oracleIsDown True when the round fails freshness, positivity, or the aggregator call
     function _getOracleAnswer(Oracle memory _oracle) internal view returns (uint256, bool) {
         ChainlinkResponse memory chainlinkResponse = _getCurrentChainlinkResponse(_oracle.aggregator);
 
@@ -277,6 +295,11 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         return (scaledPrice, oracleIsDown);
     }
 
+    /// @notice Wrap `latestRoundData` with try/catch and a gas guard
+    /// @dev On revert, returns `success = false` unless remaining gas is at most 1/64 of pre-call gas,
+    ///      in which case `InsufficientGasForExternalCall` is thrown to avoid misclassifying OOG as a bad oracle.
+    /// @param _aggregator Chainlink AggregatorV3Interface
+    /// @return chainlinkResponse Parsed round id, answer, timestamp, and success flag
     function _getCurrentChainlinkResponse(AggregatorV3Interface _aggregator)
         internal
         view
@@ -306,10 +329,14 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         }
     }
 
-    // False if:
-    // - Call to Chainlink aggregator reverts
-    // - price is too stale, i.e. older than the oracle's staleness threshold
-    // - Price answer is 0 or negative
+    /// @notice Whether a Chainlink round is usable for pricing
+    /// @dev False if:
+    /// - Call to Chainlink aggregator reverts
+    /// - price is too stale, i.e. older than the oracle's staleness threshold
+    /// - Price answer is 0 or negative
+    /// @param chainlinkResponse Parsed response from `_getCurrentChainlinkResponse`
+    /// @param _stalenessThreshold Max allowed `block.timestamp - updatedAt` (seconds)
+    /// @return True if the round is valid
     function _isValidChainlinkPrice(ChainlinkResponse memory chainlinkResponse, uint256 _stalenessThreshold)
         internal
         view
@@ -319,12 +346,21 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
             && chainlinkResponse.answer > 0;
     }
 
-    // Trust assumption: Chainlink won't change the decimal precision on any feed used in v2 after deployment
+    /// @notice Scale a Chainlink answer to 18-decimal uint256
+    /// @dev Trust assumption: Chainlink won't change the decimal precision on any feed used in v2 after deployment
+    /// @param _price Signed integer answer from Chainlink
+    /// @param _decimals Reported feed decimals
+    /// @return Unsigned price with 18 decimals
     function _scaleChainlinkPriceTo18decimals(int256 _price, uint256 _decimals) internal pure returns (uint256) {
         // Scale an int price to a uint with 18 decimals
         return uint256(_price) * 10 ** (18 - _decimals);
     }
 
+    /// @notice Check whether `_priceToCheck` lies within ±`_deviationThreshold` of `_referencePrice`
+    /// @param _priceToCheck Price to test (18 decimals)
+    /// @param _referencePrice Canonical reference price (18 decimals)
+    /// @param _deviationThreshold Max relative deviation as a WAD fraction of `DECIMAL_PRECISION` (e.g. 2e16 for 2%)
+    /// @return True if `_priceToCheck` is in `[reference * (1 - δ), reference * (1 + δ)]`
     function _withinDeviationThreshold(uint256 _priceToCheck, uint256 _referencePrice, uint256 _deviationThreshold)
         internal
         pure

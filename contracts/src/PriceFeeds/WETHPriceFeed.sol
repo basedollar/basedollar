@@ -30,9 +30,9 @@ contract WETHPriceFeed is MainnetPriceFeedBase {
         return fetchPrice();
     }
 
-    //  _fetchPricePrimary returns:
-    // - The price
-    // - A bool indicating whether a new oracle failure was detected in the call
+    /// @notice Fetches the current ETH-USD price using ETH-USD oracle.
+    /// returns USD price (18 decimals)
+    /// returns a bool indicating whether a new oracle failure was detected in the call
     function _fetchPricePrimary() internal returns (uint256, bool) {
         assert(priceSource == PriceSource.primary);
         (uint256 ethUsdPrice, bool ethUsdOracleDown) = _getOracleAnswer(ethUsdOracle);
