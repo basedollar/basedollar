@@ -23,6 +23,10 @@ https://book.getfoundry.sh/
 
 ## Usage
 
+### Setup
+
+Copy `.env.template` to `.env`
+
 ### Build
 
 ```shell
@@ -36,6 +40,8 @@ $ forge test
 ```
 
 Run tests with `forge test -vvv` to see the console logs, which will show trove URI data.
+
+Set `MAINNET_RPC_URL` in `.env` for additional test coverage simulating on mainnet.
 
 ### Format
 
@@ -58,7 +64,7 @@ $ anvil
 ### Deploy
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+$ forge script script/DeployLiquity2.s.sol:DeployLiquity2Script --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
 ### Cast
