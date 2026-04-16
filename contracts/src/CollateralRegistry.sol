@@ -51,6 +51,12 @@ contract CollateralRegistry is ICollateralRegistry {
     event GovernorProposalCancelled(address indexed cancelledGovernor);
     event GovernorUpdated(address oldGovernor, address newGovernor);
 
+    /// @dev The constructor assumes only redeemable branches
+    /// @param _boldToken The address of the bold token
+    /// @param _tokens The collateral tokens of initial redeemable branches
+    /// @param _troveManagers The trove managers of initial redeemable branches
+    /// @param _aeroManager The aero manager
+    /// @param _governor The address of the governor
     constructor(IBoldToken _boldToken, IERC20Metadata[] memory _tokens, ITroveManager[] memory _troveManagers, IAeroManager _aeroManager, address _governor) {
         uint256 numTokens = _tokens.length;
         require(numTokens > 0, "Collateral list cannot be empty");
