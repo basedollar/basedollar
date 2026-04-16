@@ -34,6 +34,13 @@ contract RETHPriceFeed is CompositePriceFeed, IRETHPriceFeed {
 
     uint256 public constant RETH_ETH_DEVIATION_THRESHOLD = 2e16; // 2%
 
+    /// @notice Primary RETH-USD price from the RETH-ETH and ETH-USD Chainlink feeds
+    /// @dev If either feed is invalid, shuts down the branch and switches to `lastGoodPrice`. Otherwise compares
+    ///      RETH-USD to ETH-USD: for redemptions within `RETH_ETH_DEVIATION_THRESHOLD`, uses the higher price
+    ///      to limit redemption arbitrage; otherwise uses the lower price to cap upward manipulation of the market leg.
+    /// @param _isRedemption When true, applies the redemption-specific max rule when prices are close
+    /// @return USD price in 18 decimals, either the calculated price or `lastGoodPrice` when shutting down
+    /// @return True when this call newly detects an oracle failure and triggers shutdown
     function _fetchPricePrimary(bool _isRedemption) internal override returns (uint256, bool) {
         assert(priceSource == PriceSource.primary);
         (uint256 ethUsdPrice, bool ethUsdOracleDown) = _getOracleAnswer(ethUsdOracle);

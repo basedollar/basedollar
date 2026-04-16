@@ -33,6 +33,13 @@ contract WSTETHPriceFeed is CompositePriceFeed, IWSTETHPriceFeed {
         assert(priceSource == PriceSource.primary);
     }
 
+    /// @notice Primary WSTETH-USD price from the STETH-USD and ETH-USD Chainlink feeds
+    /// @dev If either feed is invalid, shuts down the branch and switches to `lastGoodPrice`. Otherwise compares
+    ///      WSTETH-USD to STETH-USD and ETH-USD: for redemptions within `STETH_USD_DEVIATION_THRESHOLD`, uses the higher price
+    ///      to limit redemption arbitrage; otherwise uses the lower price to cap upward manipulation of the market leg.
+    /// @param _isRedemption When true, applies the redemption-specific max rule when prices are close
+    /// @return USD price in 18 decimals, either the calculated price or `lastGoodPrice` when shutting down
+    /// @return True when this call newly detects an oracle failure and triggers shutdown
     function _fetchPricePrimary(bool _isRedemption) internal override returns (uint256, bool) {
         assert(priceSource == PriceSource.primary);
         (uint256 stEthUsdPrice, bool stEthUsdOracleDown) = _getOracleAnswer(stEthUsdOracle);

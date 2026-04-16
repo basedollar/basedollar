@@ -51,6 +51,12 @@ contract CollateralRegistry is ICollateralRegistry {
     event GovernorProposalCancelled(address indexed cancelledGovernor);
     event GovernorUpdated(address oldGovernor, address newGovernor);
 
+    /// @dev The constructor assumes only redeemable branches
+    /// @param _boldToken The address of the bold token
+    /// @param _tokens The collateral tokens of initial redeemable branches
+    /// @param _troveManagers The trove managers of initial redeemable branches
+    /// @param _aeroManager The aero manager
+    /// @param _governor The address of the governor
     constructor(IBoldToken _boldToken, IERC20Metadata[] memory _tokens, ITroveManager[] memory _troveManagers, IAeroManager _aeroManager, address _governor) {
         uint256 numTokens = _tokens.length;
         require(numTokens > 0, "Collateral list cannot be empty");
@@ -74,15 +80,12 @@ contract CollateralRegistry is ICollateralRegistry {
         baseRate = INITIAL_BASE_RATE;
         emit BaseRateUpdated(INITIAL_BASE_RATE);
     }
-
-    /*
-    @notice Creates a new branch for the collateral registry
-    @param _addressesRegistry The addresses registry for the new branch
-    @param _isRedeemable Whether the new branch is redeemable
-
-    @dev If the new branch is redeemable, it will be added to the redeemable branches array, but only 10 are allowed
-    Alos, make sure that is doesnt already exist. Do not add a new branch using an existing known trove manager. Governor is expected to be trusted on this.
-    */
+    
+    /// @notice Creates a new branch for the collateral registry
+    /// @dev If the new branch is redeemable, it will be added to the redeemable branches array, but only 10 are allowed
+    /// Also, make sure that it doesn't already exist. Do not add a new branch using an existing known trove manager. Governor is expected to be trusted on this.
+    /// @param _addressesRegistry The addresses registry for the new branch
+    /// @param _isRedeemable Whether the new branch is redeemable
     function createNewBranch(IAddressesRegistry _addressesRegistry, bool _isRedeemable) external {
         require(msg.sender == collateralGovernor, "CR: Only collateral governor can create new branches");
 
@@ -320,26 +323,38 @@ contract CollateralRegistry is ICollateralRegistry {
 
     // getters
 
+    /// @notice Get the token for a specific redeemable branch
+    /// @param _index The index of token in redeemable branches array
+    /// @return The token for the redeemable branch
     function getToken(uint256 _index) external view returns (IERC20Metadata) {
         return redeemableBranchesTokens[_index];
     }
 
+    /// @notice Get the token for a specific non-redeemable branch
+    /// @param _index The index of token in non-redeemable branches array
+    /// @return The token for the non-redeemable branch
     function getNonRedeemableToken(uint256 _index) external view returns(IERC20Metadata){
         return nonRedeemableBranchesTokens[_index];
     }
 
-    //@param _index The index of the redeemable branch
-    //@return The trove manager for the redeemable branch
-    //@dev ONLY returns the redeemable troves. Since this is only used for redemptions this is ideal.
+    /// @notice Get the trove manager for a specific redeemable branch
+    /// @dev ONLY returns the redeemable troves. Since this is only used for redemptions this is ideal.
+    /// @param _index The index of trove manager in redeemable branches array
+    /// @return The trove manager for the redeemable branch
     function getTroveManager(uint256 _index) public view returns (ITroveManager) {
         return redeemableBranchesTroveManagers[_index];
     }
 
+    /// @notice Get the trove manager for a specific non-redeemable branch
+    /// @dev ONLY returns the non-redeemable troves.
+    /// @param _index The index of trove manager in non-redeemable branches array
+    /// @return The trove manager for the non-redeemable branch
     function getNonRedeemableTroveManager(uint256 _index) public view returns(ITroveManager){
         return nonRedeemableBranchesTroveManagers[_index];
     }
 
-    //returns all trove managers, just used for front end as a helper and is not a core feature.
+    /// @notice Get all trove managers (redeemable and non-redeemable)
+    /// @dev Just used for front end as a helper and is not a core feature.
     function getAllTroveManagers() external view returns(ITroveManager[] memory){
         ITroveManager[] memory allTroveManagers = new ITroveManager[](redeemableBranchesTroveManagers.length + nonRedeemableBranchesTroveManagers.length);
         for(uint256 i = 0; i < redeemableBranchesTroveManagers.length; i++){
@@ -351,15 +366,19 @@ contract CollateralRegistry is ICollateralRegistry {
         return allTroveManagers;
     }
 
+    /// @notice Get all redeemable trove managers
     function getTroveManagers() external view returns(ITroveManager[] memory){
         return redeemableBranchesTroveManagers;
     }
 
+    /// @notice Get all non-redeemable trove managers
     function getNonRedeemableTroveManagers() external view returns(ITroveManager[] memory){
         return nonRedeemableBranchesTroveManagers;
     }
 
-        // Update the debt limit for a specific TroveManager
+    /// @notice Update the debt limit for a specific redeemable TroveManager
+    /// @param _indexTroveManager The index of the trove manager from redeemable branches array
+    /// @param _newDebtLimit The new debt limit
     function updateDebtLimit(uint256 _indexTroveManager, uint256 _newDebtLimit) external onlyGovernor {
         //limited to increasing by 2x at a time, maximum. Decrease by any amount.
         uint256 currentDebtLimit = getTroveManager(_indexTroveManager).getDebtLimit();
@@ -369,11 +388,16 @@ contract CollateralRegistry is ICollateralRegistry {
         getTroveManager(_indexTroveManager).setDebtLimit(_newDebtLimit);
     }
 
+    /// @notice Get the debt limit for a specific redeemable TroveManager
+    /// @param _indexTroveManager The index of the trove manager from redeemable branches array
+    /// @return The debt limit for the redeemable trove manager
     function getDebtLimit(uint256 _indexTroveManager) external view returns (uint256) {
         return getTroveManager(_indexTroveManager).getDebtLimit();
     }
 
-        // Update the debt limit for a specific TroveManager
+    /// @notice Update the debt limit for a specific non-redeemable TroveManager
+    /// @param _indexTroveManager The index of the trove manager from non-redeemable branches array
+    /// @param _newDebtLimit The new debt limit
     function updateNonRedeemableDebtLimit(uint256 _indexTroveManager, uint256 _newDebtLimit) external onlyGovernor {
         //limited to increasing by 2x at a time, maximum. Decrease by any amount.
         uint256 currentDebtLimit = getNonRedeemableTroveManager(_indexTroveManager).getDebtLimit();
@@ -383,6 +407,9 @@ contract CollateralRegistry is ICollateralRegistry {
         getNonRedeemableTroveManager(_indexTroveManager).setDebtLimit(_newDebtLimit);
     }
 
+    /// @notice Get the debt limit for a specific non-redeemable TroveManager
+    /// @param _indexTroveManager The index of the trove manager from non-redeemable branches array
+    /// @return The debt limit for the non-redeemable trove manager
     function getNonRedeemableDebtLimit(uint256 _indexTroveManager) external view returns (uint256) {
         return getNonRedeemableTroveManager(_indexTroveManager).getDebtLimit();
     }
@@ -442,12 +469,15 @@ contract CollateralRegistry is ICollateralRegistry {
         emit GovernorProposalCancelled(cancelled);
     }
 
+    /// @notice Update the collateral governor
+    /// @param _newCollateralGovernor The new collateral governor address
     function updateCollateralGovernor(address _newCollateralGovernor) external onlyGovernor {
         address oldGovernor = collateralGovernor;
         collateralGovernor = _newCollateralGovernor;
         emit CollateralGovernorUpdated(oldGovernor, _newCollateralGovernor);
     }
 
+    /// @dev Restricts the function to the governor
     modifier onlyGovernor() {
         require(msg.sender == governor, "CollateralRegistry: Only governor can call this function");
         _;

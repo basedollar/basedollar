@@ -56,6 +56,12 @@ contract BoldToken is Ownable, IBoldToken, ERC20Permit {
         emit ActivePoolAddressAdded(_activePoolAddress);
     }
 
+    /// @notice Set the branch addresses via the collateral registry
+    /// @dev Only collateral registry can call this function when adding a new branch.
+    /// @param _troveManagerAddress The address of the trove manager in branch
+    /// @param _stabilityPoolAddress The address of the stability pool in branch
+    /// @param _borrowerOperationsAddress The address of the borrower operations in branch
+    /// @param _activePoolAddress The address of the active pool in branch
     function setBranchAddressesViaCollateralRegistry(
         address _troveManagerAddress,
         address _stabilityPoolAddress,
@@ -84,6 +90,10 @@ contract BoldToken is Ownable, IBoldToken, ERC20Permit {
         emit ActivePoolAddressAdded(_activePoolAddress);
     }
 
+    /// @notice Set the collateral registry address
+    /// @dev One-time function to set the collateral registry address and renounces ownership at deployment.
+    /// Only owner can call this function. Assumes deployer is owner.
+    /// @param _collateralRegistryAddress The address of the collateral registry
     function setCollateralRegistry(address _collateralRegistryAddress) external override onlyOwner {
         collateralRegistryAddress = _collateralRegistryAddress;
         emit CollateralRegistryAddressChanged(_collateralRegistryAddress);
@@ -103,11 +113,15 @@ contract BoldToken is Ownable, IBoldToken, ERC20Permit {
         _burn(_account, _amount);
     }
 
+    /// @notice Send BOLD tokens to the stability pool for depositor
+    /// @dev Only stability pool can call this function
     function sendToPool(address _sender, address _poolAddress, uint256 _amount) external override {
         _requireCallerIsStabilityPool();
         _transfer(_sender, _poolAddress, _amount);
     }
 
+    /// @notice Return BOLD tokens from the stability pool to the depositor
+    /// @dev Only stability pool can call this function
     function returnFromPool(address _poolAddress, address _receiver, uint256 _amount) external override {
         _requireCallerIsStabilityPool();
         _transfer(_poolAddress, _receiver, _amount);

@@ -35,17 +35,24 @@ contract cbBTCPriceFeed is CompositePriceFeed {
         assert(priceSource == PriceSource.primary);
     }
 
+    /// @notice Primary cbBTC-USD price from the cbBTC-USD and BTC-USD Chainlink feeds
+    /// @dev If either feed is invalid, shuts down the branch and switches to `lastGoodPrice`. Otherwise compares
+    ///      cbBTC-USD to BTC-USD: for redemptions within `BTC_cbBTC_DEVIATION_THRESHOLD`, uses the higher price
+    ///      to limit redemption arbitrage; otherwise uses the lower price to cap upward manipulation of the market leg.
+    /// @param _isRedemption When true, applies the redemption-specific max rule when prices are close
+    /// @return USD price in 18 decimals, either the calculated price or `lastGoodPrice` when shutting down
+    /// @return True when this call newly detects an oracle failure and triggers shutdown
     function _fetchPricePrimary(bool _isRedemption) internal override returns (uint256, bool) {
         assert(priceSource == PriceSource.primary);
         (uint256 cbbtcUsdPrice, bool cbbtcUsdOracleDown) = _getOracleAnswer(cbBTCUsdOracle);
         (uint256 btcUsdPrice, bool btcOracleDown) = _getOracleAnswer(btcUsdOracle);
         
-        // cbBTC oracle is down or invalid answer
+        // If the cbBTC-USD Chainlink response was invalid in this transaction, return the last good cbBTC-USD price calculated
         if (cbbtcUsdOracleDown) {
             return (_shutDownAndSwitchToLastGoodPrice(address(cbBTCUsdOracle.aggregator)), true);
         }
 
-        // BTC oracle is down or invalid answer
+        // If the BTC-USD Chainlink response was invalid in this transaction, return the last good BTC-USD price calculated
         if (btcOracleDown) {
             return (_shutDownAndSwitchToLastGoodPrice(address(btcUsdOracle.aggregator)), true);
         }
@@ -59,8 +66,9 @@ contract cbBTCPriceFeed is CompositePriceFeed {
             cbbtcUsdPrice = LiquityMath._min(cbbtcUsdPrice, btcUsdPrice);
         }
 
-        // Otherwise, just use cbBTC-USD price: USD_per_cbBTC.
+        // Set the last good price to the calculated cbBTC-USD price
         lastGoodPrice = cbbtcUsdPrice;
+
         return (cbbtcUsdPrice, false);
     }
 

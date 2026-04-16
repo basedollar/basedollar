@@ -41,15 +41,16 @@ contract cbETHPriceFeed is MainnetPriceFeedBase {
         return (lastGoodPrice, false);
     }
     
-    //  _fetchPricePrimary returns:
-    // - The price
-    // - A bool indicating whether a new oracle failure was detected in the call
+    
+    /// @notice Fetches the current cbETH-USD price using cbETH-ETH and ETH-USD oracles.
+    /// returns cbETH-USD price (18 decimals)
+    /// returns a bool indicating whether a new oracle failure was detected in the call
     function _fetchPricePrimary() internal returns (uint256, bool) {
         assert(priceSource == PriceSource.primary);
         (uint256 cbEthPrice, bool cbEthOracleDown) = _getOracleAnswer(cbEthEthOracle);
         (uint256 ethUsdPrice, bool ethUsdOracleDown) = _getOracleAnswer(ethUsdOracle);
 
-        // If the ETH-USD Chainlink response was invalid in this transaction, return the last good cbETH-USD price calculated
+        // If the cbETH-ETH or ETH-USD Chainlink response was invalid in this transaction, return the last good cbETH-USD price calculated
         if (cbEthOracleDown) return (_shutDownAndSwitchToLastGoodPrice(address(cbEthEthOracle.aggregator)), true);
         if (ethUsdOracleDown) return (_shutDownAndSwitchToLastGoodPrice(address(ethUsdOracle.aggregator)), true);
 

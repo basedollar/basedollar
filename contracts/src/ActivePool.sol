@@ -183,6 +183,8 @@ contract ActivePool is IActivePool {
 
         _accountForSendColl(_amount);
 
+        // If the collateral is AERO LP, unstake it
+        // Transfers from AeroGauge -> AeroManager -> ActivePool
         _unstakeIfAeroLPCollateral(_amount);
 
         collToken.safeTransfer(_account, _amount);
@@ -193,17 +195,21 @@ contract ActivePool is IActivePool {
 
         _accountForSendColl(_amount);
 
+        // If the collateral is AERO LP, unstake it
+        // Transfers from AeroGauge -> AeroManager -> ActivePool
         _unstakeIfAeroLPCollateral(_amount);
 
         IDefaultPool(defaultPoolAddress).receiveColl(_amount);
     }
 
+    /// @dev Updates accounting of collBalance by subtracting amount sent or planned to be sent
     function _accountForSendColl(uint256 _amount) internal {
         uint256 newCollBalance = collBalance - _amount;
         collBalance = newCollBalance;
         emit ActivePoolCollBalanceUpdated(newCollBalance);
     }
 
+    /// @dev Receives Coll tokens from BorrowerOperations or DefaultPool
     function receiveColl(uint256 _amount) external {
         _requireCallerIsBorrowerOperationsOrDefaultPool();
 
@@ -212,18 +218,24 @@ contract ActivePool is IActivePool {
         // Pull Coll tokens from sender
         collToken.safeTransferFrom(msg.sender, address(this), _amount);
 
+        // If the collateral is AERO LP, stake it
+        // Transfers from ActivePool -> AeroManager -> AeroGauge
         _stakeIfAeroLPCollateral(_amount);
     }
 
+    /// @dev Updates accounting of collBalance by adding amount already received
     function accountForReceivedColl(uint256 _amount) public {
         _requireCallerIsBorrowerOperationsOrDefaultPool();
 
         _accountForReceivedColl(_amount);
 
+        // If the collateral is AERO LP, stake it
+        // Transfers from ActivePool -> AeroManager -> AeroGauge
         _stakeIfAeroLPCollateral(_amount);
     }
 
     //TODO might need to make this a factory, to keep positions separate.
+    /// @dev Stakes AERO LP collateral into AeroGauge
     function _stakeIfAeroLPCollateral(uint256 _amount) internal {
         if (isAeroLPCollateral) {
             // Send to AeroManager
@@ -233,6 +245,7 @@ contract ActivePool is IActivePool {
         }
     }
 
+    /// @dev Unstakes and returns AERO LP collateral to ActivePool
     function _unstakeIfAeroLPCollateral(uint256 _amount) internal {
         if (isAeroLPCollateral) {
             // AeroManager withdraws the _amount from AeroGauge
@@ -241,6 +254,7 @@ contract ActivePool is IActivePool {
         }
     }
 
+    /// @dev Updates accounting of collBalance by adding amount already received or planned to be received
     function _accountForReceivedColl(uint256 _amount) internal {
         uint256 newCollBalance = collBalance + _amount;
         collBalance = newCollBalance;
