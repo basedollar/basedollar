@@ -5,6 +5,8 @@ pragma solidity ^0.8.18;
 import "./TestContracts/DevTestSetup.sol";
 import "./TestContracts/WETH.sol";
 import "src/Zappers/GasCompZapper.sol";
+import "src/Zappers/Interfaces/IFlashLoanReceiver.sol";
+import "src/Dependencies/AddRemoveManagers.sol";
 
 contract ZapperGasCompTest is DevTestSetup {
     function setUp() public override {
@@ -888,5 +890,270 @@ contract ZapperGasCompTest is DevTestSetup {
         assertEq(collToken.balanceOf(address(gasCompZapper)), 0, "Zapper Coll bal should be zero");
     }
 
-    // TODO: tests for add/remove managers of zapper contract
+    function testRevertsIfOpenTroveWithWrongETHValue() external {
+        IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
+            owner: A,
+            ownerIndex: 0,
+            collAmount: 10 ether,
+            boldAmount: 10000e18,
+            upperHint: 0,
+            lowerHint: 0,
+            annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
+            batchManager: address(0),
+            maxUpfrontFee: 1000e18,
+            addManager: address(0),
+            removeManager: address(0),
+            receiver: address(0)
+        });
+        vm.startPrank(A);
+        vm.expectRevert("GCZ: Wrong ETH");
+        gasCompZapper.openTroveWithRawETH{value: ETH_GAS_COMPENSATION + 1}(params);
+        vm.expectRevert("GCZ: Wrong ETH");
+        gasCompZapper.openTroveWithRawETH{value: ETH_GAS_COMPENSATION - 1}(params);
+        vm.stopPrank();
+    }
+
+    function testOnlyFlashLoanProviderCanCallCloseTroveCallbackGasComp() external {
+        IZapper.CloseTroveParams memory params = IZapper.CloseTroveParams({
+            troveId: 1,
+            flashLoanAmount: 10 ether,
+            minExpectedCollateral: 0,
+            receiver: A
+        });
+        vm.expectRevert("GCZ: Caller not FlashLoan provider");
+        IFlashLoanReceiver(address(gasCompZapper)).receiveFlashLoanOnCloseTroveFromCollateral(params, 10 ether);
+    }
+
+    function testCannotCloseTroveFromCollateralIfNotOwnerNorRemoveManager() external {
+        uint256 collAmount = 10 ether;
+        uint256 boldAmount = 10000e18;
+
+        IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
+            owner: A,
+            ownerIndex: 0,
+            collAmount: collAmount,
+            boldAmount: boldAmount,
+            upperHint: 0,
+            lowerHint: 0,
+            annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
+            batchManager: address(0),
+            maxUpfrontFee: 1000e18,
+            addManager: address(0),
+            removeManager: address(0),
+            receiver: address(0)
+        });
+        vm.startPrank(A);
+        uint256 troveId = gasCompZapper.openTroveWithRawETH{value: ETH_GAS_COMPENSATION}(params);
+        vm.stopPrank();
+
+        vm.startPrank(B);
+        vm.expectRevert(AddRemoveManagers.NotOwnerNorRemoveManager.selector);
+        gasCompZapper.closeTroveFromCollateral(troveId, 1 ether, 0);
+        vm.stopPrank();
+    }
+
+    function testRevertsIfNonOwnerSetsAddManager() external {
+        uint256 collAmount = 10 ether;
+        uint256 boldAmount = 10000e18;
+        IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
+            owner: A,
+            ownerIndex: 0,
+            collAmount: collAmount,
+            boldAmount: boldAmount,
+            upperHint: 0,
+            lowerHint: 0,
+            annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
+            batchManager: address(0),
+            maxUpfrontFee: 1000e18,
+            addManager: address(0),
+            removeManager: address(0),
+            receiver: address(0)
+        });
+        vm.startPrank(A);
+        uint256 troveId = gasCompZapper.openTroveWithRawETH{value: ETH_GAS_COMPENSATION}(params);
+        vm.stopPrank();
+
+        vm.startPrank(B);
+        vm.expectRevert(AddRemoveManagers.NotBorrower.selector);
+        gasCompZapper.setAddManager(troveId, C);
+        vm.stopPrank();
+    }
+
+    function testRevertsIfNonOwnerSetsRemoveManagerWithReceiver() external {
+        uint256 collAmount = 10 ether;
+        uint256 boldAmount = 10000e18;
+        IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
+            owner: A,
+            ownerIndex: 0,
+            collAmount: collAmount,
+            boldAmount: boldAmount,
+            upperHint: 0,
+            lowerHint: 0,
+            annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
+            batchManager: address(0),
+            maxUpfrontFee: 1000e18,
+            addManager: address(0),
+            removeManager: address(0),
+            receiver: address(0)
+        });
+        vm.startPrank(A);
+        uint256 troveId = gasCompZapper.openTroveWithRawETH{value: ETH_GAS_COMPENSATION}(params);
+        vm.stopPrank();
+
+        vm.startPrank(B);
+        vm.expectRevert(AddRemoveManagers.NotBorrower.selector);
+        gasCompZapper.setRemoveManagerWithReceiver(troveId, C, D);
+        vm.stopPrank();
+    }
+
+    function testRevertsIfNonOwnerSetsRemoveManager() external {
+        uint256 collAmount = 10 ether;
+        uint256 boldAmount = 10000e18;
+        IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
+            owner: A,
+            ownerIndex: 0,
+            collAmount: collAmount,
+            boldAmount: boldAmount,
+            upperHint: 0,
+            lowerHint: 0,
+            annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
+            batchManager: address(0),
+            maxUpfrontFee: 1000e18,
+            addManager: address(0),
+            removeManager: address(0),
+            receiver: address(0)
+        });
+        vm.startPrank(A);
+        uint256 troveId = gasCompZapper.openTroveWithRawETH{value: ETH_GAS_COMPENSATION}(params);
+        vm.stopPrank();
+
+        vm.startPrank(B);
+        vm.expectRevert(AddRemoveManagers.NotBorrower.selector);
+        gasCompZapper.setRemoveManager(troveId, C);
+        vm.stopPrank();
+    }
+
+    function testCanOpenTroveWithAddManagerThenAddCollByManager() external {
+        uint256 collAmount = 10 ether;
+        uint256 collAdd = 1 ether;
+        uint256 boldAmount = 10000e18;
+        IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
+            owner: A,
+            ownerIndex: 0,
+            collAmount: collAmount,
+            boldAmount: boldAmount,
+            upperHint: 0,
+            lowerHint: 0,
+            annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
+            batchManager: address(0),
+            maxUpfrontFee: 1000e18,
+            addManager: B,
+            removeManager: address(0),
+            receiver: address(0)
+        });
+        vm.startPrank(A);
+        uint256 troveId = gasCompZapper.openTroveWithRawETH{value: ETH_GAS_COMPENSATION}(params);
+        vm.stopPrank();
+
+        vm.startPrank(B);
+        collToken.approve(address(gasCompZapper), collAdd);
+        gasCompZapper.addColl(troveId, collAdd);
+        vm.stopPrank();
+
+        assertEq(troveManager.getTroveEntireColl(troveId), collAmount + collAdd, "Trove coll mismatch");
+    }
+
+    function testCanOpenTroveWithRemoveManagerAndReceiverThenWithdrawBold() external {
+        uint256 collAmount = 10 ether;
+        uint256 boldAmount1 = 1000e18;
+        uint256 boldWithdraw = 50e18;
+        IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
+            owner: A,
+            ownerIndex: 0,
+            collAmount: collAmount,
+            boldAmount: boldAmount1,
+            upperHint: 0,
+            lowerHint: 0,
+            annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
+            batchManager: address(0),
+            maxUpfrontFee: 100e18,
+            addManager: address(0),
+            removeManager: C,
+            receiver: D
+        });
+        vm.startPrank(A);
+        uint256 troveId = gasCompZapper.openTroveWithRawETH{value: ETH_GAS_COMPENSATION}(params);
+        vm.stopPrank();
+
+        uint256 boldBeforeD = boldToken.balanceOf(D);
+        vm.startPrank(C);
+        gasCompZapper.withdrawBold(troveId, boldWithdraw, boldWithdraw);
+        vm.stopPrank();
+
+        assertEq(boldToken.balanceOf(D), boldBeforeD + boldWithdraw, "Receiver BOLD mismatch");
+    }
+
+    function testSetRemoveManagerDefaultsReceiverToOwner() external {
+        uint256 collAmount = 10 ether;
+        uint256 boldAmount1 = 1000e18;
+        uint256 boldWithdraw = 50e18;
+        IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
+            owner: A,
+            ownerIndex: 0,
+            collAmount: collAmount,
+            boldAmount: boldAmount1,
+            upperHint: 0,
+            lowerHint: 0,
+            annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
+            batchManager: address(0),
+            maxUpfrontFee: 100e18,
+            addManager: address(0),
+            removeManager: address(0),
+            receiver: address(0)
+        });
+        vm.startPrank(A);
+        uint256 troveId = gasCompZapper.openTroveWithRawETH{value: ETH_GAS_COMPENSATION}(params);
+        gasCompZapper.setRemoveManager(troveId, B);
+        vm.stopPrank();
+
+        uint256 boldBeforeA = boldToken.balanceOf(A);
+        vm.startPrank(B);
+        gasCompZapper.withdrawBold(troveId, boldWithdraw, boldWithdraw);
+        vm.stopPrank();
+
+        assertEq(boldToken.balanceOf(A), boldBeforeA + boldWithdraw, "Owner should receive BOLD");
+    }
+
+    function testWipeRemoveManagerThenNonOwnerCannotWithdrawBold() external {
+        uint256 collAmount = 10 ether;
+        uint256 boldAmount1 = 1000e18;
+        uint256 boldWithdraw = 50e18;
+        IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
+            owner: A,
+            ownerIndex: 0,
+            collAmount: collAmount,
+            boldAmount: boldAmount1,
+            upperHint: 0,
+            lowerHint: 0,
+            annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
+            batchManager: address(0),
+            maxUpfrontFee: 100e18,
+            addManager: address(0),
+            removeManager: address(0),
+            receiver: address(0)
+        });
+        vm.startPrank(A);
+        uint256 troveId = gasCompZapper.openTroveWithRawETH{value: ETH_GAS_COMPENSATION}(params);
+        gasCompZapper.setRemoveManagerWithReceiver(troveId, B, A);
+        vm.stopPrank();
+
+        vm.startPrank(A);
+        gasCompZapper.setRemoveManagerWithReceiver(troveId, address(0), address(0));
+        vm.stopPrank();
+
+        vm.startPrank(B);
+        vm.expectRevert(AddRemoveManagers.NotOwnerNorRemoveManager.selector);
+        gasCompZapper.withdrawBold(troveId, boldWithdraw, boldWithdraw);
+        vm.stopPrank();
+    }
 }
