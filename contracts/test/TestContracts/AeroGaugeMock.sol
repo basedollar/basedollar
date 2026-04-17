@@ -32,6 +32,15 @@ contract AeroPoolMock {
     bool internal _shouldRevert;
     bool internal _isStable;
 
+    /// @dev Revert only on `quote` when quoting `token0` (first leg of TWAP)
+    bool internal _revertQuoteToken0;
+    /// @dev Revert only on `quote` when quoting `token1` (second leg of TWAP)
+    bool internal _revertQuoteToken1;
+    /// @dev Revert only `getReserves` (not `totalSupply`)
+    bool internal _failGetReservesOnly;
+    /// @dev Revert only `totalSupply` (not `getReserves`)
+    bool internal _failTotalSupplyOnly;
+
     constructor(address token0_, address token1_) {
         token0 = token0_;
         token1 = token1_;
@@ -70,14 +79,30 @@ contract AeroPoolMock {
         _shouldRevert = v;
     }
 
+    function setRevertQuoteToken0(bool v) external {
+        _revertQuoteToken0 = v;
+    }
+
+    function setRevertQuoteToken1(bool v) external {
+        _revertQuoteToken1 = v;
+    }
+
+    function setFailGetReservesOnly(bool v) external {
+        _failGetReservesOnly = v;
+    }
+
+    function setFailTotalSupplyOnly(bool v) external {
+        _failTotalSupplyOnly = v;
+    }
+
     // New getters required by price feed
     function getReserves() external view returns (uint256, uint256, uint256) {
-        if (_shouldRevert) revert("AeroPoolMock: revert");
+        if (_shouldRevert || _failGetReservesOnly) revert("AeroPoolMock: revert");
         return (_reserve0, _reserve1, _blockTimestampLast);
     }
     
     function totalSupply() external view returns (uint256) {
-        if (_shouldRevert) revert("AeroPoolMock: revert");
+        if (_shouldRevert || _failTotalSupplyOnly) revert("AeroPoolMock: revert");
         return _totalSupply;
     }
     
@@ -85,8 +110,10 @@ contract AeroPoolMock {
         if (_shouldRevert) revert("AeroPoolMock: revert");
         // Return appropriate quote based on input token direction
         if (tokenIn == token0) {
+            if (_revertQuoteToken0) revert("AeroPoolMock: quote token0 revert");
             return _quoteToken0ToToken1;
         } else {
+            if (_revertQuoteToken1) revert("AeroPoolMock: quote token1 revert");
             return _quoteToken1ToToken0;
         }
     }
