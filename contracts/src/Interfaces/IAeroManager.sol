@@ -9,6 +9,7 @@ interface IAeroManager {
     event AeroTokenAddressUpdated(address _aeroTokenAddress);
     event GovernorUpdated(address _governor);
 
+    function stakedAmounts(address gauge) external view returns (uint256);
     function setAeroTokenAddress(address _aeroTokenAddress) external;
     function setGovernor(address _governor) external;
     function addActivePool(address activePool) external;

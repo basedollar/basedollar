@@ -542,4 +542,110 @@ contract AeroManagerTest is DevTestSetup {
         aeroManagerImpl.setGovernor(newGov);
         assertEq(aeroManagerImpl.governor(), newGov);
     }
+
+    // --- Gauge killed / revived (Voter.isAlive), unstaked buffer, _stakeRemaining ---
+
+    function test_isAeroGaugeAlive_followsMockVoter() public {
+        assertTrue(aeroManagerImpl.isAeroGaugeAlive(address(gauge)));
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        assertFalse(aeroManagerImpl.isAeroGaugeAlive(address(gauge)));
+        gauge.aeroVoter().setGaugeAlive(address(gauge), true);
+        assertTrue(aeroManagerImpl.isAeroGaugeAlive(address(gauge)));
+    }
+
+    function test_stake_whenGaugeKilled_holdsUnstaked_doesNotTouchGauge() public {
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        uint256 amount = 7e18;
+        _stakeThroughActivePool(amount);
+
+        assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), amount);
+        assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), 0);
+        assertEq(weth.balanceOf(address(gauge)), 0);
+        assertEq(weth.balanceOf(address(aeroManagerImpl)), amount);
+    }
+
+    function test_stake_whenGaugeRevived_afterKill_restakesPriorUnstaked() public {
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        uint256 first = 4e18;
+        _stakeThroughActivePool(first);
+        assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), first);
+
+        gauge.aeroVoter().setGaugeAlive(address(gauge), true);
+        uint256 second = 3e18;
+        deal(address(weth), address(borrowerOperations), second);
+        vm.startPrank(address(borrowerOperations));
+        weth.transfer(address(aeroActivePool), second);
+        aeroActivePool.accountForReceivedColl(second);
+        vm.stopPrank();
+
+        assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), first + second);
+        assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), 0);
+        assertEq(weth.balanceOf(address(gauge)), first + second);
+        assertEq(weth.balanceOf(address(aeroManagerImpl)), 0);
+    }
+
+    function test_withdraw_fromUnstakedOnly_whenGaugeAlive_restakesLeftovers() public {
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        _stakeThroughActivePool(10e18);
+        assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), 10e18);
+
+        gauge.aeroVoter().setGaugeAlive(address(gauge), true);
+
+        uint256 preRecipient = weth.balanceOf(A);
+        vm.prank(address(borrowerOperations));
+        aeroActivePool.sendColl(A, 4e18);
+
+        assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), 0);
+        assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), 6e18);
+        assertEq(weth.balanceOf(A), preRecipient + 4e18);
+        assertEq(weth.balanceOf(address(gauge)), 6e18);
+    }
+
+    function test_withdraw_mixed_unstakedAndStaked_pullsShortfallFromGauge() public {
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        _stakeThroughActivePool(3e18);
+        gauge.aeroVoter().setGaugeAlive(address(gauge), true);
+        deal(address(weth), address(borrowerOperations), 10e18);
+        vm.startPrank(address(borrowerOperations));
+        weth.transfer(address(aeroActivePool), 10e18);
+        aeroActivePool.accountForReceivedColl(10e18);
+        vm.stopPrank();
+
+        assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), 13e18);
+
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        deal(address(weth), address(borrowerOperations), 2e18);
+        vm.startPrank(address(borrowerOperations));
+        weth.transfer(address(aeroActivePool), 2e18);
+        aeroActivePool.accountForReceivedColl(2e18);
+        vm.stopPrank();
+        assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), 2e18);
+
+        vm.prank(address(borrowerOperations));
+        aeroActivePool.sendColl(A, 5e18);
+
+        assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), 0);
+        assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), 10e18);
+    }
+
+    function test_withdraw_whenGaugeKilled_usesGaugeForAmountBeyondUnstaked() public {
+        _stakeThroughActivePool(8e18);
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        deal(address(weth), address(borrowerOperations), 2e18);
+        vm.startPrank(address(borrowerOperations));
+        weth.transfer(address(aeroActivePool), 2e18);
+        aeroActivePool.accountForReceivedColl(2e18);
+        vm.stopPrank();
+
+        assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), 2e18);
+        assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), 8e18);
+
+        uint256 preA = weth.balanceOf(A);
+        vm.prank(address(borrowerOperations));
+        aeroActivePool.sendColl(A, 7e18);
+
+        assertEq(weth.balanceOf(A), preA + 7e18);
+        assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), 3e18);
+        assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), 0);
+    }
 }

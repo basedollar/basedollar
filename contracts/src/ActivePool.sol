@@ -248,7 +248,7 @@ contract ActivePool is IActivePool {
     /// @dev Unstakes and returns AERO LP collateral to ActivePool
     function _unstakeIfAeroLPCollateral(uint256 _amount) internal {
         if (isAeroLPCollateral) {
-            // AeroManager withdraws the _amount from AeroGauge
+            // AeroManager withdraws the _amount from AeroGauge and returns it to ActivePool
             // IAeroGauge(aeroGaugeAddress).withdraw(_amount);
             IAeroManager(aeroManagerAddress).withdraw(aeroGaugeAddress, address(collToken), _amount);
         }

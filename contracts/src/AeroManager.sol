@@ -6,6 +6,7 @@ import "./Interfaces/IActivePool.sol";
 import "./Interfaces/ICollateralRegistry.sol";
 import "./Interfaces/IAeroManager.sol";
 import "./Interfaces/IAeroGauge.sol";
+import "./Interfaces/IAeroVoter.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./Dependencies/Ownable.sol";
@@ -31,7 +32,12 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
 
     address public treasuryAddress;
 
+    /// @notice Amounts of tokens staked in each gauge
     mapping(address gauge => uint256) public stakedAmounts;
+    /// @notice Amounts of tokens not staked in each gauge and instead holding in AeroManager
+    mapping(address gauge => uint256) public unstakedAmounts;
+
+    /// @notice Registered active pools that can stake/withdraw
     mapping(address activePool => bool) public activePools;
 
     mapping(address gauge => uint256 epoch) public currentEpochs;
@@ -54,7 +60,9 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     uint256 public claimFeeChangeDelayPeriod = 7 days;
     uint256 public aeroTokenChangeDelayPeriod = 7 days;
 
-    event Staked(address indexed gauge, address token, uint256 amount);
+    event Staked(address indexed gauge, address token, uint256 amountReceived, uint256 amountStaked);
+    event StakedRemaining(address indexed gauge, address token, uint256 amount);
+    event Withdrawn(address indexed gauge, address token, uint256 amountSent, uint256 amountUnstaked);
     event ActivePoolAdded(address indexed activePool);
     event Claimed(address indexed gauge, uint256 total, uint256 claimFee, uint256 indexed epoch);
     event AeroDistributed(address indexed gauge, uint256 recipients, uint256 totalRewardAmount, uint256 indexed epoch);
@@ -169,13 +177,26 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
 
         // Pull LP tokens from ActivePool
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        // Allow the gauge to pull tokens from the AeroManager on deposit()
-        IERC20(token).safeIncreaseAllowance(gauge, amount);
-        // Stake LP tokens into AeroGauge
-        IAeroGauge(gauge).deposit(amount);
-        // Log amount staked
-        stakedAmounts[gauge] += amount;
-        emit Staked(gauge, token, amount);
+        uint256 staked;
+        // Check if the gauge is alive
+        if (isAeroGaugeAlive(gauge)) {
+            // Allow the gauge to pull tokens from the AeroManager on deposit()
+            IERC20(token).safeIncreaseAllowance(gauge, amount);
+            // Stake LP tokens into AeroGauge
+            IAeroGauge(gauge).deposit(amount);
+            // Log amount staked
+            stakedAmounts[gauge] += amount;
+            
+            staked = amount;
+
+            // Try to stake any remaining unstaked tokens to the gauge
+            // This is in case of edge cases where the gauge was killed and then revived
+            _stakeRemaining(gauge, token);
+        } else {
+            // Log amount not staked
+            unstakedAmounts[gauge] += amount;
+        }
+        emit Staked(gauge, token, amount, staked);
     }
 
     /// @notice Withdraw LP from the gauge and return it to the caller `ActivePool`
@@ -184,12 +205,44 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     /// @param amount LP amount to withdraw
     function withdraw(address gauge, address token, uint256 amount) external {
         _requireCallerIsActivePool();
-        // Withdraw LP tokens from AeroGauge
-        IAeroGauge(gauge).withdraw(amount);
+        // Check for unstaked balance first
+        uint256 balance = unstakedAmounts[gauge];
+        uint256 unstaked;
+        if (amount > balance) {
+            unstaked = amount - balance;
+            // Withdraw LP tokens from AeroGauge
+            IAeroGauge(gauge).withdraw(unstaked);
+            // Log amount withdrawn
+            stakedAmounts[gauge] -= unstaked;
+            unstakedAmounts[gauge] = 0;
+        } else {
+            unstakedAmounts[gauge] -= amount;
+            // If any leftovers and gauge is alive, try to stake them
+            if (isAeroGaugeAlive(gauge)) {
+                _stakeRemaining(gauge, token);
+            }
+        }
+        // Log amount unstaked from gauge and total sent to ActivePool
+        emit Withdrawn(gauge, token, amount, unstaked);
         // Transfer LP tokens to ActivePool
         IERC20(token).safeTransfer(msg.sender, amount);
-        // Log amount withdrawn
-        stakedAmounts[gauge] -= amount;
+    }
+
+    /// @dev Tries to stake any remaining unstaked tokens from AeroManager to the gauge if it is alive
+    /// @param gauge Address of the gauge to stake remaining tokens from
+    /// @param token Address of the token to stake
+    function _stakeRemaining(address gauge, address token) internal {
+        uint256 balance = unstakedAmounts[gauge];
+        if (balance > 0) {
+            // Allow the gauge to pull tokens from the AeroManager on deposit()
+            IERC20(token).safeIncreaseAllowance(gauge, balance);
+            // Stake LP tokens into AeroGauge
+            IAeroGauge(gauge).deposit(balance);
+            // Log amount staked
+            stakedAmounts[gauge] += balance;
+            unstakedAmounts[gauge] = 0;
+            emit StakedRemaining(gauge, token, balance);
+        }
     }
 
     /// @notice Pull accrued AERO from a gauge, pay the treasury fee, and credit the net to the current epoch bucket
@@ -285,6 +338,14 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         pendingNewClaimFee = 0;
         pendingNewClaimFeeTimestamp = 0;
         emit ClaimFeeUpdated(oldFee, claimFee);
+    }
+
+    /// @notice Checks if the AeroGauge is alive
+    /// @dev Gauges can be killed and revived, so we need to check if they are alive. When not alive, deposits into the gauge are reverted.
+    /// @param _gauge Address of the gauge to check
+    /// @return True if the gauge is alive, false otherwise
+    function isAeroGaugeAlive(address _gauge) public view returns (bool) {
+        return IAeroVoter(IAeroGauge(_gauge).voter()).isAlive(_gauge);
     }
 
     /// @notice Treasury fee as percentage of total claimed amount (`amount * claimFee / _100pct`)

@@ -4,6 +4,8 @@ pragma solidity 0.8.24;
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "src/Interfaces/IAeroGauge.sol";
 
+import "./MockAeroVoter.sol";
+
 contract MockAeroToken is ERC20 {
     constructor() ERC20("Mock AERO", "MAERO") {}
 
@@ -20,6 +22,7 @@ contract AeroGaugeTester is IAeroGauge {
 
     address public stakingToken;
     MockAeroToken public aeroToken;
+    MockAeroVoter public immutable aeroVoter;
     mapping(address user => uint256 amount) public balanceOf;
 
     address nullAddress = address(0);
@@ -28,6 +31,7 @@ contract AeroGaugeTester is IAeroGauge {
     constructor(address _stakingToken, address _rewardToken) {
         stakingToken = _stakingToken;
         aeroToken = _rewardToken == address(0) ? new MockAeroToken() : MockAeroToken(_rewardToken);
+        aeroVoter = new MockAeroVoter();
     }
 
     /// @notice Address of the token (AERO) rewarded to stakers
@@ -42,7 +46,7 @@ contract AeroGaugeTester is IAeroGauge {
 
     /// @notice Address of Protocol Voter
     function voter() external view returns (address) {
-        return nullAddress;
+        return address(aeroVoter);
     }
 
     /// @notice Address of Protocol Voting Escrow
