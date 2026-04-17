@@ -5,6 +5,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {AeroManager} from "src/AeroManager.sol";
 import {IAeroManager} from "src/Interfaces/IAeroManager.sol";
+import {IAeroGauge} from "src/Interfaces/IAeroGauge.sol";
 import {InvariantsTestHandler} from "./InvariantsTestHandler.t.sol";
 import {BaseMultiCollateralTest} from "./BaseMultiCollateralTest.sol";
 import {TestDeployer} from "./Deployment.t.sol";
@@ -64,12 +65,23 @@ contract AeroLPInvariantsTestHandler is InvariantsTestHandler {
     function getStakedAmount(address _gauge) external view returns (uint256) {
         return AeroManager(address(aeroManager)).stakedAmounts(_gauge);
     }
+
+    /// @notice LP held on AeroManager when the gauge is killed (buffer before restake).
+    function getUnstakedAmount(address _gauge) external view returns (uint256) {
+        return AeroManager(address(aeroManager)).unstakedAmounts(_gauge);
+    }
     
     /**
      * @notice Get the gauge balance held by AeroManager
      */
     function getGaugeBalance(address _gauge) external view returns (uint256) {
         return IERC20(_gauge).balanceOf(address(aeroManager));
+    }
+
+    /// @notice LP token balance on AeroManager (should match `unstakedAmounts` in normal paths).
+    function getManagerLpTokenBalance(address _gauge) external view returns (uint256) {
+        address token = IAeroGauge(_gauge).stakingToken();
+        return IERC20(token).balanceOf(address(aeroManager));
     }
     
     /**
