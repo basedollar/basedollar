@@ -77,6 +77,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event EpochClosed(address indexed gauge, uint256 indexed epoch);
     event GovernorProposed(address indexed pendingGovernor, uint256 activateAtTimestamp);
     event GovernorUpdated(address oldGovernor, address newGovernor);
+    event GovernorProposalCancelled(address indexed cancelledGovernor);
 
     /// @param _aeroTokenAddress AERO (reward) token the gauges must pay out
     /// @param _governor Account allowed to change token address, fee, epochs, and distributions
@@ -179,6 +180,17 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         pendingGovernorTimestamp = 0;
 
         emit GovernorUpdated(oldGovernor, governor);
+    }
+
+    /**
+     * @notice Cancel a pending governor proposal. Callable by the current governor.
+     */
+    function cancelGovernorProposal() external onlyGovernor {
+        require(pendingGovernor != address(0), "AeroManager: No pending governor");
+        address cancelled = pendingGovernor;
+        pendingGovernor = address(0);
+        pendingGovernorTimestamp = 0;
+        emit GovernorProposalCancelled(cancelled);
     }
 
     /// @notice Add an `ActivePool` of an AERO LP collateral type by the collateral registry

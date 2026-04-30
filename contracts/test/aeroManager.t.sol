@@ -636,6 +636,47 @@ contract AeroManagerTest is DevTestSetup {
         assertEq(aeroManagerImpl.pendingGovernor(), yetAnotherGovernor);
     }
 
+    function test_cancelGovernorProposal_revertsIfNotGovernor() public {
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+
+        vm.prank(newGovernor);
+        vm.expectRevert("AeroManager: Caller is not the governor");
+        aeroManagerImpl.cancelGovernorProposal();
+    }
+
+    function test_cancelGovernorProposal_revertsIfNoPending() public {
+        vm.prank(governor);
+        vm.expectRevert("AeroManager: No pending governor");
+        aeroManagerImpl.cancelGovernorProposal();
+    }
+
+    function test_cancelGovernorProposal_clearsPendingAndEmits() public {
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+
+        vm.prank(governor);
+        vm.expectEmit(true, true, true, true);
+        emit AeroManager.GovernorProposalCancelled(newGovernor);
+        aeroManagerImpl.cancelGovernorProposal();
+
+        assertEq(aeroManagerImpl.pendingGovernor(), address(0));
+        assertEq(aeroManagerImpl.pendingGovernorTimestamp(), 0);
+        assertEq(aeroManagerImpl.governor(), governor);
+    }
+
+    function test_cancelGovernorProposal_pendingGovernorCannotAcceptAfterCancel() public {
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+        vm.prank(governor);
+        aeroManagerImpl.cancelGovernorProposal();
+
+        vm.warp(block.timestamp + GOVERNOR_TRANSFER_TIMELOCK);
+        vm.prank(newGovernor);
+        vm.expectRevert("AeroManager: Caller is not pending governor");
+        aeroManagerImpl.acceptGovernor();
+    }
+
     function test_fullFlow_proposeAccept_thenProposeAgain() public {
         // Round 1: governor -> newGovernor
         vm.prank(governor);
