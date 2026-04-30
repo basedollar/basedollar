@@ -39,6 +39,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
 
     /// @notice Registered active pools that can stake/withdraw
     mapping(address activePool => bool) public activePools;
+    mapping(address gauge => bool) internal _registeredGauges;
 
     mapping(address gauge => uint256 epoch) public currentEpochs;
     mapping(address gauge => mapping(uint256 epoch => bool isClosed)) public epochClosed;
@@ -249,6 +250,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     /// @dev Callable by anyone; reverts if the gauge's current epoch is already closed or reward token mismatches `aeroTokenAddress`
     /// @param gauge Gauge to claim rewards from
     function claim(address gauge) external nonReentrant {
+        require(_registeredGauges[gauge], "AeroManager: Gauge is not registered");
         uint256 currentEpoch = currentEpochs[gauge];
         require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
         require(IAeroGauge(gauge).rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
@@ -371,6 +373,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         require(gauge.rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
 
         activePools[activePool] = true;
+        _registeredGauges[address(gauge)] = true;
         emit ActivePoolAdded(activePool);
     }
 
