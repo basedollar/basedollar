@@ -41,6 +41,7 @@ contract DebtInFrontHelper is IDebtInFrontHelper {
     }
 
     function _getDebtBetween(
+        bool isRedeemable,
         uint256 _collIndex,
         uint256 _interestRateLo, // inclusive
         uint256 _interestRateHi, // exclusive
@@ -49,7 +50,12 @@ contract DebtInFrontHelper is IDebtInFrontHelper {
         uint256 _hintId,
         uint256 _numTrials
     ) internal view returns (uint256 debt, uint256 blockTimestamp) {
-        ITroveManager troveManager = collateralRegistry.getTroveManager(_collIndex);
+        ITroveManager troveManager;
+        if (isRedeemable) {
+            troveManager = collateralRegistry.getTroveManager(_collIndex);
+        } else {
+            troveManager = collateralRegistry.getNonRedeemableTroveManager(_collIndex);
+        }
         require(address(troveManager) != address(0), "Invalid collateral index");
 
         ISortedTroves sortedTroves = troveManager.sortedTroves();
@@ -100,7 +106,7 @@ contract DebtInFrontHelper is IDebtInFrontHelper {
         uint256 _numTrials
     ) external view returns (uint256 debt, uint256 blockTimestamp) {
         return
-            _getDebtBetween(_collIndex, _interestRateLo, _interestRateHi, _excludedTroveId, false, _hintId, _numTrials);
+            _getDebtBetween(true, _collIndex, _interestRateLo, _interestRateHi, _excludedTroveId, false, _hintId, _numTrials);
     }
 
     function getDebtBetweenInterestRateAndTrove(
@@ -112,6 +118,30 @@ contract DebtInFrontHelper is IDebtInFrontHelper {
         uint256 _numTrials
     ) external view returns (uint256 debt, uint256 blockTimestamp) {
         return
-            _getDebtBetween(_collIndex, _interestRateLo, _interestRateHi, _troveIdToStopAt, true, _hintId, _numTrials);
+            _getDebtBetween(true, _collIndex, _interestRateLo, _interestRateHi, _troveIdToStopAt, true, _hintId, _numTrials);
+    }
+
+    function getNonRedeemableDebtBetweenInterestRates(
+        uint256 _collIndex,
+        uint256 _interestRateLo, // inclusive
+        uint256 _interestRateHi, // exclusive
+        uint256 _excludedTroveId,
+        uint256 _hintId,
+        uint256 _numTrials
+    ) external view returns (uint256 debt, uint256 blockTimestamp) {
+        return
+            _getDebtBetween(false, _collIndex, _interestRateLo, _interestRateHi, _excludedTroveId, false, _hintId, _numTrials);
+    }
+
+    function getNonRedeemableDebtBetweenInterestRateAndTrove(
+        uint256 _collIndex,
+        uint256 _interestRateLo, // inclusive
+        uint256 _interestRateHi, // exclusive
+        uint256 _troveIdToStopAt, // excluded
+        uint256 _hintId,
+        uint256 _numTrials
+    ) external view returns (uint256 debt, uint256 blockTimestamp) {
+        return
+            _getDebtBetween(false, _collIndex, _interestRateLo, _interestRateHi, _troveIdToStopAt, true, _hintId, _numTrials);
     }
 }
