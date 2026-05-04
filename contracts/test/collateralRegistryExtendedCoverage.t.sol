@@ -189,6 +189,28 @@ contract CollateralRegistryExtendedCoverageTest is DevTestSetup {
         vm.prank(gov);
         vm.expectRevert("CR: Active pool does not match trove manager");
         CollateralRegistry(address(collateralRegistry)).createNewBranch(IAddressesRegistry(address(mock)), true);
+
+        TestDeployer d = _freshDeployer();
+        IERC20Metadata aeroLst = _lstToken("AEROV");
+        MockAeroGaugeForCR gauge = new MockAeroGaugeForCR(address(aeroLst), AeroManager(address(aeroManager)).aeroTokenAddress());
+        TestDeployer.AeroParams memory ap = TestDeployer.AeroParams(aeroManager, true, address(gauge));
+        TestDeployer.LiquityContractsDev memory c = _deployExtraBranch(d, aeroLst, ap);
+
+        mock.configure(aeroLst, c.troveManager, c.stabilityPool, c.borrowerOperations, c.activePool);
+        vm.prank(gov);
+        vm.expectRevert("CR: AeroManager address mismatch");
+        CollateralRegistry(address(collateralRegistry)).createNewBranch(IAddressesRegistry(address(mock)), true);
+
+        mock.setAeroManager(aeroManager);
+        vm.mockCall(
+            address(c.activePool),
+            abi.encodeCall(IActivePool.aeroManagerAddress, ()),
+            abi.encode(address(uint160(uint256(keccak256("wrongAeroManager")))))
+        );
+        vm.prank(gov);
+        vm.expectRevert("CR: AeroManager address mismatch");
+        CollateralRegistry(address(collateralRegistry)).createNewBranch(IAddressesRegistry(address(mock)), true);
+        vm.clearMockedCalls();
     }
 
     function test_updateCollateralGovernor_emitsAndUpdates() public {
