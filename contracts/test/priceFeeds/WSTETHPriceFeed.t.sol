@@ -13,7 +13,7 @@ contract WSTETHPriceFeedTest is Test {
     BorrowerOperationsMock internal borrowerOperations;
     ChainlinkOracleMock internal ethUsd;
     ChainlinkOracleMock internal stEthUsd;
-    WSTETHRateMock internal wsteth;
+    ChainlinkOracleMock internal wstEthStEth;
     WSTETHPriceFeed internal feed;
 
     function setUp() public {
@@ -29,13 +29,16 @@ contract WSTETHPriceFeedTest is Test {
         stEthUsd.setPrice(2005e8);
         stEthUsd.setUpdatedAt(block.timestamp);
 
-        wsteth = new WSTETHRateMock();
-        wsteth.setStEthPerToken(1.1e18);
+        wstEthStEth = new ChainlinkOracleMock();
+        wstEthStEth.setDecimals(18);
+        wstEthStEth.setPrice(1.1e18);
+        wstEthStEth.setUpdatedAt(block.timestamp);
 
         feed = new WSTETHPriceFeed(
             address(ethUsd),
             address(stEthUsd),
-            address(wsteth),
+            address(wstEthStEth),
+            1 days,
             1 days,
             1 days,
             address(borrowerOperations)
@@ -59,7 +62,7 @@ contract WSTETHPriceFeedTest is Test {
     function test_exchangeRateZero_shutsDown() public {
         feed.fetchPrice();
         uint256 lgp = feed.lastGoodPrice();
-        wsteth.setStEthPerToken(0);
+        wstEthStEth.setPrice(0);
         (uint256 p, bool failed) = feed.fetchPrice();
         assertTrue(failed);
         assertEq(p, lgp);

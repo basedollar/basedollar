@@ -29,6 +29,7 @@ contract OraclesMainnet is TestAccounts {
     AggregatorV3Interface ethOracle;
     AggregatorV3Interface stethOracle;
     AggregatorV3Interface rethOracle;
+    AggregatorV3Interface wstEthStEthOracle;
 
     ChainlinkOracleMock mockOracle;
     GasGuzzlerToken gasGuzzlerToken;
@@ -125,6 +126,7 @@ contract OraclesMainnet is TestAccounts {
         ethOracle = AggregatorV3Interface(result.externalAddresses.ETHOracle);
         rethOracle = AggregatorV3Interface(result.externalAddresses.RETHOracle);
         stethOracle = AggregatorV3Interface(result.externalAddresses.STETHOracle);
+        wstEthStEthOracle = AggregatorV3Interface(result.externalAddresses.WSTETHStEthOracle);
 
         mockOracle = new ChainlinkOracleMock();
         gasGuzzlerToken = new GasGuzzlerToken();
