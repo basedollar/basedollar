@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
+import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
 contract AeroGaugeMock {
     AeroPoolMock public pool;
 
@@ -14,6 +16,12 @@ contract AeroGaugeMock {
 }
 
 contract AeroPoolMock {
+    struct Observation {
+        uint256 timestamp;
+        uint256 reserve0Cumulative;
+        uint256 reserve1Cumulative;
+    }
+
     address public token0;
     address public token1;
 
@@ -28,6 +36,9 @@ contract AeroPoolMock {
     uint256 internal _totalSupply;
     uint256 internal _quoteToken0ToToken1; // How much token1 for 1 token0
     uint256 internal _quoteToken1ToToken0; // How much token0 for 1 token1
+    uint256 internal _twapReserve0;
+    uint256 internal _twapReserve1;
+    bool internal _useTwapReserves;
 
     bool internal _shouldRevert;
     bool internal _isStable;
@@ -73,6 +84,11 @@ contract AeroPoolMock {
     function setQuoteAmounts(uint256 token0ToToken1, uint256 token1ToToken0) external {
         _quoteToken0ToToken1 = token0ToToken1;
         _quoteToken1ToToken0 = token1ToToken0;
+
+        uint256 token0Unit = 10 ** IERC20Metadata(token0).decimals();
+        _twapReserve0 = token0Unit;
+        _twapReserve1 = token0ToToken1;
+        _useTwapReserves = true;
     }
 
     function setShouldRevert(bool v) external {
@@ -130,5 +146,21 @@ contract AeroPoolMock {
 
     function stable() external view returns (bool) {
         return _isStable;
+    }
+
+    function observationLength() external view returns (uint256) {
+        if (_shouldRevert) revert("AeroPoolMock: revert");
+        return 9;
+    }
+
+    function observations(uint256 index) external view returns (Observation memory) {
+        if (_shouldRevert) revert("AeroPoolMock: revert");
+        uint256 reserve0 = _useTwapReserves ? _twapReserve0 : _reserve0;
+        uint256 reserve1 = _useTwapReserves ? _twapReserve1 : _reserve1;
+        return Observation({
+            timestamp: index + 1,
+            reserve0Cumulative: reserve0 * (index + 1),
+            reserve1Cumulative: reserve1 * (index + 1)
+        });
     }
 }

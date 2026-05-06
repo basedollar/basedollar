@@ -26,6 +26,8 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
     {
         _fetchPricePrimary(false);
 
+        _deployed = true;
+
         // Check the oracle didn't already fail
         assert(priceSource == PriceSource.primary);
     }
