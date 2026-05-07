@@ -239,34 +239,35 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
 
     ////////////////////////////////////////////////////////////////
 
+    struct PoolState {
+        uint256 reserve0;
+        uint256 reserve1;
+        uint256 lpTotalSupply;
+        bool isDown;
+    }
+
     /// @notice Get pool reserves and LP total supply
-    /// @return reserve0 Amount of token0 in pool
-    /// @return reserve1 Amount of token1 in pool
-    /// @return lpTotalSupply Total LP tokens outstanding
-    /// @return isDown True if calls failed or total supply is zero
-    function _getPoolState() internal view returns (
-        uint256 reserve0, 
-        uint256 reserve1, 
-        uint256 lpTotalSupply,
-        bool isDown
-    ) {
+    function _getPoolState() internal view returns (PoolState memory poolState) {
         uint256 gasBefore = gasleft();
         
         try pool.getReserves() returns (uint256 r0, uint256 r1, uint256) {
-            reserve0 = r0;
-            reserve1 = r1;
+            poolState.reserve0 = r0;
+            poolState.reserve1 = r1;
+            poolState.isDown = r0 == 0 || r1 == 0;
         } catch {
             if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
-            return (0, 0, 0, true);
+            poolState.isDown = true;
+            return poolState;
         }
         
         gasBefore = gasleft();
         try IERC20(address(pool)).totalSupply() returns (uint256 supply) {
-            lpTotalSupply = supply;
-            isDown = (supply == 0);
+            poolState.lpTotalSupply = supply;
+            poolState.isDown = poolState.isDown || (supply == 0);
         } catch {
             if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
-            return (0, 0, 0, true);
+            poolState.isDown = true;
+            return poolState;
         }
     }
 

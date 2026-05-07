@@ -33,7 +33,8 @@ contract AeroLPTokenPriceFeedTester is AeroLPTokenPriceFeed {
         uint256 lpTotalSupply,
         bool isDown
     ) {
-        return _getPoolState();
+        PoolState memory poolState = _getPoolState();
+        return (poolState.reserve0, poolState.reserve1, poolState.lpTotalSupply, poolState.isDown);
     }
     
     function i_calculateLPTokenPrice(

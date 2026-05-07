@@ -1102,4 +1102,59 @@ contract AeroLPStablePairFuzzTest is Test {
             assertLt(price, 10_000e18, "Stable pair price should stay bounded for near-peg oracle inputs");
         }
     }
+
+    function testFuzz_stablePair_finalLPPolicyUnderPriceAndReserveManipulation(
+        uint256 twapToken1PerToken0,
+        uint256 reserve0Raw
+    ) public {
+        twapToken1PerToken0 = bound(twapToken1PerToken0, 0.2e18, 5e18);
+        reserve0Raw = bound(reserve0Raw, 10_000e18, 2_000_000e18);
+
+        uint256 targetK = _getK(1_000_000e18, 1_000_000e18);
+        uint256 reserve1 = _solveY(reserve0Raw, targetK);
+
+        pool.setQuoteAmounts(twapToken1PerToken0, 1e18);
+        pool.setReserves(reserve0Raw, reserve1);
+
+        AeroLPTokenPriceFeedBase.ExchangeRate memory exchangeRate = feed.i_getTwapExchangeRates();
+        uint256 token0MarketPrice = 1e18 * 1e18 / exchangeRate.token0PerToken1;
+        uint256 token1MarketPrice = 1e18 * 1e18 / exchangeRate.token1PerToken0;
+
+        uint256 priceViaTWAP = feed.i_calculateLPTokenPrice(
+            reserve0Raw,
+            reserve1,
+            1000e18,
+            token0MarketPrice,
+            token1MarketPrice
+        );
+        uint256 priceViaOracle = feed.i_calculateLPTokenPrice(
+            reserve0Raw,
+            reserve1,
+            1000e18,
+            1e18,
+            1e18
+        );
+
+        (uint256 borrowPrice, bool borrowFailure) = feed.fetchPrice();
+        (uint256 redemptionPrice, bool redemptionFailure) = feed.fetchRedemptionPrice();
+
+        assertFalse(borrowFailure);
+        assertFalse(redemptionFailure);
+
+        assertApproxEqAbs(borrowPrice, priceViaOracle, 10, "Borrow price must use oracle final LP valuation");
+
+        bool withinThreshold = feed.i_withinDeviationThreshold(priceViaTWAP, priceViaOracle, 2e16);
+        uint256 expectedRedemptionPrice = withinThreshold
+            ? (priceViaTWAP > priceViaOracle ? priceViaTWAP : priceViaOracle)
+            : priceViaOracle;
+        assertApproxEqAbs(
+            redemptionPrice,
+            expectedRedemptionPrice,
+            10,
+            "Redemption price must follow final LP threshold policy"
+        );
+        if (!withinThreshold && priceViaTWAP > priceViaOracle) {
+            assertLe(redemptionPrice, priceViaOracle, "Outside-threshold redemption cannot use high TWAP LP value");
+        }
+    }
 }

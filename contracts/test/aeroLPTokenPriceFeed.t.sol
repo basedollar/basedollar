@@ -140,6 +140,16 @@ contract AeroLPTokenPriceFeedTest is Test {
         assertTrue(isDown);
     }
 
+    function test_getPoolState_returnsDownOnZeroReserve() public {
+        pool.setReserves(0, 500e18);
+        (, , , bool isDown0) = feed.i_getPoolState();
+        assertTrue(isDown0);
+
+        pool.setReserves(1_000_000e6, 0);
+        (, , , bool isDown1) = feed.i_getPoolState();
+        assertTrue(isDown1);
+    }
+
     function test_getPoolState_returnsDownOnRevert() public {
         pool.setShouldRevert(true);
 
@@ -361,28 +371,27 @@ contract AeroLPTokenPriceFeedTest is Test {
 
     // ============ Min/Max Price Selection Tests ============
 
-    function test_fetchPrice_usesMinMaxLogic_outsideDeviation() public {
-        // Set TWAP to deviate from Chainlink by >2%
+    function test_fetchPrice_usesOracleFinalLPPriceForTwapSkew() public {
+        // Set TWAP token prices to deviate from Chainlink by >2%.
+        // For volatile LP pricing, reciprocal TWAP-derived token prices can still
+        // produce the same final LP value because the formula uses sqrt(price0 * price1).
         // TWAP: 1 USDC = 0.0004 WETH (implies WETH = $2500)
         // Chainlink: WETH = $2000
-        // Deviation = 25% > 2%
         // token0ToToken1 = 0.0004e18, token1ToToken0 = 2500e6 (1/0.0004 USDC per WETH)
         pool.setQuoteAmounts(0.0004e18, 2500e6);
 
         (uint256 price, bool newFailure) = feed.fetchPrice();
         assertFalse(newFailure);
 
-        // For non-redemption (borrow): uses conservative prices
-        // token1MarketPrice = $1 / 0.0004 = $2500
-        // token0MarketPrice = $2000 / 2500 = $0.80
-        // Since deviation > 2%, uses min for token1, max for token0:
-        // token1Price = min($2500, $2000) = $2000
-        // token0Price = max($0.80, $1) = $1
-        // Conservative pricing keeps the fair LP value near the baseline.
+        (uint256 priceViaTWAP, uint256 priceViaOracle) =
+            _expectedFinalLPPrices(0.0004e18, 1_000_000e6, 500e18, 1000e18);
+
+        assertApproxEqAbs(priceViaTWAP, priceViaOracle, 1);
+        assertApproxEqAbs(price, priceViaOracle, 1);
         assertApproxEqAbs(price, 2000e18, 1);
     }
 
-    function test_fetchRedemptionPrice_withinDeviation_usesMaxMinLogic() public {
+    function test_fetchRedemptionPrice_withinDeviation_usesHigherFinalLPPrice() public {
         // Set TWAP within 2% of Chainlink
         // TWAP: 1 USDC = 0.000505 WETH (implies WETH = $1980.20, ~1% below $2000)
         // token0ToToken1 = 0.000505e18, token1ToToken0 ≈ 1980.198e6 (1/0.000505 USDC per WETH)
@@ -394,14 +403,19 @@ contract AeroLPTokenPriceFeedTest is Test {
         // For redemption within threshold: maximize LP value
         // token1MarketPrice = $1 / 0.000505 ≈ $1980.20
         // token0MarketPrice = $2000 / 1980.198 ≈ $1.01
-        // Both within 2% of oracle prices, so use max/min for redemption:
-        // token1Price = max($1980.20, $2000) = $2000
-        // token0Price = min($1.01, $1) = $1
-        assertApproxEqAbs(price, 2000e18, 1);
+        // Both final LP prices are within 2%, so redemption uses the higher final LP value.
+        (uint256 priceViaTWAP, uint256 priceViaOracle) =
+            _expectedFinalLPPrices(0.000505e18, 1_000_000e6, 500e18, 1000e18);
+
+        assertTrue(feed.i_withinDeviationThreshold(priceViaTWAP, priceViaOracle, 2e16));
+        assertGt(priceViaTWAP, priceViaOracle);
+        assertApproxEqAbs(price, priceViaTWAP, 1);
+        assertTrue(feed.i_withinDeviationThreshold(price, 2000e18, 0.00001e16), "Price should be within 0.00001% of $2000");
     }
 
-    function test_fetchRedemptionPrice_outsideDeviation_usesMinMaxLogic() public {
-        // Set TWAP to deviate from Chainlink by >2%
+    function test_fetchRedemptionPrice_twapSkewUsesFinalLPPolicy() public {
+        // Set TWAP token prices to deviate from Chainlink by >2%.
+        // For volatile LPs, the reciprocal final LP values can still be close.
         // TWAP: 1 USDC = 0.0004 WETH (implies WETH = $2500, 25% above $2000)
         // token0ToToken1 = 0.0004e18, token1ToToken0 = 2500e6 (1/0.0004 USDC per WETH)
         pool.setQuoteAmounts(0.0004e18, 2500e6);
@@ -409,7 +423,13 @@ contract AeroLPTokenPriceFeedTest is Test {
         (uint256 price, bool newFailure) = feed.fetchRedemptionPrice();
         assertFalse(newFailure);
 
-        // Outside threshold: same as non-redemption (conservative)
+        (uint256 priceViaTWAP, uint256 priceViaOracle) =
+            _expectedFinalLPPrices(0.0004e18, 1_000_000e6, 500e18, 1000e18);
+        uint256 expectedPrice = feed.i_withinDeviationThreshold(priceViaTWAP, priceViaOracle, 2e16)
+            ? (priceViaTWAP > priceViaOracle ? priceViaTWAP : priceViaOracle)
+            : priceViaOracle;
+
+        assertApproxEqAbs(price, expectedPrice, 1);
         assertApproxEqAbs(price, 2000e18, 1);
     }
 
@@ -427,23 +447,68 @@ contract AeroLPTokenPriceFeedTest is Test {
         pool.setQuoteAmounts(0.000495e18, 2020202020);
         (uint256 borrowPrice, ) = feed.fetchPrice();
 
-        // Calculate expected values:
-        // token1MarketPrice = $1 / 0.000495 = $2020.20
-        // token0MarketPrice = $2000 / 2020.202 ≈ $0.99 
-        // Both within 2% of oracle prices
-        //
-        // Redemption (within 2% threshold): 
-        //   token1Price = max($2020.20, $2000) = $2020.20
-        //   token0Price = min($0.99, $1) = $0.99
-        // Borrow: 
-        //   token1Price = min($2020.20, $2000) = $2000
-        //   token0Price = max($0.99, $1) = $1
-        //
-        // LP value with reserves (1M USDC, 500 WETH) and 1000 LP tokens:
-        // Redemption: (1M * $0.99 + 500 * $2020.20) / 1000 ≈ $2000.10 (higher token1 price wins)
-        // Borrow: (1M * $1 + 500 * $2000) / 1000 = $2000
-        
+        // Within threshold, redemption can use the higher final LP valuation while borrow defaults to oracle.
         assertGe(redemptionPrice, borrowPrice, "Redemption price should not be lower than borrow price");
+    }
+
+    // ============ Final LP Price Policy Fuzz Tests ============
+
+    function testFuzz_fetchPrice_matchesOracleFinalLPValuation(
+        uint256 twapToken1PerToken0,
+        uint256 reserve0,
+        uint256 reserve1,
+        uint256 totalSupply
+    ) public {
+        twapToken1PerToken0 = bound(twapToken1PerToken0, 1e12, 1e23);
+        reserve0 = bound(reserve0, 1e6, 10_000_000e6);
+        reserve1 = bound(reserve1, 1e12, 10_000e18);
+        totalSupply = bound(totalSupply, 1e18, 10_000_000e18);
+
+        pool.setQuoteAmounts(twapToken1PerToken0, _rawToken0PerToken1(twapToken1PerToken0));
+        pool.setReserves(reserve0, reserve1);
+        pool.setTotalSupply(totalSupply);
+
+        (uint256 priceViaTWAP, uint256 priceViaOracle) =
+            _expectedFinalLPPrices(twapToken1PerToken0, reserve0, reserve1, totalSupply);
+
+        (uint256 price, bool newFailure) = feed.fetchPrice();
+
+        assertFalse(newFailure);
+        assertApproxEqAbs(price, priceViaOracle, 10);
+        if (priceViaTWAP > priceViaOracle) {
+            assertLe(price, priceViaTWAP, "Borrow price cannot exceed a higher TWAP LP valuation");
+        }
+    }
+
+    function testFuzz_fetchRedemptionPrice_matchesFinalLPPolicy(
+        uint256 twapToken1PerToken0,
+        uint256 reserve0,
+        uint256 reserve1,
+        uint256 totalSupply
+    ) public {
+        twapToken1PerToken0 = bound(twapToken1PerToken0, 1e12, 1e23);
+        reserve0 = bound(reserve0, 1e6, 10_000_000e6);
+        reserve1 = bound(reserve1, 1e12, 10_000e18);
+        totalSupply = bound(totalSupply, 1e18, 10_000_000e18);
+
+        pool.setQuoteAmounts(twapToken1PerToken0, _rawToken0PerToken1(twapToken1PerToken0));
+        pool.setReserves(reserve0, reserve1);
+        pool.setTotalSupply(totalSupply);
+
+        (uint256 priceViaTWAP, uint256 priceViaOracle) =
+            _expectedFinalLPPrices(twapToken1PerToken0, reserve0, reserve1, totalSupply);
+        bool withinThreshold = feed.i_withinDeviationThreshold(priceViaTWAP, priceViaOracle, 2e16);
+        uint256 expectedPrice = withinThreshold
+            ? (priceViaTWAP > priceViaOracle ? priceViaTWAP : priceViaOracle)
+            : priceViaOracle;
+
+        (uint256 price, bool newFailure) = feed.fetchRedemptionPrice();
+
+        assertFalse(newFailure);
+        assertApproxEqAbs(price, expectedPrice, 10);
+        if (!withinThreshold && priceViaTWAP > priceViaOracle) {
+            assertLe(price, priceViaOracle, "Outside-threshold redemption cannot use manipulated high TWAP");
+        }
     }
 
     // ============ Edge Cases ============
@@ -536,5 +601,35 @@ contract AeroLPTokenPriceFeedTest is Test {
         assertTrue(feed.i_withinDeviationThreshold(max, ref, thr));
         assertFalse(feed.i_withinDeviationThreshold(min - 1, ref, thr));
         assertFalse(feed.i_withinDeviationThreshold(max + 1, ref, thr));
+    }
+
+    function _expectedFinalLPPrices(
+        uint256 twapToken1PerToken0,
+        uint256 reserve0,
+        uint256 reserve1,
+        uint256 totalSupply
+    ) internal view returns (uint256 priceViaTWAP, uint256 priceViaOracle) {
+        uint256 twapToken0PerToken1 = (1e24 / twapToken1PerToken0) * 1e12;
+        uint256 token1MarketPrice = 1e18 * 1e18 / twapToken1PerToken0;
+        uint256 token0MarketPrice = 2000e18 * 1e18 / twapToken0PerToken1;
+
+        priceViaTWAP = feed.i_calculateLPTokenPrice(
+            reserve0,
+            reserve1,
+            totalSupply,
+            token0MarketPrice,
+            token1MarketPrice
+        );
+        priceViaOracle = feed.i_calculateLPTokenPrice(
+            reserve0,
+            reserve1,
+            totalSupply,
+            1e18,
+            2000e18
+        );
+    }
+
+    function _rawToken0PerToken1(uint256 twapToken1PerToken0) internal pure returns (uint256) {
+        return (1e36 / twapToken1PerToken0) / 1e12;
     }
 }

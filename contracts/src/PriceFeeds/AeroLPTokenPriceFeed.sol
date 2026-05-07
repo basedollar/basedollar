@@ -76,76 +76,62 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
         if (twapExchangeRate.token1PerToken0 == 0 || twapExchangeRate.token0PerToken1 == 0) {
             return (_shutDownAndSwitchToLastGoodPrice(address(pool)), true);
         }
-        
-        // 3. Derive "market" price for token1 from TWAP and select final prices
-        // If 1 token0 = X token1 (TWAP), and token0 = $Y (Chainlink)
-        // Then token1 market price = $Y / X
-        (uint256 token0Price, uint256 token1Price) = _selectPrices(
-            token0OraclePrice,
-            token1OraclePrice,
-            twapExchangeRate.token1PerToken0,
-            twapExchangeRate.token0PerToken1,
-            _isRedemption
-        );
-        
-        // 4. Get pool state and calculate LP token price
-        return _calculateAndReturnLPPrice(token0Price, token1Price);
-    }
-    
-    /// @dev Select token prices based on TWAP validation and operation type
-    function _selectPrices(
-        uint256 token0OraclePrice,
-        uint256 token1OraclePrice,
-        uint256 twapToken1PerToken0,
-        uint256 twapToken0PerToken1,
-        bool _isRedemption
-    ) internal pure returns (uint256 token0Price, uint256 token1Price) {
 
-        require(twapToken1PerToken0 > 0, "TWAP token1 per token0 is 0");
-        require(twapToken0PerToken1 > 0, "TWAP token0 per token1 is 0");
-
-        // Derive market price for token1 from TWAP
-        uint256 token1MarketPrice = token0OraclePrice * 1e18 / twapToken1PerToken0;
-        // Derive market price for token0 from TWAP
-        uint256 token0MarketPrice = token1OraclePrice * 1e18 / twapToken0PerToken1;
-
-        // Check if market price is within deviation threshold of oracle price
-        bool withinThreshold = 
-            _withinDeviationThreshold(token1MarketPrice, token1OraclePrice, TOKEN_PRICE_DEVIATION_THRESHOLD) &&
-            _withinDeviationThreshold(token0MarketPrice, token0OraclePrice, TOKEN_PRICE_DEVIATION_THRESHOLD);
-        
-        if (_isRedemption && withinThreshold) {
-            // For redemptions within threshold: maximize LP value to prevent value leakage
-            // max token1 price, min token0 price -> higher LP value
-            token1Price = LiquityMath._max(token1MarketPrice, token1OraclePrice);
-            token0Price = LiquityMath._min(token0MarketPrice, token0OraclePrice);
-        } else {
-            // For borrows (or redemptions outside threshold): minimize LP value
-            // Protects against upward manipulation
-            // min token1 price, max token0 price -> lower LP value
-            token1Price = LiquityMath._min(token1MarketPrice, token1OraclePrice);
-            token0Price = LiquityMath._max(token0MarketPrice, token0OraclePrice);
-        }
-    }
-    
-    /// @dev Get pool state and calculate final LP token price
-    function _calculateAndReturnLPPrice(
-        uint256 token0Price, 
-        uint256 token1Price
-    ) internal returns (uint256, bool) {
-        (uint256 reserve0, uint256 reserve1, uint256 lpTotalSupply, bool poolIsDown) = _getPoolState();
-        if (poolIsDown) {
+        PoolState memory poolState = _getPoolState();
+        if (poolState.isDown) {
             return (_shutDownAndSwitchToLastGoodPrice(address(pool)), true);
         }
-        
-        uint256 price = _calculateLPTokenPrice(
-            reserve0,
-            reserve1,
-            lpTotalSupply,
-            token0Price,
-            token1Price
+
+        // 3. Get LP token price using TWAP and Chainlink oracle prices
+        return _getLPPrice(
+            token0OraclePrice, 
+            token1OraclePrice, 
+            twapExchangeRate,
+            poolState,
+            _isRedemption
         );
-        
+    }
+
+    /// @dev Get LP token price via TWAP and Oracle
+    function _getLPPrice(
+        uint256 token0OraclePrice,
+        uint256 token1OraclePrice,
+        ExchangeRate memory twapExchangeRate,
+        PoolState memory poolState,
+        bool _isRedemption
+    ) internal returns (uint256 price, bool isDown) {
+        // Derive market prices for each token from TWAP exchange rate
+        // If 1 token0 = X token1 (TWAP), and token0 = $Y (Chainlink)
+        // Then token1 market price = $Y / X
+        uint256 token0MarketPrice = token1OraclePrice * 1e18 / twapExchangeRate.token0PerToken1;
+        uint256 token1MarketPrice = token0OraclePrice * 1e18 / twapExchangeRate.token1PerToken0;
+
+        // Calculate LP token price using TWAP market prices
+        uint256 priceViaTWAP = _calculateLPTokenPrice(
+            poolState.reserve0, 
+            poolState.reserve1, 
+            poolState.lpTotalSupply, 
+            token0MarketPrice,
+            token1MarketPrice
+        );
+        // Calculate LP token price using Chainlink oracle prices
+        uint256 priceViaOracle = _calculateLPTokenPrice(
+            poolState.reserve0, 
+            poolState.reserve1, 
+            poolState.lpTotalSupply, 
+            token0OraclePrice, 
+            token1OraclePrice
+        );
+
+        if (_isRedemption && _withinDeviationThreshold(priceViaTWAP, priceViaOracle, TOKEN_PRICE_DEVIATION_THRESHOLD)) {
+            // For redemption within threshold: maximize LP value
+            price = LiquityMath._max(priceViaTWAP, priceViaOracle);
+        } else {
+            // For borrows and when outside threshold
+            // Assumes TWAP price manipulation and defaults to fair price via Chainlink oracle prices
+            price = priceViaOracle;
+        }
+
         lastGoodPrice = price;
         return (price, false);
     }
