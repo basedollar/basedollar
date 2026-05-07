@@ -113,6 +113,30 @@ contract AeroLPInvariantsTestHandler is InvariantsTestHandler {
     }
 
     /**
+     * @notice Get the total collateral in stability pool for a branch
+     */
+    function getStabilityPoolCollBalance(uint256 branchIdx) external view returns (uint256) {
+        return branches[branchIdx].stabilityPool.getCollBalance();
+    }
+
+    /**
+     * @notice Get the total collateral in coll surplus pool for a branch
+     */
+    function getCollSurplusPoolCollBalance(uint256 branchIdx) external view returns (uint256) {
+        return branches[branchIdx].pools.collSurplusPool.getCollBalance();
+    }
+
+    /**
+     * @notice Get collateral accounted across the pools that can own staked Aero LP
+     */
+    function getAccountedPoolCollBalance(uint256 branchIdx) external view returns (uint256) {
+        return branches[branchIdx].activePool.getCollBalance()
+            + branches[branchIdx].stabilityPool.getCollBalance()
+            + branches[branchIdx].pools.defaultPool.getCollBalance()
+            + branches[branchIdx].pools.collSurplusPool.getCollBalance();
+    }
+
+    /**
      * @notice Get the AeroManager address
      */
     function getAeroManagerAddress() external view returns (address) {

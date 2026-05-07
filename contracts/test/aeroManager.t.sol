@@ -354,7 +354,7 @@ contract AeroManagerTest is DevTestSetup {
     }
 
     function test_withdraw_revertsIfCallerNotActivePool() public {
-        vm.expectRevert("AeroManager: Caller is not an active pool");
+        vm.expectRevert("AeroManager: Caller is not an active pool or stability pool or coll surplus pool");
         vm.prank(A);
         aeroManagerImpl.withdraw(address(gauge), address(weth), 1);
     }

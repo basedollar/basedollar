@@ -6,6 +6,8 @@ import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./Interfaces/ICollSurplusPool.sol";
 import "./Interfaces/IAddressesRegistry.sol";
+import "./Interfaces/IActivePool.sol";
+import "./Interfaces/IAeroManager.sol";
 
 contract CollSurplusPool is ICollSurplusPool {
     using SafeERC20 for IERC20;
@@ -15,6 +17,9 @@ contract CollSurplusPool is ICollSurplusPool {
     IERC20 public immutable collToken;
     address public immutable borrowerOperationsAddress;
     address public immutable troveManagerAddress;
+
+    IActivePool public immutable activePool;
+    IAeroManager public immutable aeroManager;
 
     // deposited ether tracker
     uint256 internal collBalance;
@@ -33,6 +38,9 @@ contract CollSurplusPool is ICollSurplusPool {
         collToken = _addressesRegistry.collToken();
         borrowerOperationsAddress = address(_addressesRegistry.borrowerOperations());
         troveManagerAddress = address(_addressesRegistry.troveManager());
+
+        activePool = _addressesRegistry.activePool();
+        aeroManager = _addressesRegistry.aeroManager();
 
         emit BorrowerOperationsAddressChanged(borrowerOperationsAddress);
         emit TroveManagerAddressChanged(troveManagerAddress);
@@ -71,7 +79,18 @@ contract CollSurplusPool is ICollSurplusPool {
         collBalance = collBalance - claimableColl;
         emit CollSent(_account, claimableColl);
 
+        _unstakeIfAeroLPCollateral(claimableColl);
+
         collToken.safeTransfer(_account, claimableColl);
+    }
+
+    /// @dev Unstakes AERO LP collateral back to AeroManager and sends to this CollSurplusPool
+    function _unstakeIfAeroLPCollateral(uint256 _amount) internal {
+        bool isAeroLPCollateral = activePool.isAeroLPCollateral();
+        if (isAeroLPCollateral) {
+            address gauge = activePool.aeroGaugeAddress();
+            aeroManager.withdraw(gauge, address(collToken), _amount);
+        }
     }
 
     // --- 'require' functions ---
