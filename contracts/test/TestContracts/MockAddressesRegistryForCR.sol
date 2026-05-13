@@ -11,6 +11,7 @@ contract MockAddressesRegistryForCR is IAddressesRegistry {
     IStabilityPool internal _stabilityPool;
     IBorrowerOperations internal _borrowerOperations;
     IActivePool internal _activePool;
+    IAeroManager internal _aeroManager = IAeroManager(address(0x1));
 
     function configure(
         IERC20Metadata collToken_,
@@ -24,6 +25,10 @@ contract MockAddressesRegistryForCR is IAddressesRegistry {
         _stabilityPool = stabilityPool_;
         _borrowerOperations = borrowerOperations_;
         _activePool = activePool_;
+    }
+
+    function setAeroManager(IAeroManager aeroManager_) external {
+        _aeroManager = aeroManager_;
     }
 
     function collToken() external view override returns (IERC20Metadata) {
@@ -127,7 +132,7 @@ contract MockAddressesRegistryForCR is IAddressesRegistry {
     }
 
     function aeroManager() external view override returns (IAeroManager) {
-        return IAeroManager(address(0x1));
+        return _aeroManager;
     }
 
     function setAddresses(AddressVars memory) external override {}
