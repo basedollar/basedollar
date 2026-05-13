@@ -73,6 +73,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event CollateralRegistryAdded(address collateralRegistry);
     event ClaimFeeUpdated(uint256 oldFee, uint256 newFee);
     event ClaimFeeUpdatePending(uint256 oldFee, uint256 newFee, uint256 timestamp, uint256 delayPeriod);
+    event ClaimFeeUpdateCancelled(uint256 pendingFee, uint256 currentFee);
     event AeroTokenAddressUpdated(address oldAeroTokenAddress, address newAeroTokenAddress);
     event AeroTokenAddressUpdatePending(address oldAeroTokenAddress, address newAeroTokenAddress, uint256 timestamp, uint256 delayPeriod);
     event TreasuryAddressUpdated(address oldTreasuryAddress, address newTreasuryAddress);
@@ -406,6 +407,9 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
             pendingNewClaimFeeTimestamp = block.timestamp;
             emit ClaimFeeUpdatePending(claimFee, newFee, pendingNewClaimFeeTimestamp, claimFeeChangeDelayPeriod);
         } else {
+            if (pendingNewClaimFee > 0) {
+                _cancelClaimFeeUpdate();
+            }
             uint256 oldFee = claimFee;
             claimFee = newFee;
             emit ClaimFeeUpdated(oldFee, newFee);
@@ -421,6 +425,19 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         pendingNewClaimFee = 0;
         pendingNewClaimFeeTimestamp = 0;
         emit ClaimFeeUpdated(oldFee, claimFee);
+    }
+
+    /// @notice Cancel a pending fee increase
+    function cancelClaimFeeUpdate() external onlyGovernor {
+        require(pendingNewClaimFee > 0, "AeroManager: No pending claim fee update");
+        _cancelClaimFeeUpdate();
+    }
+
+    function _cancelClaimFeeUpdate() internal {
+        uint256 oldFee = pendingNewClaimFee;
+        pendingNewClaimFee = 0;
+        pendingNewClaimFeeTimestamp = 0;
+        emit ClaimFeeUpdateCancelled(oldFee, claimFee);
     }
 
     /// @notice Checks if the AeroGauge is alive
