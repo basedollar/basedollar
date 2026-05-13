@@ -72,6 +72,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event ClaimFeeUpdatePending(uint256 oldFee, uint256 newFee, uint256 timestamp, uint256 delayPeriod);
     event AeroTokenAddressUpdated(address oldAeroTokenAddress, address newAeroTokenAddress);
     event AeroTokenAddressUpdatePending(address oldAeroTokenAddress, address newAeroTokenAddress, uint256 timestamp, uint256 delayPeriod);
+    event TreasuryAddressUpdated(address oldTreasuryAddress, address newTreasuryAddress);
     event EpochClosed(address indexed gauge, uint256 indexed epoch);
 
     /// @param _aeroTokenAddress AERO (reward) token the gauges must pay out
@@ -151,6 +152,14 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     function setGovernor(address _governor) external onlyGovernor {
         governor = _governor;
         emit GovernorUpdated(_governor);
+    }
+
+    function setTreasuryAddress(address _treasuryAddress) external onlyGovernor {
+        require(_treasuryAddress != address(0), "AeroManager: Treasury address cannot be 0");
+        require(_treasuryAddress != treasuryAddress, "AeroManager: New treasury address cannot be current treasury address");
+        address oldTreasuryAddress = treasuryAddress;
+        treasuryAddress = _treasuryAddress;
+        emit TreasuryAddressUpdated(oldTreasuryAddress, _treasuryAddress);
     }
 
     /// @notice Add an `ActivePool` of an AERO LP collateral type by the collateral registry

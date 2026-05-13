@@ -534,6 +534,56 @@ contract AeroManagerTest is DevTestSetup {
         assertEq(aeroManagerImpl.pendingAeroTokenAddress(), address(0));
     }
 
+    // --- Treasury address ---
+
+    function test_setTreasuryAddress_revertsIfNotGovernor() public {
+        vm.expectRevert("AeroManager: Caller is not the governor");
+        aeroManagerImpl.setTreasuryAddress(address(0xBEEF));
+    }
+
+    function test_setTreasuryAddress_revertsWhenZeroAddress() public {
+        vm.prank(governor);
+        vm.expectRevert("AeroManager: Treasury address cannot be 0");
+        aeroManagerImpl.setTreasuryAddress(address(0));
+    }
+
+    function test_setTreasuryAddress_revertsWhenSameAsCurrent() public {
+        vm.prank(governor);
+        vm.expectRevert("AeroManager: New treasury address cannot be current treasury address");
+        aeroManagerImpl.setTreasuryAddress(treasury);
+    }
+
+    function test_setTreasuryAddress_updatesTreasuryAddressAndEmits() public {
+        address newTreasury = address(0xBEEF);
+
+        vm.prank(governor);
+        vm.expectEmit(false, false, false, true, address(aeroManagerImpl));
+        emit AeroManager.TreasuryAddressUpdated(treasury, newTreasury);
+        aeroManagerImpl.setTreasuryAddress(newTreasury);
+
+        assertEq(aeroManagerImpl.treasuryAddress(), newTreasury);
+    }
+
+    function test_setTreasuryAddress_claimSendsFeeToNewTreasury() public {
+        address newTreasury = address(0xBEEF);
+        uint256 amount = 10e18;
+
+        vm.prank(governor);
+        aeroManagerImpl.setTreasuryAddress(newTreasury);
+
+        _stakeThroughActivePool(amount);
+
+        uint256 preOldTreasury = aeroToken.balanceOf(treasury);
+        uint256 preNewTreasury = aeroToken.balanceOf(newTreasury);
+
+        aeroManagerImpl.claim(address(gauge));
+
+        uint256 fee = amount * aeroManagerImpl.claimFee() / 1e18;
+
+        assertEq(aeroToken.balanceOf(treasury), preOldTreasury);
+        assertEq(aeroToken.balanceOf(newTreasury), preNewTreasury + fee);
+    }
+
     // --- Governor ---
 
     function test_setGovernor_updatesGovernor() public {
