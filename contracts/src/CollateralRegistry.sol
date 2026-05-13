@@ -472,6 +472,7 @@ contract CollateralRegistry is ICollateralRegistry {
     /// @notice Update the collateral governor
     /// @param _newCollateralGovernor The new collateral governor address
     function updateCollateralGovernor(address _newCollateralGovernor) external onlyGovernor {
+        require(_newCollateralGovernor != collateralGovernor, "CR: Collateral governor already set to this address");
         address oldGovernor = collateralGovernor;
         collateralGovernor = _newCollateralGovernor;
         emit CollateralGovernorUpdated(oldGovernor, _newCollateralGovernor);
