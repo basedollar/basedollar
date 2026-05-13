@@ -11,6 +11,7 @@ import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/Constants.sol";
+import "./Interfaces/ICollSurplusPool.sol";
 
 /// @title AeroManager
 /// @notice Stakes Aero LP collateral in gauges, claims AERO rewards, routes a configurable fee to treasury, and lets governance split the remainder across borrowers for withdrawal via `claimRewards`.
@@ -41,6 +42,8 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
 
     /// @notice Registered active pools that can stake/withdraw
     mapping(address activePool => bool) public activePools;
+    mapping(address stabilityPool => bool) public stabilityPools;
+    mapping(address collSurplusPool => bool) public collSurplusPools;
     mapping(address gauge => bool) internal _registeredGauges;
 
     mapping(address gauge => uint256 epoch) public currentEpochs;
@@ -250,12 +253,14 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         emit Staked(gauge, token, amount, staked);
     }
 
-    /// @notice Withdraw LP from the gauge and return it to the caller `ActivePool`
+    /// @notice Withdraw LP from the gauge and return it to the caller `ActivePool` or `StabilityPool` or `CollSurplusPool`
+    /// @dev StabilityPool withdraws directly when depositor claims collGains
+    /// @dev CollSurplusPool withdraws directly when depositor claims coll surplus
     /// @param gauge Aero gauge the LP was staked in
     /// @param token LP token being returned
     /// @param amount LP amount to withdraw
     function withdraw(address gauge, address token, uint256 amount) external {
-        _requireCallerIsActivePool();
+        _requireCallerIsAPOrSPOrCSP();
         // Check for unstaked balance first
         uint256 balance = unstakedAmounts[gauge];
         uint256 unstaked;
@@ -461,16 +466,28 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     function _addActivePool(address activePool) internal {
         require(!activePools[activePool], "AeroManager: ActivePool already added");
 
-        // Double check stakingToken and rewardToken addresses from ActivePool matches in Gauge
+        // Ensure the active pool is an AERO LP collateral with matching AeroManager address
         IActivePool ap = IActivePool(activePool);
         require(ap.isAeroLPCollateral(), "AeroManager: ActivePool is not an AERO LP collateral");
         require(ap.aeroManagerAddress() == address(this), "AeroManager: ActivePool is not linked to this AeroManager");
+        
+        // Double check stability pool is linked to this active pool and not already added
+        IStabilityPool sp = IStabilityPool(address(ap.stabilityPool()));
+        require(address(sp.activePool()) == activePool, "AeroManager: StabilityPool is not linked to this ActivePool");
+        require(!stabilityPools[address(sp)], "AeroManager: StabilityPool already added");
 
+        ICollSurplusPool cs = ICollSurplusPool(ap.collSurplusPoolAddress());
+        require(address(cs.activePool()) == activePool, "AeroManager: CollSurplusPool is not linked to this ActivePool");
+        require(!collSurplusPools[address(cs)], "AeroManager: CollSurplusPool already added");
+
+        // Double check stakingToken and rewardToken addresses from ActivePool matches in Gauge
         IAeroGauge gauge = IAeroGauge(ap.aeroGaugeAddress());
         require(gauge.stakingToken() == address(ap.collToken()), "AeroManager: Staking token does not match");
         require(gauge.rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
 
         activePools[activePool] = true;
+        stabilityPools[address(sp)] = true;
+        collSurplusPools[address(cs)] = true;
         _registeredGauges[address(gauge)] = true;
         emit ActivePoolAdded(activePool);
     }
@@ -483,6 +500,11 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     /// @dev Ensures `msg.sender` is a registered Aero LP `ActivePool`
     function _requireCallerIsActivePool() internal view {
         require(activePools[msg.sender], "AeroManager: Caller is not an active pool");
+    }
+
+    /// @dev Ensures `msg.sender` is a registered Aero LP `ActivePool` or `StabilityPool`
+    function _requireCallerIsAPOrSPOrCSP() internal view {
+        require(activePools[msg.sender] || stabilityPools[msg.sender] || collSurplusPools[msg.sender], "AeroManager: Caller is not an active pool or stability pool or coll surplus pool");
     }
 
     /// @dev Ensures `msg.sender` is the configured `collateralRegistry`

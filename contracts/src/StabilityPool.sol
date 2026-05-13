@@ -124,6 +124,8 @@ contract StabilityPool is LiquityBase, IStabilityPool, IStabilityPoolEvents {
     ITroveManager public immutable troveManager;
     IBoldToken public immutable boldToken;
 
+    IAeroManager public immutable aeroManager;
+
     uint256 internal collBalance; // deposited coll tracker
 
     // Tracker for Bold held in the pool. Changes when users deposit/withdraw, and when Trove debt is offset.
@@ -193,6 +195,8 @@ contract StabilityPool is LiquityBase, IStabilityPool, IStabilityPoolEvents {
         collToken = _addressesRegistry.collToken();
         troveManager = _addressesRegistry.troveManager();
         boldToken = _addressesRegistry.boldToken();
+
+        aeroManager = _addressesRegistry.aeroManager();
 
         emit TroveManagerAddressChanged(address(troveManager));
         emit BoldTokenAddressChanged(address(boldToken));
@@ -541,7 +545,17 @@ contract StabilityPool is LiquityBase, IStabilityPool, IStabilityPoolEvents {
         uint256 newCollBalance = collBalance - _collAmount;
         collBalance = newCollBalance;
         emit StabilityPoolCollBalanceUpdated(newCollBalance);
+        _unstakeIfAeroLPCollateral(_collAmount);
         collToken.safeTransfer(msg.sender, _collAmount);
+    }
+
+    /// @dev Unstakes AERO LP collateral back to AeroManager and sends to this StabilityPool
+    function _unstakeIfAeroLPCollateral(uint256 _amount) internal {
+        bool isAeroLPCollateral = activePool.isAeroLPCollateral();
+        if (isAeroLPCollateral) {
+            address gauge = activePool.aeroGaugeAddress();
+            aeroManager.withdraw(gauge, address(collToken), _amount);
+        }
     }
 
     // Send Bold to user and decrease Bold in Pool

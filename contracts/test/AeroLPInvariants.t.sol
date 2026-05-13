@@ -155,18 +155,18 @@ contract AeroLPInvariants is Assertions, Logging, BaseInvariantTest, BaseMultiCo
     // ============ Aero LP-Specific Invariants ============
 
     /**
-     * @notice AeroManager `stakedAmounts + unstakedAmounts` should equal ActivePool collateral balance
+     * @notice AeroManager `stakedAmounts + unstakedAmounts` should equal combined accounted collateral balances of ActivePool, StabilityPool, CollSurplusPool + DefaultPool
      * @dev When a gauge is killed, LP may sit on AeroManager (`unstakedAmounts`) instead of the gauge.
      */
     function invariant_StakedEqualsCollBalance() external view {
         uint256 stakedAmount = handler.getStakedAmount(address(gauge));
         uint256 unstakedAmount = handler.getUnstakedAmount(address(gauge));
-        uint256 activePoolBalance = handler.getActivePoolCollBalance(AERO_LP_BRANCH_INDEX);
+        uint256 accountedPoolBalance = handler.getAccountedPoolCollBalance(AERO_LP_BRANCH_INDEX);
 
         assertEq(
             stakedAmount + unstakedAmount,
-            activePoolBalance,
-            "Aero LP: staked + unstaked should equal ActivePool collateral balance"
+            accountedPoolBalance,
+            "Aero LP: staked + unstaked should equal accounted pool collateral"
         );
     }
 
@@ -219,15 +219,19 @@ contract AeroLPInvariants is Assertions, Logging, BaseInvariantTest, BaseMultiCo
 
     /**
      * @notice Total system collateral accounting for Aero LP branch
-     * @dev ActivePool balance equals staked plus unstaked; gauge holds the staked portion.
+     * @dev AP, SP, DP, and CSP accounting can all represent LP that remains staked in AeroManager.
      */
     function invariant_AeroLPCollateralAccounting() external view {
         uint256 stakedAmount = handler.getStakedAmount(address(gauge));
         uint256 unstakedAmount = handler.getUnstakedAmount(address(gauge));
-        uint256 activePoolColl = handler.getActivePoolCollBalance(AERO_LP_BRANCH_INDEX);
+        uint256 accountedPoolColl = handler.getAccountedPoolCollBalance(AERO_LP_BRANCH_INDEX);
         uint256 gaugeBalance = handler.getGaugeBalance(address(gauge));
 
-        assertEq(stakedAmount + unstakedAmount, activePoolColl, "Aero LP: Staked+unstaked should match ActivePool");
+        assertEq(
+            stakedAmount + unstakedAmount,
+            accountedPoolColl,
+            "Aero LP: Staked+unstaked should match accounted pool collateral"
+        );
         assertEq(gaugeBalance, stakedAmount, "Aero LP: Gauge should hold staked amount");
         assertEq(
             handler.getManagerLpTokenBalance(address(gauge)),
@@ -247,5 +251,8 @@ contract AeroLPInvariants is Assertions, Logging, BaseInvariantTest, BaseMultiCo
         emit log_named_uint("Unstaked amount", handler.getUnstakedAmount(address(gauge)));
         emit log_named_uint("Gauge balance", handler.getGaugeBalance(address(gauge)));
         emit log_named_uint("ActivePool balance", handler.getActivePoolCollBalance(AERO_LP_BRANCH_INDEX));
+        emit log_named_uint("StabilityPool balance", handler.getStabilityPoolCollBalance(AERO_LP_BRANCH_INDEX));
+        emit log_named_uint("DefaultPool balance", handler.getDefaultPoolCollBalance(AERO_LP_BRANCH_INDEX));
+        emit log_named_uint("CollSurplusPool balance", handler.getCollSurplusPoolCollBalance(AERO_LP_BRANCH_INDEX));
     }
 }
