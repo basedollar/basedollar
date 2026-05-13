@@ -29,6 +29,8 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     address public pendingAeroTokenAddress;
     uint256 public pendingAeroTokenAddressTimestamp;
     address public governor;
+    address public pendingGovernor;
+    uint256 public pendingGovernorTimestamp;
 
     address public treasuryAddress;
 
@@ -74,6 +76,9 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event AeroTokenAddressUpdatePending(address oldAeroTokenAddress, address newAeroTokenAddress, uint256 timestamp, uint256 delayPeriod);
     event TreasuryAddressUpdated(address oldTreasuryAddress, address newTreasuryAddress);
     event EpochClosed(address indexed gauge, uint256 indexed epoch);
+    event GovernorProposed(address indexed pendingGovernor, uint256 activateAtTimestamp);
+    event GovernorUpdated(address oldGovernor, address newGovernor);
+    event GovernorProposalCancelled(address indexed cancelledGovernor);
 
     /// @param _aeroTokenAddress AERO (reward) token the gauges must pay out
     /// @param _governor Account allowed to change token address, fee, epochs, and distributions
@@ -147,11 +152,46 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         emit AeroTokenAddressUpdated(oldAeroTokenAddress, aeroTokenAddress);
     }
 
-    /// @notice Transfer governor role to a new account
-    /// @param _governor New governor address
-    function setGovernor(address _governor) external onlyGovernor {
-        governor = _governor;
-        emit GovernorUpdated(_governor);
+    /**
+     * @notice Propose a new governor. The proposed address must call acceptGovernor() after the timelock has passed.
+     */
+    function proposeGovernor(address _newGovernor) external onlyGovernor {
+        require(_newGovernor != address(0), "AeroManager: Governor cannot be zero address");
+        require(_newGovernor != governor, "AeroManager: Already governor");
+
+        pendingGovernor = _newGovernor;
+        pendingGovernorTimestamp = block.timestamp;
+
+        emit GovernorProposed(_newGovernor, block.timestamp + GOVERNOR_TRANSFER_TIMELOCK);
+    }
+
+    /**
+     * @notice Accept the governor role. Callable by the pending governor after the timelock has passed.
+     */
+    function acceptGovernor() external {
+        require(msg.sender == pendingGovernor, "AeroManager: Caller is not pending governor");
+        require(
+            block.timestamp >= pendingGovernorTimestamp + GOVERNOR_TRANSFER_TIMELOCK,
+            "AeroManager: Governor transfer timelock not passed"
+        );
+
+        address oldGovernor = governor;
+        governor = pendingGovernor;
+        pendingGovernor = address(0);
+        pendingGovernorTimestamp = 0;
+
+        emit GovernorUpdated(oldGovernor, governor);
+    }
+
+    /**
+     * @notice Cancel a pending governor proposal. Callable by the current governor.
+     */
+    function cancelGovernorProposal() external onlyGovernor {
+        require(pendingGovernor != address(0), "AeroManager: No pending governor");
+        address cancelled = pendingGovernor;
+        pendingGovernor = address(0);
+        pendingGovernorTimestamp = 0;
+        emit GovernorProposalCancelled(cancelled);
     }
 
     function setTreasuryAddress(address _treasuryAddress) external onlyGovernor {
