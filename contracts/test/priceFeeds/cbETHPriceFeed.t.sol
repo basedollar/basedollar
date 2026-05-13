@@ -51,13 +51,22 @@ contract cbETHPriceFeedTest is Test {
         assertEq(a, b);
     }
 
-    function test_constructor_revertsIfCbEthEthDecimalsNot8() public {
+    function test_constructor_revertsIfCbEthEthDecimalsNot8Or18() public {
         ChainlinkOracleMock badDec = new ChainlinkOracleMock();
-        badDec.setDecimals(18);
+        badDec.setDecimals(19);
         badDec.setPrice(1.05e18);
         badDec.setUpdatedAt(block.timestamp);
 
-        vm.expectRevert(bytes("cbETHPriceFeed: cbETH-ETH oracle must have 8 decimals"));
+        vm.expectRevert(bytes("cbETHPriceFeed: cbETH-ETH oracle must have 8 or 18 decimals"));
+        new cbETHPriceFeed(
+            address(borrowerOperations),
+            address(ethUsd),
+            address(badDec),
+            1 days,
+            1 days
+        );
+
+        badDec.setDecimals(18);
         new cbETHPriceFeed(
             address(borrowerOperations),
             address(ethUsd),
