@@ -47,10 +47,10 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     mapping(address gauge => mapping(uint256 epoch => bool isClosed)) public epochClosed;
     mapping(uint256 epoch => mapping(address gauge => uint256 amount)) public claimedAeroPerEpoch;
 
-    mapping(address user => uint256 amount) public claimableRewards;
+    mapping(address user => mapping(address rewardToken => uint256 amount)) internal _claimableRewards;
 
     /// @notice Cumulative AERO retained by this contract after treasury fees are deducted
-    uint256 public claimedAero;
+    mapping(address rewardToken => uint256 amount) internal _claimedAero;
 
     /// @notice Fee on gauge claims, expressed as a fraction of `_100pct` (1e18 = 100%)
     uint256 public claimFee;
@@ -69,7 +69,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event ActivePoolAdded(address indexed activePool);
     event Claimed(address indexed gauge, uint256 total, uint256 claimFee, uint256 indexed epoch);
     event AeroDistributed(address indexed gauge, uint256 recipients, uint256 totalRewardAmount, uint256 indexed epoch);
-    event RewardsClaimed(address indexed user, uint256 amount);
+    event RewardsClaimed(address indexed user, address indexed rewardToken, uint256 amount);
     event CollateralRegistryAdded(address collateralRegistry);
     event ClaimFeeUpdated(uint256 oldFee, uint256 newFee);
     event ClaimFeeUpdatePending(uint256 oldFee, uint256 newFee, uint256 timestamp, uint256 delayPeriod);
@@ -316,7 +316,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
 
         // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
         uint256 rewardAmount = claimedAmount - _claimFee;
-        claimedAero += rewardAmount; // Subtract the fee from the total claimed amount
+        _claimedAero[aeroTokenAddress] += rewardAmount; // Subtract the fee from the total claimed amount
         
         claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
 
@@ -346,7 +346,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         for (uint256 i; i < recipients.length; i++) {
             require(recipients[i].amount <= remainingRewardAmount, "AeroManager: Total amount exceeds reward amount");
             remainingRewardAmount -= recipients[i].amount;
-            claimableRewards[recipients[i].borrower] += recipients[i].amount;
+            _claimableRewards[recipients[i].borrower][aeroTokenAddress] += recipients[i].amount;
         }
         require(remainingRewardAmount == 0, "AeroManager: Reward amount not fully distributed");
         emit AeroDistributed(gauge, recipients.length, rewardAmount, currentEpoch);
@@ -357,11 +357,43 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     /// @notice Withdraw previously allocated AERO for `user` (via `distributeAero`) to the user wallet
     /// @param user Account that received a credit in `claimableRewards`
     function claimRewards(address user) external nonReentrant {
-        uint256 amount = claimableRewards[user];
+        uint256 amount = _claimableRewards[user][aeroTokenAddress];
         require(amount > 0, "AeroManager: No rewards to claim");
-        claimableRewards[user] = 0;
+        _claimableRewards[user][aeroTokenAddress] = 0;
         IERC20(aeroTokenAddress).safeTransfer(user, amount);
-        emit RewardsClaimed(user, amount);
+        emit RewardsClaimed(user, aeroTokenAddress, amount);
+    }
+
+    /// @notice Withdraw previously allocated rewards for `user` (via `distributeAero`) to the user wallet
+    /// @dev Use if user has claimable rewards of previously set AERO token address
+    /// @param user Account that received a credit in `claimableRewards`
+    /// @param rewardToken Reward token to claim
+    function claimRewards(address user, address rewardToken) external nonReentrant {
+        uint256 amount = _claimableRewards[user][rewardToken];
+        require(amount > 0, "AeroManager: No rewards to claim");
+        _claimableRewards[user][rewardToken] = 0;
+        IERC20(rewardToken).safeTransfer(user, amount);
+        emit RewardsClaimed(user, rewardToken, amount);
+    }
+
+    /// @notice View the amount of claimable rewards for `user` for the current AERO token address
+    function claimableRewards(address user) external view returns (uint256) {
+        return _claimableRewards[user][aeroTokenAddress];
+    }
+
+    /// @notice View the amount of claimable rewards for `user` for a specific reward token
+    function claimableRewards(address user, address rewardToken) external view returns (uint256) {
+        return _claimableRewards[user][rewardToken];
+    }
+
+    /// @notice View the amount of claimed rewards for the current AERO token address
+    function claimedAero() external view returns (uint256) {
+        return _claimedAero[aeroTokenAddress];
+    }
+
+    /// @notice View the amount of claimed rewards for a specific reward token
+    function claimedAero(address rewardToken) external view returns (uint256) {
+        return _claimedAero[rewardToken];
     }
 
     /// @notice Update the treasury cut on gauge claims; increases are delayed, decreases apply immediately

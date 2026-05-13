@@ -468,6 +468,36 @@ contract AeroManagerTest is DevTestSetup {
         aeroManagerImpl.claimRewards(A);
     }
 
+    function test_claimRewards_canClaimPreviousAeroTokenAfterAddressUpdate() public {
+        _stakeThroughActivePool(10e18);
+        aeroManagerImpl.claim(address(gauge));
+        uint256 oldRewardAmount = aeroManagerImpl.claimedAeroPerEpoch(0, address(gauge));
+
+        vm.prank(governor);
+        aeroManagerImpl.closeCurrentEpoch(address(gauge));
+
+        AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](1);
+        recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: oldRewardAmount});
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(gauge), recipients);
+
+        MockAeroToken newTok = new MockAeroToken();
+        vm.prank(governor);
+        aeroManagerImpl.setAeroTokenAddress(address(newTok));
+        vm.warp(block.timestamp + aeroManagerImpl.aeroTokenChangeDelayPeriod());
+        vm.prank(governor);
+        aeroManagerImpl.acceptAeroTokenAddressUpdate();
+
+        assertEq(aeroManagerImpl.claimableRewards(A), 0);
+        assertEq(aeroManagerImpl.claimableRewards(A, address(aeroToken)), oldRewardAmount);
+
+        uint256 preA = aeroToken.balanceOf(A);
+        aeroManagerImpl.claimRewards(A, address(aeroToken));
+
+        assertEq(aeroToken.balanceOf(A), preA + oldRewardAmount);
+        assertEq(aeroManagerImpl.claimableRewards(A, address(aeroToken)), 0);
+    }
+
     // --- claim fee ---
 
     function test_updateClaimFee_revertsWhenUnchanged() public {
@@ -549,6 +579,58 @@ contract AeroManagerTest is DevTestSetup {
         assertEq(aeroManagerImpl.pendingAeroTokenAddress(), address(0));
     }
 
+    function test_rewardViewsReturnCurrentAndSpecificTokenAmounts() public {
+        _stakeThroughActivePool(10e18);
+        aeroManagerImpl.claim(address(gauge));
+        uint256 oldClaimed = aeroManagerImpl.claimedAeroPerEpoch(0, address(gauge));
+
+        vm.prank(governor);
+        aeroManagerImpl.closeCurrentEpoch(address(gauge));
+
+        AeroManager.AeroRecipient[] memory recipients0 = new AeroManager.AeroRecipient[](1);
+        recipients0[0] = AeroManager.AeroRecipient({borrower: A, amount: oldClaimed});
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(gauge), recipients0);
+
+        assertEq(aeroManagerImpl.claimedAero(), oldClaimed);
+        assertEq(aeroManagerImpl.claimedAero(address(aeroToken)), oldClaimed);
+        assertEq(aeroManagerImpl.claimableRewards(A), oldClaimed);
+        assertEq(aeroManagerImpl.claimableRewards(A, address(aeroToken)), oldClaimed);
+
+        MockAeroToken newTok = new MockAeroToken();
+        vm.prank(governor);
+        aeroManagerImpl.setAeroTokenAddress(address(newTok));
+        vm.warp(block.timestamp + aeroManagerImpl.aeroTokenChangeDelayPeriod());
+        vm.prank(governor);
+        aeroManagerImpl.acceptAeroTokenAddressUpdate();
+
+        uint256 newStakeAmount = 6e18;
+        AeroGaugeTester newGauge = new AeroGaugeTester(address(weth), address(newTok));
+        deal(address(weth), address(aeroManagerImpl), newStakeAmount);
+        vm.startPrank(address(aeroManagerImpl));
+        weth.approve(address(newGauge), newStakeAmount);
+        newGauge.deposit(newStakeAmount);
+        vm.stopPrank();
+
+        aeroManagerImpl.claim(address(newGauge));
+        uint256 newClaimed = aeroManagerImpl.claimedAeroPerEpoch(0, address(newGauge));
+
+        vm.prank(governor);
+        aeroManagerImpl.closeCurrentEpoch(address(newGauge));
+
+        AeroManager.AeroRecipient[] memory recipients1 = new AeroManager.AeroRecipient[](1);
+        recipients1[0] = AeroManager.AeroRecipient({borrower: B, amount: newClaimed});
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(newGauge), recipients1);
+
+        assertEq(aeroManagerImpl.claimedAero(), newClaimed);
+        assertEq(aeroManagerImpl.claimedAero(address(newTok)), newClaimed);
+        assertEq(aeroManagerImpl.claimedAero(address(aeroToken)), oldClaimed);
+        assertEq(aeroManagerImpl.claimableRewards(A), 0);
+        assertEq(aeroManagerImpl.claimableRewards(A, address(aeroToken)), oldClaimed);
+        assertEq(aeroManagerImpl.claimableRewards(B), newClaimed);
+        assertEq(aeroManagerImpl.claimableRewards(B, address(newTok)), newClaimed);
+    }
     // --- Treasury address ---
 
     function test_setTreasuryAddress_revertsIfNotGovernor() public {
