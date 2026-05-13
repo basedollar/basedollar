@@ -237,9 +237,19 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         uint256 c = FixedPointMathLib.rpow(price0, 2, 1e18);
         uint256 d = FixedPointMathLib.rpow(price1, 2, 1e18);
 
-        uint256 p0 = k * FixedPointMathLib.mulWadDown(a, b); //2*18 decimals
+        uint256 fair;
+        uint256 abMul = FixedPointMathLib.mulWadDown(a, b); // 18 decimals
 
-        uint256 fair = p0 / (c + d); // number of decimals is 18
+        // Avoid overflow from high priced, high reserve assets
+		if (type(uint256).max / k >= abMul) {
+            // fair = (k * (a * b)) / (c + d)
+			uint256 p0 = k * abMul; // 2*18 decimals
+			fair = p0 / (c + d); // number of decimals is 18
+		} else {
+            // fair = k * ((a * b) / (c + d))
+			uint256 p0 = abMul * 1e18 / (c + d); // (18 + 18 - 18) -> 18 decimals
+			fair = k * p0 / 1e18; // (18 + 18 - 18) -> 18 decimals
+		}
 
         // each sqrt divides the num decimals by 2. So need to replenish the decimals midway through with another 1e18
         uint256 frth_fair = FixedPointMathLib.sqrt(
