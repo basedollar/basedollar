@@ -69,6 +69,8 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
 
     uint256 public constant TOKEN_PRICE_DEVIATION_THRESHOLD = 2e16; // 2%
     uint256 public constant TWAP_GRANULARITY = 8; // 8 periods × 30 min = 4 hours
+
+    bool internal immutable _deployed;
     
     constructor(
         address _borrowerOperationsAddress, 
@@ -102,37 +104,140 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     /// @notice Get TWAP-based exchange rate: how many token1 for 1 token0
     /// @return exchangeRate Exchange rate scaled to 18 decimals
     function _getTwapExchangeRates() internal view returns (ExchangeRate memory exchangeRate) {
+        if (!_deployed) {
+            (uint256 price0, uint256 price1) = getExchangeRates(1, TWAP_GRANULARITY);
+            exchangeRate.token1PerToken0 = price0 * 10 ** (18 - token1PoolDecimals);
+            exchangeRate.token0PerToken1 = price1 * 10 ** (18 - token0PoolDecimals);
+            exchangeRate.isDown = false;
+            return exchangeRate;
+        }
+
         uint256 gasBefore = gasleft();
 
-        address token0 = pool.token0();
-        address token1 = pool.token1();
+        try this.getExchangeRates(1, TWAP_GRANULARITY)
+            returns (uint256 price0, uint256 price1)
+        {
+            exchangeRate.token1PerToken0 = price0 * 10 ** (18 - token1PoolDecimals);
+            exchangeRate.token0PerToken1 = price1 * 10 ** (18 - token0PoolDecimals);
+        } catch {
+            if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
+            exchangeRate.isDown = true;
+            return exchangeRate;
+        }
         
-        try pool.quote(token0, 10 ** token0PoolDecimals, TWAP_GRANULARITY) 
-            returns (uint256 amountOut) 
-        {
-            // amountOut is in token1 decimals - scale to 18
-            exchangeRate.token1PerToken0 = amountOut * 10 ** (18 - token1PoolDecimals);
-        } catch {
-            if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
-            exchangeRate.isDown = true;
-            return exchangeRate;
-        }
+        // address token0 = pool.token0();
+        // address token1 = pool.token1();
+        
+        // try this.getExchangeRate(token0, 10 ** token0PoolDecimals, TWAP_GRANULARITY) 
+        //     returns (uint256 amountOut) 
+        // {
+        //     // amountOut is in token1 decimals - scale to 18
+        //     exchangeRate.token1PerToken0 = amountOut * 10 ** (18 - token1PoolDecimals);
+        // } catch {
+        //     if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
+        //     exchangeRate.isDown = true;
+        //     return exchangeRate;
+        // }
 
-        gasBefore = gasleft();
-        try pool.quote(token1, 10 ** token1PoolDecimals, TWAP_GRANULARITY) 
-            returns (uint256 amountOut) 
-        {
-            // amountOut is in token0 decimals - scale to 18
-            exchangeRate.token0PerToken1 = amountOut * 10 ** (18 - token0PoolDecimals);
-        } catch {
-            if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
-            exchangeRate.isDown = true;
-            return exchangeRate;
-        }
+        // gasBefore = gasleft();
+        // try this.getExchangeRate(token1, 10 ** token1PoolDecimals, TWAP_GRANULARITY) 
+        //     returns (uint256 amountOut) 
+        // {
+        //     // amountOut is in token0 decimals - scale to 18
+        //     exchangeRate.token0PerToken1 = amountOut * 10 ** (18 - token0PoolDecimals);
+        // } catch {
+        //     if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
+        //     exchangeRate.isDown = true;
+        //     return exchangeRate;
+        // }
 
         exchangeRate.isDown = false;
         return exchangeRate;
     }
+
+    function getExchangeRates(uint256 amountIn, uint256 granularity) public view returns (uint256, uint256) {
+        uint256 amount0In = amountIn * 10 ** token0PoolDecimals;
+        uint256 amount1In = amountIn * 10 ** token1PoolDecimals;
+        (uint256[] memory _prices0, uint256[] memory _prices1) = _sample(amount0In, amount1In, granularity);
+        uint256 priceAverageCumulative0;
+        uint256 priceAverageCumulative1;
+        uint256 _length = _prices0.length;
+        for (uint256 i = 0; i < _length; i++) {
+            priceAverageCumulative0 += _prices0[i];
+            priceAverageCumulative1 += _prices1[i];
+        }
+        return (priceAverageCumulative0 / granularity, priceAverageCumulative1 / granularity);
+    }
+
+    ////////////////////////////////////////////////////////////////
+    // This section is a modified version of IPool.sample implementation
+    // from Aerodrome: https://github.com/aerodrome-finance/contracts/blob/1ba30815bba620f7e9faa34769ffd00c214c9b82/contracts/Pool.sol#L274-L302
+    //
+    // It is modified to exclude slippage from amountIn in original _getAmountOut function
+    // and reduce some redundancies when fetching both reserves and prices.
+    ////////////////////////////////////////////////////////////////
+
+    /// @notice Sample the pool reserves and calculate the prices
+    /// @param amount0In Amount of token0 in
+    /// @param amount1In Amount of token1 in
+    /// @param points Number of points to sample
+    /// @return _prices0 Prices of token0
+    /// @return _prices1 Prices of token1
+    function _sample(
+        uint256 amount0In,
+        uint256 amount1In,
+        uint256 points
+    ) internal view returns (uint256[] memory, uint256[] memory) {
+        uint256[] memory _prices0 = new uint256[](points);
+        uint256[] memory _prices1 = new uint256[](points);
+
+        uint256 length = pool.observationLength() - 1;
+        uint256 i = length - points;
+        uint256 index = 0;
+
+        for (; i < length; i += 1) {
+            IAeroPool.Observation memory nextObs = pool.observations(i + 1);
+            IAeroPool.Observation memory currentObs = pool.observations(i);
+            uint256 timeElapsed = nextObs.timestamp - currentObs.timestamp;
+            uint256 _reserve0 = (nextObs.reserve0Cumulative - currentObs.reserve0Cumulative) /
+                timeElapsed;
+            uint256 _reserve1 = (nextObs.reserve1Cumulative - currentObs.reserve1Cumulative) /
+                timeElapsed;
+            _prices0[index] = _getAmountOut(amount0In, pool.token0(), _reserve0, _reserve1);
+            _prices1[index] = _getAmountOut(amount1In, pool.token1(), _reserve0, _reserve1);
+            // index < length; length cannot overflow
+            unchecked {
+                index = index + 1;
+            }
+        }
+        return (_prices0, _prices1);
+    }
+
+    function _getAmountOut(
+        uint256 amountIn,
+        address tokenIn,
+        uint256 _reserve0,
+        uint256 _reserve1
+    ) internal view returns (uint256) {
+        address token0 = pool.token0();
+        if (isStablePair) {
+            _reserve0 = _reserve0 * (10 ** (18 - token0PoolDecimals));
+            _reserve1 = _reserve1 * (10 ** (18 - token1PoolDecimals));
+            (uint256 reserveA, uint256 reserveB) = tokenIn == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
+            amountIn = tokenIn == token0 ? amountIn * (10 ** (18 - token0PoolDecimals)) : amountIn * (10 ** (18 - token1PoolDecimals));
+            uint256 y = (amountIn * _d(reserveB, reserveA)) / _d(reserveA, reserveB);
+            return (y * 10 ** (tokenIn == token0 ? token1PoolDecimals : token0PoolDecimals)) / 1e18;
+        } else {
+            (uint256 reserveA, uint256 reserveB) = tokenIn == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
+            return (amountIn * reserveB) / reserveA;
+        }
+    }
+
+    function _d(uint256 x0, uint256 y) internal pure returns (uint256) {
+        return (3 * x0 * ((y * y) / 1e18)) / 1e18 + ((((x0 * x0) / 1e18) * x0) / 1e18);
+    }
+
+    ////////////////////////////////////////////////////////////////
 
     /// @notice Get pool reserves and LP total supply
     /// @return reserve0 Amount of token0 in pool
