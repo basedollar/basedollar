@@ -6,8 +6,8 @@ pragma solidity 0.8.24;
 import "./TokenPriceFeedBase.sol";
 
 contract AEROPriceFeed is TokenPriceFeedBase {
-    constructor(address _owner, address _aeroUsdOracleAddress, uint256 _aeroUsdStalenessThreshold)
-        TokenPriceFeedBase(_owner, _aeroUsdOracleAddress, _aeroUsdStalenessThreshold)
+    constructor(address _borrowerOperationsAddress, address _aeroUsdOracleAddress, uint256 _aeroUsdStalenessThreshold)
+        TokenPriceFeedBase(_borrowerOperationsAddress, _aeroUsdOracleAddress, _aeroUsdStalenessThreshold)
     {
         _fetchPricePrimary();
 
