@@ -104,6 +104,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     // Oracle addresses (Base Mainnet - API3)
     address ETH_USD_ORACLE_ADDRESS = 0x5b0cf2b36a65a6BB085D501B971e4c102B9Cd473;
     address STETH_USD_ORACLE_ADDRESS = address(0); // TODO: Not activated yet
+    address WSTETH_STETH_ORACLE_ADDRESS = 0xa7C64E79eeee1A4c9B6Ea2976Fa37c276BB1A6cD;
     address RETH_ETH_ORACLE_ADDRESS = 0x3Ce8154d55426e8c71F1F0EffDDc6183a92bE45f;
     address BTC_USD_ORACLE_ADDRESS = 0xCAc4d304032a46C8D0947396B7cBb07986826A36;
     address CBBTC_USD_ORACLE_ADDRESS = 0xa4183Cbf2eE868dDFccd325531C4f53F737FFF68;
@@ -113,6 +114,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     // Staleness thresholds
     uint256 ETH_USD_STALENESS_THRESHOLD = 24 hours;
     uint256 STETH_USD_STALENESS_THRESHOLD = 24 hours;
+    uint256 WSTETH_STETH_STALENESS_THRESHOLD = 48 hours;
     uint256 RETH_ETH_STALENESS_THRESHOLD = 48 hours;
     uint256 CBBTC_USD_STALENESS_THRESHOLD = 24 hours;
     uint256 BTC_USD_STALENESS_THRESHOLD = 24 hours;
@@ -920,9 +922,11 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 return new WSTETHPriceFeed(
                     ETH_USD_ORACLE_ADDRESS,
                     STETH_USD_ORACLE_ADDRESS,
-                    WSTETH_ADDRESS,
+                    // WSTETH_ADDRESS,
+                    WSTETH_STETH_ORACLE_ADDRESS,
                     ETH_USD_STALENESS_THRESHOLD,
                     STETH_USD_STALENESS_THRESHOLD,
+                    WSTETH_STETH_STALENESS_THRESHOLD,
                     _borrowerOperationsAddress
                 );
             }

@@ -213,6 +213,7 @@ contract TestDeployer is MetadataDeployment {
     struct ExternalAddresses {
         address ETHOracle;
         address STETHOracle;
+        address WSTETHStEthOracle;
         address RETHOracle;
         address WSTETHToken;
         address RETHToken;
@@ -221,6 +222,7 @@ contract TestDeployer is MetadataDeployment {
     struct OracleParams {
         uint256 ethUsdStalenessThreshold;
         uint256 stEthUsdStalenessThreshold;
+        uint256 wstEthStEthStalenessThreshold;
         uint256 rEthEthStalenessThreshold;
     }
 
@@ -833,12 +835,14 @@ contract TestDeployer is MetadataDeployment {
         result.externalAddresses.ETHOracle = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419;
         result.externalAddresses.RETHOracle = 0x536218f9E9Eb48863970252233c8F271f554C2d0;
         result.externalAddresses.STETHOracle = 0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8;
+        result.externalAddresses.WSTETHStEthOracle = 0xa7C64E79eeee1A4c9B6Ea2976Fa37c276BB1A6cD;
         result.externalAddresses.WSTETHToken = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
 
         result.externalAddresses.RETHToken = 0xae78736Cd615f374D3085123A210448E74Fc6393;
 
         vars.oracleParams.ethUsdStalenessThreshold = _24_HOURS;
         vars.oracleParams.stEthUsdStalenessThreshold = _24_HOURS;
+        vars.oracleParams.wstEthStEthStalenessThreshold = _48_HOURS;
         vars.oracleParams.rEthEthStalenessThreshold = _48_HOURS;
 
         // Colls: WETH, WSTETH, RETH
@@ -1074,9 +1078,10 @@ contract TestDeployer is MetadataDeployment {
         return new WSTETHPriceFeed(
             _externalAddresses.ETHOracle,
             _externalAddresses.STETHOracle,
-            _externalAddresses.WSTETHToken,
+            _externalAddresses.WSTETHStEthOracle,
             _oracleParams.ethUsdStalenessThreshold,
             _oracleParams.stEthUsdStalenessThreshold,
+            _oracleParams.wstEthStEthStalenessThreshold,
             _borrowerOperationsAddress
         );
     }
