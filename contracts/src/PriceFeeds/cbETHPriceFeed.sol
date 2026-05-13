@@ -18,7 +18,10 @@ contract cbETHPriceFeed is MainnetPriceFeedBase {
         cbEthEthOracle.stalenessThreshold = _cbEthEthStalenessThreshold;
         cbEthEthOracle.decimals = cbEthEthOracle.aggregator.decimals();
         
-        require(cbEthEthOracle.decimals == 8, "cbETHPriceFeed: cbETH-ETH oracle must have 8 decimals");
+        require(
+            cbEthEthOracle.decimals == 8 || cbEthEthOracle.decimals == 18, 
+            "cbETHPriceFeed: cbETH-ETH oracle must have 8 or 18 decimals"
+        );
 
         _fetchPricePrimary();
 

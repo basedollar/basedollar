@@ -389,19 +389,6 @@ contract ActivePool is IActivePool {
         lastAggBatchManagementFeesUpdateTime = block.timestamp;
     }
 
-    function setAeroManagerAddress(address _newAeroManagerAddress) external {
-        _requireCallerIsAeroManager();
-
-        collToken.approve(aeroManagerAddress, 0);
-        collToken.approve(_newAeroManagerAddress, type(uint256).max);
-        
-        aeroManagerAddress = _newAeroManagerAddress;
-    }
-
-    function _requireCallerIsAeroManager() internal view {
-        require(msg.sender == aeroManagerAddress, "ActivePool: Caller is not AeroManager");
-    }
-
     // --- Shutdown ---
 
     function setShutdownFlag() external {

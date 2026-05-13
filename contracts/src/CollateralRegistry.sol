@@ -102,6 +102,15 @@ contract CollateralRegistry is ICollateralRegistry {
         require(_borrowerOperations != address(0), "CR: Borrower operations cannot be the zero address");
         require(address(_activePool) != address(0), "CR: Active pool cannot be the zero address");
         require(address(_activePool) == address(_troveManager.activePool()), "CR: Active pool does not match trove manager");
+        
+        bool _isAeroLPCollateral = _activePool.isAeroLPCollateral();
+        if (_isAeroLPCollateral) {
+            require(
+                address(aeroManager) == address(_addressesRegistry.aeroManager())
+                && _activePool.aeroManagerAddress() == address(aeroManager), 
+                "CR: AeroManager address mismatch"
+            );
+        }
 
         uint256 index;
         if(_isRedeemable){
@@ -127,7 +136,7 @@ contract CollateralRegistry is ICollateralRegistry {
         emit CollateralBranchAdded(totalCollaterals, index, _token, _troveManager, _isRedeemable);
 
         // If AERO LP collateral, add to AeroManager
-        if (_activePool.isAeroLPCollateral()) {
+        if (_isAeroLPCollateral) {
             aeroManager.addActivePool(address(_activePool));
         }
     }
@@ -472,6 +481,7 @@ contract CollateralRegistry is ICollateralRegistry {
     /// @notice Update the collateral governor
     /// @param _newCollateralGovernor The new collateral governor address
     function updateCollateralGovernor(address _newCollateralGovernor) external onlyGovernor {
+        require(_newCollateralGovernor != collateralGovernor, "CR: Collateral governor already set to this address");
         address oldGovernor = collateralGovernor;
         collateralGovernor = _newCollateralGovernor;
         emit CollateralGovernorUpdated(oldGovernor, _newCollateralGovernor);
