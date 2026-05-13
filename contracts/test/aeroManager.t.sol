@@ -372,11 +372,24 @@ contract AeroManagerTest is DevTestSetup {
         aeroManagerImpl.claim(address(gauge));
     }
 
+    function test_claim_revertsWhenGaugeNotRegistered() public {
+        AeroGaugeTester unregisteredGauge = new AeroGaugeTester(address(weth), address(aeroToken));
+
+        vm.expectRevert("AeroManager: Gauge is not registered");
+        aeroManagerImpl.claim(address(unregisteredGauge));
+    }
+
     function test_claim_revertsWhenGaugeRewardTokenMismatch() public {
-        MockAeroToken wrongReward = new MockAeroToken();
-        AeroGaugeTester wrongGauge = new AeroGaugeTester(address(weth), address(wrongReward));
+        MockAeroToken diffReward = new MockAeroToken();
+
+        vm.prank(governor);
+        aeroManagerImpl.setAeroTokenAddress(address(diffReward));
+        vm.warp(block.timestamp + aeroManagerImpl.aeroTokenChangeDelayPeriod());
+        vm.prank(governor);
+        aeroManagerImpl.acceptAeroTokenAddressUpdate();
+
         vm.expectRevert("AeroManager: Reward token does not match");
-        aeroManagerImpl.claim(address(wrongGauge));
+        aeroManagerImpl.claim(address(gauge));
     }
 
     function test_closeCurrentEpoch_revertsWhenAlreadyClosed() public {
