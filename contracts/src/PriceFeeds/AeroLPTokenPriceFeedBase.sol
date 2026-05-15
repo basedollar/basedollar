@@ -457,7 +457,7 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         view
         returns (bool)
     {
-        return chainlinkResponse.success && block.timestamp - chainlinkResponse.timestamp < _stalenessThreshold
+        return chainlinkResponse.success && chainlinkResponse.timestamp + _stalenessThreshold > block.timestamp
             && chainlinkResponse.answer > 0;
     }
 
