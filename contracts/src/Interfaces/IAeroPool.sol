@@ -109,6 +109,12 @@ interface IAeroPool {
     /// @param __symbol String of new symbol
     function setSymbol(string calldata __symbol) external;
 
+    /// @notice Get an observation by index
+    /// @dev Observations are recorded every 30 minutes. Not included in original interface.
+    /// @param index Index of the observation
+    /// @return Observation memory
+    function observations(uint256 index) external view returns (Observation memory);
+
     /// @notice Get the number of observations recorded
     function observationLength() external view returns (uint256);
 

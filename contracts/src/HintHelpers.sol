@@ -300,10 +300,6 @@ contract HintHelpers is IHintHelpers {
         }
     }
 
-    function _calcUpfrontFeeNonRedeemable(uint256 _debt, uint256 _avgInterestRate) internal pure returns (uint256) {
-        return _debt * _avgInterestRate * UPFRONT_INTEREST_PERIOD / ONE_YEAR / DECIMAL_PRECISION;
-    }
-
     function predictOpenTroveUpfrontFeeNonRedeemable(uint256 _collIndex, uint256 _borrowedAmount, uint256 _interestRate)
         external
         view
@@ -349,20 +345,6 @@ contract HintHelpers is IHintHelpers {
         LatestTroveData memory trove = troveManager.getLatestTroveData(_troveId);
 
         return _predictAdjustInterestRateUpfrontFee(activePool, trove, _newInterestRate);
-    }
-
-    function _predictAdjustInterestRateUpfrontFeeNonRedeemable(
-        IActivePool _activePool,
-        LatestTroveData memory _trove,
-        uint256 _newInterestRate
-    ) internal view returns (uint256) {
-        TroveChange memory troveChange;
-        troveChange.appliedRedistBoldDebtGain = _trove.redistBoldDebtGain;
-        troveChange.newWeightedRecordedDebt = _trove.entireDebt * _newInterestRate;
-        troveChange.oldWeightedRecordedDebt = _trove.weightedRecordedDebt;
-
-        uint256 avgInterestRate = _activePool.getNewApproxAvgInterestRateFromTroveChange(troveChange);
-        return _calcUpfrontFee(_trove.entireDebt, avgInterestRate);
     }
 
     function predictAdjustTroveUpfrontFeeNonRedeemable(uint256 _collIndex, uint256 _troveId, uint256 _debtIncrease)

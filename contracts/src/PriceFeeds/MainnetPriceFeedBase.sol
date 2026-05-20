@@ -113,7 +113,7 @@ abstract contract MainnetPriceFeedBase is IMainnetPriceFeed {
         view
         returns (bool)
     {
-        return chainlinkResponse.success && block.timestamp - chainlinkResponse.timestamp < _stalenessThreshold
+        return chainlinkResponse.success && chainlinkResponse.timestamp + _stalenessThreshold > block.timestamp
             && chainlinkResponse.answer > 0;
     }
 

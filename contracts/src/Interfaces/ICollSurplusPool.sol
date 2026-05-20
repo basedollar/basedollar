@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import "./IActivePool.sol";
+
 interface ICollSurplusPool {
     function getCollBalance() external view returns (uint256);
 
@@ -10,4 +12,6 @@ interface ICollSurplusPool {
     function accountSurplus(address _account, uint256 _amount) external;
 
     function claimColl(address _account) external;
+
+    function activePool() external view returns (IActivePool);
 }

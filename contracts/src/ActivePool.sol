@@ -33,6 +33,8 @@ contract ActivePool is IActivePool {
     address public immutable defaultPoolAddress;
     address public aeroManagerAddress;
 
+    address public collSurplusPoolAddress;
+
     IBoldToken public immutable boldToken;
 
     IInterestRouter public immutable interestRouter;
@@ -87,6 +89,7 @@ contract ActivePool is IActivePool {
         defaultPoolAddress = address(_addressesRegistry.defaultPool());
         interestRouter = _addressesRegistry.interestRouter();
         boldToken = _addressesRegistry.boldToken();
+        collSurplusPoolAddress = address(_addressesRegistry.collSurplusPool());
 
         emit CollTokenAddressChanged(address(collToken));
         emit BorrowerOperationsAddressChanged(borrowerOperationsAddress);
@@ -185,9 +188,17 @@ contract ActivePool is IActivePool {
 
         // If the collateral is AERO LP, unstake it
         // Transfers from AeroGauge -> AeroManager -> ActivePool
-        _unstakeIfAeroLPCollateral(_amount);
+        // old
+        // _unstakeIfAeroLPCollateral(_amount);
 
-        collToken.safeTransfer(_account, _amount);
+        // collToken.safeTransfer(_account, _amount);
+
+        // new
+        bool keepStaked = isAeroLPCollateral && (_account == address(stabilityPool) || _account == collSurplusPoolAddress);
+        if (!keepStaked) {
+            _unstakeIfAeroLPCollateral(_amount);
+            collToken.safeTransfer(_account, _amount);
+        }
     }
 
     function sendCollToDefaultPool(uint256 _amount) external override {
@@ -195,9 +206,14 @@ contract ActivePool is IActivePool {
 
         _accountForSendColl(_amount);
 
+        // old
         // If the collateral is AERO LP, unstake it
         // Transfers from AeroGauge -> AeroManager -> ActivePool
-        _unstakeIfAeroLPCollateral(_amount);
+        // _unstakeIfAeroLPCollateral(_amount);
+        
+        // new
+        // Do NOT unstake AERO LP tokens. Allow it to accrue AERO rewards in AeroManager.
+        // Only update the accounting
 
         IDefaultPool(defaultPoolAddress).receiveColl(_amount);
     }
@@ -215,12 +231,26 @@ contract ActivePool is IActivePool {
 
         _accountForReceivedColl(_amount);
 
-        // Pull Coll tokens from sender
-        collToken.safeTransferFrom(msg.sender, address(this), _amount);
+        // old
+        // // Pull Coll tokens from sender
+        // collToken.safeTransferFrom(msg.sender, address(this), _amount);
 
-        // If the collateral is AERO LP, stake it
-        // Transfers from ActivePool -> AeroManager -> AeroGauge
-        _stakeIfAeroLPCollateral(_amount);
+        // // If the collateral is AERO LP, stake it
+        // // Transfers from ActivePool -> AeroManager -> AeroGauge
+        // _stakeIfAeroLPCollateral(_amount);
+
+        // new
+        // If it is coming from default pool, the collateral is already staked
+        // and only need to update the accounting
+        bool alreadyStaked = isAeroLPCollateral && msg.sender == defaultPoolAddress;
+        if (!alreadyStaked) {
+            // Pull Coll tokens from sender
+            collToken.safeTransferFrom(msg.sender, address(this), _amount);
+
+            // If the collateral is AERO LP, stake it
+            // Transfers from ActivePool -> AeroManager -> AeroGauge
+            _stakeIfAeroLPCollateral(_amount);
+        }
     }
 
     /// @dev Updates accounting of collBalance by adding amount already received
@@ -231,7 +261,10 @@ contract ActivePool is IActivePool {
 
         // If the collateral is AERO LP, stake it
         // Transfers from ActivePool -> AeroManager -> AeroGauge
-        _stakeIfAeroLPCollateral(_amount);
+        // NOTE: if it is coming from default pool, the collateral is already staked
+        if (msg.sender != defaultPoolAddress) {
+            _stakeIfAeroLPCollateral(_amount);
+        }
     }
 
     //TODO might need to make this a factory, to keep positions separate.
@@ -354,19 +387,6 @@ contract ActivePool is IActivePool {
         }
 
         lastAggBatchManagementFeesUpdateTime = block.timestamp;
-    }
-
-    function setAeroManagerAddress(address _newAeroManagerAddress) external {
-        _requireCallerIsAeroManager();
-
-        collToken.approve(aeroManagerAddress, 0);
-        collToken.approve(_newAeroManagerAddress, type(uint256).max);
-        
-        aeroManagerAddress = _newAeroManagerAddress;
-    }
-
-    function _requireCallerIsAeroManager() internal view {
-        require(msg.sender == aeroManagerAddress, "ActivePool: Caller is not AeroManager");
     }
 
     // --- Shutdown ---

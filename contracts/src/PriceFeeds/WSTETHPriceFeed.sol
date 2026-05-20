@@ -13,19 +13,26 @@ contract WSTETHPriceFeed is CompositePriceFeed, IWSTETHPriceFeed {
 
     uint256 public constant STETH_USD_DEVIATION_THRESHOLD = 1e16; // 1%
 
+    Oracle public wstEthStEthOracle;
+
     constructor(
         address _ethUsdOracleAddress,
         address _stEthUsdOracleAddress,
-        address _wstEthTokenAddress,
+        address _wstEthStEthOracleAddress,
         uint256 _ethUsdStalenessThreshold,
         uint256 _stEthUsdStalenessThreshold,
+        uint256 _wstEthStEthStalenessThreshold,
         address _borrowerOperationsAddress
     )
-        CompositePriceFeed(_ethUsdOracleAddress, _wstEthTokenAddress, _ethUsdStalenessThreshold, _borrowerOperationsAddress)
+        CompositePriceFeed(_ethUsdOracleAddress, _wstEthStEthOracleAddress, _ethUsdStalenessThreshold, _borrowerOperationsAddress)
     {
         stEthUsdOracle.aggregator = AggregatorV3Interface(_stEthUsdOracleAddress);
         stEthUsdOracle.stalenessThreshold = _stEthUsdStalenessThreshold;
         stEthUsdOracle.decimals = stEthUsdOracle.aggregator.decimals();
+
+        wstEthStEthOracle.aggregator = AggregatorV3Interface(_wstEthStEthOracleAddress);
+        wstEthStEthOracle.stalenessThreshold = _wstEthStEthStalenessThreshold;
+        wstEthStEthOracle.decimals = wstEthStEthOracle.aggregator.decimals();
 
         _fetchPricePrimary(false);
 
@@ -78,21 +85,22 @@ contract WSTETHPriceFeed is CompositePriceFeed, IWSTETHPriceFeed {
     }
 
     function _getCanonicalRate() internal view override returns (uint256, bool) {
-        uint256 gasBefore = gasleft();
+        return _getOracleAnswer(wstEthStEthOracle);
+        // uint256 gasBefore = gasleft();
 
-        try IWSTETH(rateProviderAddress).stEthPerToken() returns (uint256 stEthPerWstEth) {
-            // If rate is 0, return true
-            if (stEthPerWstEth == 0) return (0, true);
+        // try IWSTETH(rateProviderAddress).stEthPerToken() returns (uint256 stEthPerWstEth) {
+        //     // If rate is 0, return true
+        //     if (stEthPerWstEth == 0) return (0, true);
 
-            return (stEthPerWstEth, false);
-        } catch {
-            // Require that enough gas was provided to prevent an OOG revert in the external call
-            // causing a shutdown. Instead, just revert. Slightly conservative, as it includes gas used
-            // in the check itself.
-            if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
+        //     return (stEthPerWstEth, false);
+        // } catch {
+        //     // Require that enough gas was provided to prevent an OOG revert in the external call
+        //     // causing a shutdown. Instead, just revert. Slightly conservative, as it includes gas used
+        //     // in the check itself.
+        //     if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
 
-            // If call to exchange rate reverted for another reason, return true
-            return (0, true);
-        }
+        //     // If call to exchange rate reverted for another reason, return true
+        //     return (0, true);
+        // }
     }
 }

@@ -11,6 +11,7 @@ import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/Constants.sol";
+import "./Interfaces/ICollSurplusPool.sol";
 
 /// @title AeroManager
 /// @notice Stakes Aero LP collateral in gauges, claims AERO rewards, routes a configurable fee to treasury, and lets governance split the remainder across borrowers for withdrawal via `claimRewards`.
@@ -29,6 +30,8 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     address public pendingAeroTokenAddress;
     uint256 public pendingAeroTokenAddressTimestamp;
     address public governor;
+    address public pendingGovernor;
+    uint256 public pendingGovernorTimestamp;
 
     address public treasuryAddress;
 
@@ -39,15 +42,18 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
 
     /// @notice Registered active pools that can stake/withdraw
     mapping(address activePool => bool) public activePools;
+    mapping(address stabilityPool => bool) public stabilityPools;
+    mapping(address collSurplusPool => bool) public collSurplusPools;
+    mapping(address gauge => bool) internal _registeredGauges;
 
     mapping(address gauge => uint256 epoch) public currentEpochs;
     mapping(address gauge => mapping(uint256 epoch => bool isClosed)) public epochClosed;
     mapping(uint256 epoch => mapping(address gauge => uint256 amount)) public claimedAeroPerEpoch;
 
-    mapping(address user => uint256 amount) public claimableRewards;
+    mapping(address user => mapping(address rewardToken => uint256 amount)) internal _claimableRewards;
 
     /// @notice Cumulative AERO retained by this contract after treasury fees are deducted
-    uint256 public claimedAero;
+    mapping(address rewardToken => uint256 amount) internal _claimedAero;
 
     /// @notice Fee on gauge claims, expressed as a fraction of `_100pct` (1e18 = 100%)
     uint256 public claimFee;
@@ -66,13 +72,18 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event ActivePoolAdded(address indexed activePool);
     event Claimed(address indexed gauge, uint256 total, uint256 claimFee, uint256 indexed epoch);
     event AeroDistributed(address indexed gauge, uint256 recipients, uint256 totalRewardAmount, uint256 indexed epoch);
-    event RewardsClaimed(address indexed user, uint256 amount);
+    event RewardsClaimed(address indexed user, address indexed rewardToken, uint256 amount);
     event CollateralRegistryAdded(address collateralRegistry);
     event ClaimFeeUpdated(uint256 oldFee, uint256 newFee);
     event ClaimFeeUpdatePending(uint256 oldFee, uint256 newFee, uint256 timestamp, uint256 delayPeriod);
+    event ClaimFeeUpdateCancelled(uint256 pendingFee, uint256 currentFee);
     event AeroTokenAddressUpdated(address oldAeroTokenAddress, address newAeroTokenAddress);
     event AeroTokenAddressUpdatePending(address oldAeroTokenAddress, address newAeroTokenAddress, uint256 timestamp, uint256 delayPeriod);
+    event TreasuryAddressUpdated(address oldTreasuryAddress, address newTreasuryAddress);
     event EpochClosed(address indexed gauge, uint256 indexed epoch);
+    event GovernorProposed(address indexed pendingGovernor, uint256 activateAtTimestamp);
+    event GovernorUpdated(address oldGovernor, address newGovernor);
+    event GovernorProposalCancelled(address indexed cancelledGovernor);
 
     /// @param _aeroTokenAddress AERO (reward) token the gauges must pay out
     /// @param _governor Account allowed to change token address, fee, epochs, and distributions
@@ -146,11 +157,54 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         emit AeroTokenAddressUpdated(oldAeroTokenAddress, aeroTokenAddress);
     }
 
-    /// @notice Transfer governor role to a new account
-    /// @param _governor New governor address
-    function setGovernor(address _governor) external onlyGovernor {
-        governor = _governor;
-        emit GovernorUpdated(_governor);
+    /**
+     * @notice Propose a new governor. The proposed address must call acceptGovernor() after the timelock has passed.
+     */
+    function proposeGovernor(address _newGovernor) external onlyGovernor {
+        require(_newGovernor != address(0), "AeroManager: Governor cannot be zero address");
+        require(_newGovernor != governor, "AeroManager: Already governor");
+
+        pendingGovernor = _newGovernor;
+        pendingGovernorTimestamp = block.timestamp;
+
+        emit GovernorProposed(_newGovernor, block.timestamp + GOVERNOR_TRANSFER_TIMELOCK);
+    }
+
+    /**
+     * @notice Accept the governor role. Callable by the pending governor after the timelock has passed.
+     */
+    function acceptGovernor() external {
+        require(msg.sender == pendingGovernor, "AeroManager: Caller is not pending governor");
+        require(
+            block.timestamp >= pendingGovernorTimestamp + GOVERNOR_TRANSFER_TIMELOCK,
+            "AeroManager: Governor transfer timelock not passed"
+        );
+
+        address oldGovernor = governor;
+        governor = pendingGovernor;
+        pendingGovernor = address(0);
+        pendingGovernorTimestamp = 0;
+
+        emit GovernorUpdated(oldGovernor, governor);
+    }
+
+    /**
+     * @notice Cancel a pending governor proposal. Callable by the current governor.
+     */
+    function cancelGovernorProposal() external onlyGovernor {
+        require(pendingGovernor != address(0), "AeroManager: No pending governor");
+        address cancelled = pendingGovernor;
+        pendingGovernor = address(0);
+        pendingGovernorTimestamp = 0;
+        emit GovernorProposalCancelled(cancelled);
+    }
+
+    function setTreasuryAddress(address _treasuryAddress) external onlyGovernor {
+        require(_treasuryAddress != address(0), "AeroManager: Treasury address cannot be 0");
+        require(_treasuryAddress != treasuryAddress, "AeroManager: New treasury address cannot be current treasury address");
+        address oldTreasuryAddress = treasuryAddress;
+        treasuryAddress = _treasuryAddress;
+        emit TreasuryAddressUpdated(oldTreasuryAddress, _treasuryAddress);
     }
 
     /// @notice Add an `ActivePool` of an AERO LP collateral type by the collateral registry
@@ -199,12 +253,14 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         emit Staked(gauge, token, amount, staked);
     }
 
-    /// @notice Withdraw LP from the gauge and return it to the caller `ActivePool`
+    /// @notice Withdraw LP from the gauge and return it to the caller `ActivePool` or `StabilityPool` or `CollSurplusPool`
+    /// @dev StabilityPool withdraws directly when depositor claims collGains
+    /// @dev CollSurplusPool withdraws directly when depositor claims coll surplus
     /// @param gauge Aero gauge the LP was staked in
     /// @param token LP token being returned
     /// @param amount LP amount to withdraw
     function withdraw(address gauge, address token, uint256 amount) external {
-        _requireCallerIsActivePool();
+        _requireCallerIsAPOrSPOrCSP();
         // Check for unstaked balance first
         uint256 balance = unstakedAmounts[gauge];
         uint256 unstaked;
@@ -249,6 +305,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     /// @dev Callable by anyone; reverts if the gauge's current epoch is already closed or reward token mismatches `aeroTokenAddress`
     /// @param gauge Gauge to claim rewards from
     function claim(address gauge) external nonReentrant {
+        require(_registeredGauges[gauge], "AeroManager: Gauge is not registered");
         uint256 currentEpoch = currentEpochs[gauge];
         require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
         require(IAeroGauge(gauge).rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
@@ -265,7 +322,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
 
         // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
         uint256 rewardAmount = claimedAmount - _claimFee;
-        claimedAero += rewardAmount; // Subtract the fee from the total claimed amount
+        _claimedAero[aeroTokenAddress] += rewardAmount; // Subtract the fee from the total claimed amount
         
         claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
 
@@ -295,7 +352,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         for (uint256 i; i < recipients.length; i++) {
             require(recipients[i].amount <= remainingRewardAmount, "AeroManager: Total amount exceeds reward amount");
             remainingRewardAmount -= recipients[i].amount;
-            claimableRewards[recipients[i].borrower] += recipients[i].amount;
+            _claimableRewards[recipients[i].borrower][aeroTokenAddress] += recipients[i].amount;
         }
         require(remainingRewardAmount == 0, "AeroManager: Reward amount not fully distributed");
         emit AeroDistributed(gauge, recipients.length, rewardAmount, currentEpoch);
@@ -306,11 +363,43 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     /// @notice Withdraw previously allocated AERO for `user` (via `distributeAero`) to the user wallet
     /// @param user Account that received a credit in `claimableRewards`
     function claimRewards(address user) external nonReentrant {
-        uint256 amount = claimableRewards[user];
+        uint256 amount = _claimableRewards[user][aeroTokenAddress];
         require(amount > 0, "AeroManager: No rewards to claim");
-        claimableRewards[user] = 0;
+        _claimableRewards[user][aeroTokenAddress] = 0;
         IERC20(aeroTokenAddress).safeTransfer(user, amount);
-        emit RewardsClaimed(user, amount);
+        emit RewardsClaimed(user, aeroTokenAddress, amount);
+    }
+
+    /// @notice Withdraw previously allocated rewards for `user` (via `distributeAero`) to the user wallet
+    /// @dev Use if user has claimable rewards of previously set AERO token address
+    /// @param user Account that received a credit in `claimableRewards`
+    /// @param rewardToken Reward token to claim
+    function claimRewards(address user, address rewardToken) external nonReentrant {
+        uint256 amount = _claimableRewards[user][rewardToken];
+        require(amount > 0, "AeroManager: No rewards to claim");
+        _claimableRewards[user][rewardToken] = 0;
+        IERC20(rewardToken).safeTransfer(user, amount);
+        emit RewardsClaimed(user, rewardToken, amount);
+    }
+
+    /// @notice View the amount of claimable rewards for `user` for the current AERO token address
+    function claimableRewards(address user) external view returns (uint256) {
+        return _claimableRewards[user][aeroTokenAddress];
+    }
+
+    /// @notice View the amount of claimable rewards for `user` for a specific reward token
+    function claimableRewards(address user, address rewardToken) external view returns (uint256) {
+        return _claimableRewards[user][rewardToken];
+    }
+
+    /// @notice View the amount of claimed rewards for the current AERO token address
+    function claimedAero() external view returns (uint256) {
+        return _claimedAero[aeroTokenAddress];
+    }
+
+    /// @notice View the amount of claimed rewards for a specific reward token
+    function claimedAero(address rewardToken) external view returns (uint256) {
+        return _claimedAero[rewardToken];
     }
 
     /// @notice Update the treasury cut on gauge claims; increases are delayed, decreases apply immediately
@@ -323,6 +412,9 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
             pendingNewClaimFeeTimestamp = block.timestamp;
             emit ClaimFeeUpdatePending(claimFee, newFee, pendingNewClaimFeeTimestamp, claimFeeChangeDelayPeriod);
         } else {
+            if (pendingNewClaimFee > 0) {
+                _cancelClaimFeeUpdate();
+            }
             uint256 oldFee = claimFee;
             claimFee = newFee;
             emit ClaimFeeUpdated(oldFee, newFee);
@@ -338,6 +430,19 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         pendingNewClaimFee = 0;
         pendingNewClaimFeeTimestamp = 0;
         emit ClaimFeeUpdated(oldFee, claimFee);
+    }
+
+    /// @notice Cancel a pending fee increase
+    function cancelClaimFeeUpdate() external onlyGovernor {
+        require(pendingNewClaimFee > 0, "AeroManager: No pending claim fee update");
+        _cancelClaimFeeUpdate();
+    }
+
+    function _cancelClaimFeeUpdate() internal {
+        uint256 oldFee = pendingNewClaimFee;
+        pendingNewClaimFee = 0;
+        pendingNewClaimFeeTimestamp = 0;
+        emit ClaimFeeUpdateCancelled(oldFee, claimFee);
     }
 
     /// @notice Checks if the AeroGauge is alive
@@ -361,16 +466,29 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     function _addActivePool(address activePool) internal {
         require(!activePools[activePool], "AeroManager: ActivePool already added");
 
-        // Double check stakingToken and rewardToken addresses from ActivePool matches in Gauge
+        // Ensure the active pool is an AERO LP collateral with matching AeroManager address
         IActivePool ap = IActivePool(activePool);
         require(ap.isAeroLPCollateral(), "AeroManager: ActivePool is not an AERO LP collateral");
         require(ap.aeroManagerAddress() == address(this), "AeroManager: ActivePool is not linked to this AeroManager");
+        
+        // Double check stability pool is linked to this active pool and not already added
+        IStabilityPool sp = IStabilityPool(address(ap.stabilityPool()));
+        require(address(sp.activePool()) == activePool, "AeroManager: StabilityPool is not linked to this ActivePool");
+        require(!stabilityPools[address(sp)], "AeroManager: StabilityPool already added");
 
+        ICollSurplusPool cs = ICollSurplusPool(ap.collSurplusPoolAddress());
+        require(address(cs.activePool()) == activePool, "AeroManager: CollSurplusPool is not linked to this ActivePool");
+        require(!collSurplusPools[address(cs)], "AeroManager: CollSurplusPool already added");
+
+        // Double check stakingToken and rewardToken addresses from ActivePool matches in Gauge
         IAeroGauge gauge = IAeroGauge(ap.aeroGaugeAddress());
         require(gauge.stakingToken() == address(ap.collToken()), "AeroManager: Staking token does not match");
         require(gauge.rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
 
         activePools[activePool] = true;
+        stabilityPools[address(sp)] = true;
+        collSurplusPools[address(cs)] = true;
+        _registeredGauges[address(gauge)] = true;
         emit ActivePoolAdded(activePool);
     }
 
@@ -382,6 +500,11 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     /// @dev Ensures `msg.sender` is a registered Aero LP `ActivePool`
     function _requireCallerIsActivePool() internal view {
         require(activePools[msg.sender], "AeroManager: Caller is not an active pool");
+    }
+
+    /// @dev Ensures `msg.sender` is a registered Aero LP `ActivePool` or `StabilityPool`
+    function _requireCallerIsAPOrSPOrCSP() internal view {
+        require(activePools[msg.sender] || stabilityPools[msg.sender] || collSurplusPools[msg.sender], "AeroManager: Caller is not an active pool or stability pool or coll surplus pool");
     }
 
     /// @dev Ensures `msg.sender` is the configured `collateralRegistry`

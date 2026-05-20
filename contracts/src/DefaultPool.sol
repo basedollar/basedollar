@@ -79,7 +79,14 @@ contract DefaultPool is IDefaultPool {
         collBalance = newCollBalance;
 
         // Pull Coll tokens from ActivePool
-        collToken.safeTransferFrom(msg.sender, address(this), _amount);
+        // old
+        // collToken.safeTransferFrom(msg.sender, address(this), _amount);
+        // new
+        // If the collateral is AERO LP, do not pull it from the sender.
+        // We only update accounting and keep it staked in AeroManager.
+        if (!IActivePool(activePoolAddress).isAeroLPCollateral()) {
+            collToken.safeTransferFrom(msg.sender, address(this), _amount);
+        }
 
         emit DefaultPoolCollBalanceUpdated(newCollBalance);
     }

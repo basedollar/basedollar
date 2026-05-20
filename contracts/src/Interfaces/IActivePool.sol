@@ -49,4 +49,5 @@ interface IActivePool {
     function aeroManagerAddress() external view returns (address);
     function aeroGaugeAddress() external view returns (address);
     function collToken() external view returns (IERC20);
+    function collSurplusPoolAddress() external view returns (address);
 }

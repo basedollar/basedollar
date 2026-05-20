@@ -15,6 +15,7 @@ contract AeroManagerTest is DevTestSetup {
     AeroManager internal aeroManagerImpl;
 
     address internal governor;
+    address internal newGovernor;
     address internal treasury;
     address internal collateralRegistryAddress;
 
@@ -100,6 +101,7 @@ contract AeroManagerTest is DevTestSetup {
 
         // Cache commonly used addresses
         governor = aeroManagerImpl.governor();
+        newGovernor = makeAddr("NEW_GOVERNOR");
         treasury = aeroManagerImpl.treasuryAddress();
         collateralRegistryAddress = address(collateralRegistry);
         aeroActivePool = IActivePool(address(activePool));
@@ -354,7 +356,7 @@ contract AeroManagerTest is DevTestSetup {
     }
 
     function test_withdraw_revertsIfCallerNotActivePool() public {
-        vm.expectRevert("AeroManager: Caller is not an active pool");
+        vm.expectRevert("AeroManager: Caller is not an active pool or stability pool or coll surplus pool");
         vm.prank(A);
         aeroManagerImpl.withdraw(address(gauge), address(weth), 1);
     }
@@ -370,11 +372,24 @@ contract AeroManagerTest is DevTestSetup {
         aeroManagerImpl.claim(address(gauge));
     }
 
+    function test_claim_revertsWhenGaugeNotRegistered() public {
+        AeroGaugeTester unregisteredGauge = new AeroGaugeTester(address(weth), address(aeroToken));
+
+        vm.expectRevert("AeroManager: Gauge is not registered");
+        aeroManagerImpl.claim(address(unregisteredGauge));
+    }
+
     function test_claim_revertsWhenGaugeRewardTokenMismatch() public {
-        MockAeroToken wrongReward = new MockAeroToken();
-        AeroGaugeTester wrongGauge = new AeroGaugeTester(address(weth), address(wrongReward));
+        MockAeroToken diffReward = new MockAeroToken();
+
+        vm.prank(governor);
+        aeroManagerImpl.setAeroTokenAddress(address(diffReward));
+        vm.warp(block.timestamp + aeroManagerImpl.aeroTokenChangeDelayPeriod());
+        vm.prank(governor);
+        aeroManagerImpl.acceptAeroTokenAddressUpdate();
+
         vm.expectRevert("AeroManager: Reward token does not match");
-        aeroManagerImpl.claim(address(wrongGauge));
+        aeroManagerImpl.claim(address(gauge));
     }
 
     function test_closeCurrentEpoch_revertsWhenAlreadyClosed() public {
@@ -451,6 +466,36 @@ contract AeroManagerTest is DevTestSetup {
     function test_claimRewards_revertsWhenNothingToClaim() public {
         vm.expectRevert("AeroManager: No rewards to claim");
         aeroManagerImpl.claimRewards(A);
+    }
+
+    function test_claimRewards_canClaimPreviousAeroTokenAfterAddressUpdate() public {
+        _stakeThroughActivePool(10e18);
+        aeroManagerImpl.claim(address(gauge));
+        uint256 oldRewardAmount = aeroManagerImpl.claimedAeroPerEpoch(0, address(gauge));
+
+        vm.prank(governor);
+        aeroManagerImpl.closeCurrentEpoch(address(gauge));
+
+        AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](1);
+        recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: oldRewardAmount});
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(gauge), recipients);
+
+        MockAeroToken newTok = new MockAeroToken();
+        vm.prank(governor);
+        aeroManagerImpl.setAeroTokenAddress(address(newTok));
+        vm.warp(block.timestamp + aeroManagerImpl.aeroTokenChangeDelayPeriod());
+        vm.prank(governor);
+        aeroManagerImpl.acceptAeroTokenAddressUpdate();
+
+        assertEq(aeroManagerImpl.claimableRewards(A), 0);
+        assertEq(aeroManagerImpl.claimableRewards(A, address(aeroToken)), oldRewardAmount);
+
+        uint256 preA = aeroToken.balanceOf(A);
+        aeroManagerImpl.claimRewards(A, address(aeroToken));
+
+        assertEq(aeroToken.balanceOf(A), preA + oldRewardAmount);
+        assertEq(aeroManagerImpl.claimableRewards(A, address(aeroToken)), 0);
     }
 
     // --- claim fee ---
@@ -534,13 +579,267 @@ contract AeroManagerTest is DevTestSetup {
         assertEq(aeroManagerImpl.pendingAeroTokenAddress(), address(0));
     }
 
+    function test_rewardViewsReturnCurrentAndSpecificTokenAmounts() public {
+        _stakeThroughActivePool(10e18);
+        aeroManagerImpl.claim(address(gauge));
+        uint256 oldClaimed = aeroManagerImpl.claimedAeroPerEpoch(0, address(gauge));
+
+        vm.prank(governor);
+        aeroManagerImpl.closeCurrentEpoch(address(gauge));
+
+        AeroManager.AeroRecipient[] memory recipients0 = new AeroManager.AeroRecipient[](1);
+        recipients0[0] = AeroManager.AeroRecipient({borrower: A, amount: oldClaimed});
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(gauge), recipients0);
+
+        assertEq(aeroManagerImpl.claimedAero(), oldClaimed);
+        assertEq(aeroManagerImpl.claimedAero(address(aeroToken)), oldClaimed);
+        assertEq(aeroManagerImpl.claimableRewards(A), oldClaimed);
+        assertEq(aeroManagerImpl.claimableRewards(A, address(aeroToken)), oldClaimed);
+
+        MockAeroToken newTok = new MockAeroToken();
+        vm.prank(governor);
+        aeroManagerImpl.setAeroTokenAddress(address(newTok));
+        vm.warp(block.timestamp + aeroManagerImpl.aeroTokenChangeDelayPeriod());
+        vm.prank(governor);
+        aeroManagerImpl.acceptAeroTokenAddressUpdate();
+
+        uint256 newStakeAmount = 6e18;
+        AeroGaugeTester newGauge = new AeroGaugeTester(address(weth), address(newTok));
+        deal(address(weth), address(aeroManagerImpl), newStakeAmount);
+        vm.startPrank(address(aeroManagerImpl));
+        weth.approve(address(newGauge), newStakeAmount);
+        newGauge.deposit(newStakeAmount);
+        vm.stopPrank();
+
+        aeroManagerImpl.claim(address(newGauge));
+        uint256 newClaimed = aeroManagerImpl.claimedAeroPerEpoch(0, address(newGauge));
+
+        vm.prank(governor);
+        aeroManagerImpl.closeCurrentEpoch(address(newGauge));
+
+        AeroManager.AeroRecipient[] memory recipients1 = new AeroManager.AeroRecipient[](1);
+        recipients1[0] = AeroManager.AeroRecipient({borrower: B, amount: newClaimed});
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(newGauge), recipients1);
+
+        assertEq(aeroManagerImpl.claimedAero(), newClaimed);
+        assertEq(aeroManagerImpl.claimedAero(address(newTok)), newClaimed);
+        assertEq(aeroManagerImpl.claimedAero(address(aeroToken)), oldClaimed);
+        assertEq(aeroManagerImpl.claimableRewards(A), 0);
+        assertEq(aeroManagerImpl.claimableRewards(A, address(aeroToken)), oldClaimed);
+        assertEq(aeroManagerImpl.claimableRewards(B), newClaimed);
+        assertEq(aeroManagerImpl.claimableRewards(B, address(newTok)), newClaimed);
+    }
+    // --- Treasury address ---
+
+    function test_setTreasuryAddress_revertsIfNotGovernor() public {
+        vm.expectRevert("AeroManager: Caller is not the governor");
+        aeroManagerImpl.setTreasuryAddress(address(0xBEEF));
+    }
+
+    function test_setTreasuryAddress_revertsWhenZeroAddress() public {
+        vm.prank(governor);
+        vm.expectRevert("AeroManager: Treasury address cannot be 0");
+        aeroManagerImpl.setTreasuryAddress(address(0));
+    }
+
+    function test_setTreasuryAddress_revertsWhenSameAsCurrent() public {
+        vm.prank(governor);
+        vm.expectRevert("AeroManager: New treasury address cannot be current treasury address");
+        aeroManagerImpl.setTreasuryAddress(treasury);
+    }
+
+    function test_setTreasuryAddress_updatesTreasuryAddressAndEmits() public {
+        address newTreasury = address(0xBEEF);
+
+        vm.prank(governor);
+        vm.expectEmit(false, false, false, true, address(aeroManagerImpl));
+        emit AeroManager.TreasuryAddressUpdated(treasury, newTreasury);
+        aeroManagerImpl.setTreasuryAddress(newTreasury);
+
+        assertEq(aeroManagerImpl.treasuryAddress(), newTreasury);
+    }
+
+    function test_setTreasuryAddress_claimSendsFeeToNewTreasury() public {
+        address newTreasury = address(0xBEEF);
+        uint256 amount = 10e18;
+
+        vm.prank(governor);
+        aeroManagerImpl.setTreasuryAddress(newTreasury);
+
+        _stakeThroughActivePool(amount);
+
+        uint256 preOldTreasury = aeroToken.balanceOf(treasury);
+        uint256 preNewTreasury = aeroToken.balanceOf(newTreasury);
+
+        aeroManagerImpl.claim(address(gauge));
+
+        uint256 fee = amount * aeroManagerImpl.claimFee() / 1e18;
+
+        assertEq(aeroToken.balanceOf(treasury), preOldTreasury);
+        assertEq(aeroToken.balanceOf(newTreasury), preNewTreasury + fee);
+    }
+
     // --- Governor ---
 
-    function test_setGovernor_updatesGovernor() public {
-        address newGov = address(0xBEEF);
+    function test_proposeGovernor_revertsIfNotGovernor() public {
+        vm.prank(newGovernor);
+        vm.expectRevert("AeroManager: Caller is not the governor");
+        aeroManagerImpl.proposeGovernor(newGovernor);
+    }
+
+    function test_proposeGovernor_revertsIfZeroAddress() public {
         vm.prank(governor);
-        aeroManagerImpl.setGovernor(newGov);
-        assertEq(aeroManagerImpl.governor(), newGov);
+        vm.expectRevert("AeroManager: Governor cannot be zero address");
+        aeroManagerImpl.proposeGovernor(address(0));
+    }
+
+    function test_proposeGovernor_revertsIfAlreadyGovernor() public {
+        vm.prank(governor);
+        vm.expectRevert("AeroManager: Already governor");
+        aeroManagerImpl.proposeGovernor(governor);
+    }
+
+    function test_proposeGovernor_setsPendingStateAndEmits() public {
+        vm.prank(governor);
+        vm.expectEmit(true, true, true, true);
+        emit AeroManager.GovernorProposed(newGovernor, block.timestamp + GOVERNOR_TRANSFER_TIMELOCK);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+
+        assertEq(aeroManagerImpl.pendingGovernor(), newGovernor);
+        assertEq(aeroManagerImpl.pendingGovernorTimestamp(), block.timestamp);
+    }
+
+    function test_proposeGovernor_overwritesPreviousProposal() public {
+        address anotherGovernor = makeAddr("ANOTHER_GOVERNOR");
+
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+        assertEq(aeroManagerImpl.pendingGovernor(), newGovernor);
+
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(anotherGovernor);
+        assertEq(aeroManagerImpl.pendingGovernor(), anotherGovernor);
+    }
+
+    function test_acceptGovernor_revertsIfNotPendingGovernor() public {
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+        vm.warp(block.timestamp + GOVERNOR_TRANSFER_TIMELOCK);
+
+        vm.prank(governor);
+        vm.expectRevert("AeroManager: Caller is not pending governor");
+        aeroManagerImpl.acceptGovernor();
+    }
+
+    function test_acceptGovernor_revertsIfTimelockNotPassed() public {
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+
+        vm.prank(newGovernor);
+        vm.expectRevert("AeroManager: Governor transfer timelock not passed");
+        aeroManagerImpl.acceptGovernor();
+    }
+
+    function test_acceptGovernor_revertsIfExactlyAtTimelockBoundary() public {
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+        vm.warp(block.timestamp + GOVERNOR_TRANSFER_TIMELOCK - 1);
+
+        vm.prank(newGovernor);
+        vm.expectRevert("AeroManager: Governor transfer timelock not passed");
+        aeroManagerImpl.acceptGovernor();
+    }
+
+    function test_acceptGovernor_succeedsAfterTimelock() public {
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+        vm.warp(block.timestamp + GOVERNOR_TRANSFER_TIMELOCK);
+
+        vm.prank(newGovernor);
+        vm.expectEmit(true, true, true, true);
+        emit AeroManager.GovernorUpdated(governor, newGovernor);
+        aeroManagerImpl.acceptGovernor();
+
+        assertEq(aeroManagerImpl.governor(), newGovernor);
+        assertEq(aeroManagerImpl.pendingGovernor(), address(0));
+        assertEq(aeroManagerImpl.pendingGovernorTimestamp(), 0);
+    }
+
+    function test_acceptGovernor_newGovernorCanUseGovernorFunctions() public {
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+        vm.warp(block.timestamp + GOVERNOR_TRANSFER_TIMELOCK);
+
+        vm.prank(newGovernor);
+        aeroManagerImpl.acceptGovernor();
+
+        address yetAnotherGovernor = makeAddr("YET_ANOTHER");
+        vm.prank(newGovernor);
+        aeroManagerImpl.proposeGovernor(yetAnotherGovernor);
+        assertEq(aeroManagerImpl.pendingGovernor(), yetAnotherGovernor);
+    }
+
+    function test_cancelGovernorProposal_revertsIfNotGovernor() public {
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+
+        vm.prank(newGovernor);
+        vm.expectRevert("AeroManager: Caller is not the governor");
+        aeroManagerImpl.cancelGovernorProposal();
+    }
+
+    function test_cancelGovernorProposal_revertsIfNoPending() public {
+        vm.prank(governor);
+        vm.expectRevert("AeroManager: No pending governor");
+        aeroManagerImpl.cancelGovernorProposal();
+    }
+
+    function test_cancelGovernorProposal_clearsPendingAndEmits() public {
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+
+        vm.prank(governor);
+        vm.expectEmit(true, true, true, true);
+        emit AeroManager.GovernorProposalCancelled(newGovernor);
+        aeroManagerImpl.cancelGovernorProposal();
+
+        assertEq(aeroManagerImpl.pendingGovernor(), address(0));
+        assertEq(aeroManagerImpl.pendingGovernorTimestamp(), 0);
+        assertEq(aeroManagerImpl.governor(), governor);
+    }
+
+    function test_cancelGovernorProposal_pendingGovernorCannotAcceptAfterCancel() public {
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+        vm.prank(governor);
+        aeroManagerImpl.cancelGovernorProposal();
+
+        vm.warp(block.timestamp + GOVERNOR_TRANSFER_TIMELOCK);
+        vm.prank(newGovernor);
+        vm.expectRevert("AeroManager: Caller is not pending governor");
+        aeroManagerImpl.acceptGovernor();
+    }
+
+    function test_fullFlow_proposeAccept_thenProposeAgain() public {
+        // Round 1: governor -> newGovernor
+        vm.prank(governor);
+        aeroManagerImpl.proposeGovernor(newGovernor);
+        vm.warp(block.timestamp + GOVERNOR_TRANSFER_TIMELOCK);
+        vm.prank(newGovernor);
+        aeroManagerImpl.acceptGovernor();
+
+        assertEq(aeroManagerImpl.governor(), newGovernor);
+
+        // Round 2: newGovernor -> governor (transfer back)
+        vm.prank(newGovernor);
+        aeroManagerImpl.proposeGovernor(governor);
+        vm.warp(block.timestamp + GOVERNOR_TRANSFER_TIMELOCK);
+        vm.prank(governor);
+        aeroManagerImpl.acceptGovernor();
+
+        assertEq(aeroManagerImpl.governor(), governor);
     }
 
     // --- Gauge killed / revived (Voter.isAlive), unstaked buffer, _stakeRemaining ---

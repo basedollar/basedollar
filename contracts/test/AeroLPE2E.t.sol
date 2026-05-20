@@ -192,6 +192,17 @@ contract AeroLPE2E is Test, TestAccounts {
         return AeroManager(address(aeroManager));
     }
 
+    function _assertAeroLPStakedMatchesAccountedPools(string memory message) internal view {
+        uint256 accountedColl = aeroLPBranch.activePool.getCollBalance()
+            + aeroLPBranch.stabilityPool.getCollBalance()
+            + aeroLPBranch.pools.defaultPool.getCollBalance()
+            + aeroLPBranch.pools.collSurplusPool.getCollBalance();
+
+        uint256 staked = _getAeroManager().stakedAmounts(address(gauge));
+        assertEq(staked, accountedColl, message);
+        assertEq(gauge.balanceOf(address(aeroManager)), staked, "Gauge balance should match staked");
+    }
+
     // ============ Liquidation Flow Tests ============
 
     /**
@@ -228,10 +239,49 @@ contract AeroLPE2E is Test, TestAccounts {
         uint256 stakedAfter = _getAeroManager().stakedAmounts(address(gauge));
         uint256 apBalanceAfter = aeroLPBranch.activePool.getCollBalance();
 
-        // Verify collateral was unstaked and moved
-        assertTrue(stakedAfter < stakedBefore, "Staked amount should decrease after liquidation");
-        assertTrue(apBalanceAfter < apBalanceBefore, "ActivePool balance should decrease");
-        assertEq(stakedAfter, apBalanceAfter, "Staked should match AP balance");
+        // Verify collateral accounting moved while AERO LP remains staked across pools
+        assertLt(stakedAfter, stakedBefore, "Staked amount should not increase after liquidation");
+        assertLt(apBalanceAfter, apBalanceBefore, "ActivePool balance should decrease");
+        assertGt(aeroLPBranch.stabilityPool.getCollBalance(), 0, "StabilityPool should account for offset collateral");
+        _assertAeroLPStakedMatchesAccountedPools("Staked should match accounted pool collateral");
+    }
+
+    function test_claimSurplusWithAeroLPCollateralUnstakesAndPaysOwner() public {
+        uint256 price = aeroLPBranch.priceFeed.getPrice();
+        uint256 ccr = aeroLPBranch.troveManager.get_CCR();
+        uint256 mcr = aeroLPBranch.troveManager.get_MCR();
+
+        uint256 debt = 100_000e18;
+        uint256 coll = _getMinColl(debt, price, ccr + CCR_BUFFER);
+        uint256 interestRate = 5e16;
+
+        uint256 troveIdA = _openTroveOnBranch(aeroLPBranch, 0, A, coll, debt, interestRate);
+        _openTroveOnBranch(aeroLPBranch, 0, B, coll * 5, debt, interestRate);
+
+        deal(address(boldToken), C, debt * 2);
+        vm.prank(C);
+        aeroLPBranch.stabilityPool.provideToSP(debt * 2, true);
+
+        uint256 targetICR = 107e16; // Liquidatable, but above the SP liquidation penalty.
+        aeroLPBranch.priceFeed.setPrice(targetICR * debt / coll);
+        assertLt(aeroLPBranch.troveManager.getCurrentICR(troveIdA, aeroLPBranch.priceFeed.getPrice()), mcr);
+
+        aeroLPBranch.troveManager.liquidate(troveIdA);
+
+        uint256 surplus = aeroLPBranch.pools.collSurplusPool.getCollateral(A);
+        assertGt(surplus, 0, "A should have claimable surplus");
+        _assertAeroLPStakedMatchesAccountedPools("Staked should include surplus pool before claim");
+
+        uint256 stakedBeforeClaim = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 ownerBalanceBefore = lpToken.balanceOf(A);
+
+        vm.prank(A);
+        aeroLPBranch.borrowerOperations.claimCollateral();
+
+        assertEq(aeroLPBranch.pools.collSurplusPool.getCollateral(A), 0, "Surplus should be cleared");
+        assertEq(lpToken.balanceOf(A), ownerBalanceBefore + surplus, "Owner should receive surplus");
+        assertEq(stakedBeforeClaim - _getAeroManager().stakedAmounts(address(gauge)), surplus, "Claim should unstake surplus");
+        _assertAeroLPStakedMatchesAccountedPools("Staked should match accounted pools after surplus claim");
     }
 
     /**
@@ -274,13 +324,11 @@ contract AeroLPE2E is Test, TestAccounts {
         );
 
         // Check accounting after redistribution
-        uint256 stakedAfter = _getAeroManager().stakedAmounts(address(gauge));
         uint256 apBalanceAfter = aeroLPBranch.activePool.getCollBalance();
         uint256 defaultPoolBalance = aeroLPBranch.pools.defaultPool.getCollBalance();
 
-        // Key invariants for Aero LP:
-        assertEq(stakedAfter, apBalanceAfter, "Staked should match AP balance after redistribution");
-        assertEq(gauge.balanceOf(address(aeroManager)), stakedAfter, "Gauge balance should match staked");
+        // Key invariant for Aero LP: collateral remains staked while pool accounting moves between AP/DP/SP.
+        _assertAeroLPStakedMatchesAccountedPools("Staked should match accounted pool collateral after redistribution");
         
         // Total collateral preserved in pools (ActivePool + DefaultPool)
         // Note: Gas compensation (WETH) is sent to liquidator, not counted in pools

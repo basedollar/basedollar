@@ -102,6 +102,15 @@ contract CollateralRegistry is ICollateralRegistry {
         require(_borrowerOperations != address(0), "CR: Borrower operations cannot be the zero address");
         require(address(_activePool) != address(0), "CR: Active pool cannot be the zero address");
         require(address(_activePool) == address(_troveManager.activePool()), "CR: Active pool does not match trove manager");
+        
+        bool _isAeroLPCollateral = _activePool.isAeroLPCollateral();
+        if (_isAeroLPCollateral) {
+            require(
+                address(aeroManager) == address(_addressesRegistry.aeroManager())
+                && _activePool.aeroManagerAddress() == address(aeroManager), 
+                "CR: AeroManager address mismatch"
+            );
+        }
 
         uint256 index;
         if(_isRedeemable){
@@ -127,7 +136,7 @@ contract CollateralRegistry is ICollateralRegistry {
         emit CollateralBranchAdded(totalCollaterals, index, _token, _troveManager, _isRedeemable);
 
         // If AERO LP collateral, add to AeroManager
-        if (_activePool.isAeroLPCollateral()) {
+        if (_isAeroLPCollateral) {
             aeroManager.addActivePool(address(_activePool));
         }
     }
@@ -377,10 +386,12 @@ contract CollateralRegistry is ICollateralRegistry {
     }
 
     /// @notice Update the debt limit for a specific redeemable TroveManager
+    /// @dev Decreases are unrestricted. Increases must satisfy at least one of the following conditions:
+    /// (1) the new limit does not exceed 2x the current debt limit, or
+    /// (2) the new limit does not exceed the initial debt limit.
     /// @param _indexTroveManager The index of the trove manager from redeemable branches array
     /// @param _newDebtLimit The new debt limit
     function updateDebtLimit(uint256 _indexTroveManager, uint256 _newDebtLimit) external onlyGovernor {
-        //limited to increasing by 2x at a time, maximum. Decrease by any amount.
         uint256 currentDebtLimit = getTroveManager(_indexTroveManager).getDebtLimit();
         if (_newDebtLimit > currentDebtLimit) {
             require(_newDebtLimit <= currentDebtLimit * 2 || _newDebtLimit <= getTroveManager(_indexTroveManager).getInitalDebtLimit(), "CollateralRegistry: Debt limit increase by more than 2x is not allowed");
@@ -396,10 +407,12 @@ contract CollateralRegistry is ICollateralRegistry {
     }
 
     /// @notice Update the debt limit for a specific non-redeemable TroveManager
+    /// @dev Decreases are unrestricted. Increases must satisfy at least one of the following conditions:
+    /// (1) the new limit does not exceed 2x the current debt limit, or
+    /// (2) the new limit does not exceed the initial debt limit.
     /// @param _indexTroveManager The index of the trove manager from non-redeemable branches array
     /// @param _newDebtLimit The new debt limit
     function updateNonRedeemableDebtLimit(uint256 _indexTroveManager, uint256 _newDebtLimit) external onlyGovernor {
-        //limited to increasing by 2x at a time, maximum. Decrease by any amount.
         uint256 currentDebtLimit = getNonRedeemableTroveManager(_indexTroveManager).getDebtLimit();
         if (_newDebtLimit > currentDebtLimit) {
             require(_newDebtLimit <= currentDebtLimit * 2 || _newDebtLimit <= getNonRedeemableTroveManager(_indexTroveManager).getInitalDebtLimit(), "CollateralRegistry: Debt limit increase by more than 2x is not allowed");
@@ -472,6 +485,7 @@ contract CollateralRegistry is ICollateralRegistry {
     /// @notice Update the collateral governor
     /// @param _newCollateralGovernor The new collateral governor address
     function updateCollateralGovernor(address _newCollateralGovernor) external onlyGovernor {
+        require(_newCollateralGovernor != collateralGovernor, "CR: Collateral governor already set to this address");
         address oldGovernor = collateralGovernor;
         collateralGovernor = _newCollateralGovernor;
         emit CollateralGovernorUpdated(oldGovernor, _newCollateralGovernor);
