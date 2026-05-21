@@ -647,6 +647,10 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         return abi.encodePacked(_creationCode, abi.encode(_addressesRegistry));
     }
 
+    function getBytecode(bytes memory _creationCode, address _addressesRegistry, address _governor) public pure returns (bytes memory) {
+        return abi.encodePacked(_creationCode, abi.encode(_addressesRegistry, _governor));
+    }
+
     function getBytecode(bytes memory _creationCode, address _addressesRegistry, bool _isRedemptionProtectedBranch) public pure returns (bytes memory) {
         return abi.encodePacked(_creationCode, abi.encode(_addressesRegistry, _isRedemptionProtectedBranch));
     }
@@ -828,7 +832,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         );
         addresses.troveManager = _troveManagerAddress;
         addresses.troveNFT = vm.computeCreate2Address(
-            SALT, keccak256(getBytecode(type(TroveNFT).creationCode, address(contracts.addressesRegistry)))
+            SALT, keccak256(getBytecode(type(TroveNFT).creationCode, address(contracts.addressesRegistry), GOVERNOR_ADDRESS))
         );
         addresses.stabilityPool = vm.computeCreate2Address(
             SALT, keccak256(getBytecode(type(StabilityPool).creationCode, address(contracts.addressesRegistry)))
@@ -876,7 +880,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
 
         contracts.borrowerOperations = new BorrowerOperations{salt: SALT}(contracts.addressesRegistry, false);
         contracts.troveManager = new TroveManager{salt: SALT}(contracts.addressesRegistry);
-        contracts.troveNFT = new TroveNFT{salt: SALT}(contracts.addressesRegistry);
+        contracts.troveNFT = new TroveNFT{salt: SALT}(contracts.addressesRegistry, GOVERNOR_ADDRESS);
         contracts.stabilityPool = new StabilityPool{salt: SALT}(contracts.addressesRegistry);
         contracts.activePool = new ActivePool{salt: SALT}(contracts.addressesRegistry, _troveManagerParams.isAeroLPCollateral, _troveManagerParams.aeroGauge);
         contracts.defaultPool = new DefaultPool{salt: SALT}(contracts.addressesRegistry);
