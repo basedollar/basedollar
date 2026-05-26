@@ -10,30 +10,34 @@ uint256 constant _100pct = DECIMAL_PRECISION;
 uint256 constant _1pct = DECIMAL_PRECISION / 100;
 
 // Amount of ETH to be locked in gas pool on opening troves
-uint256 constant ETH_GAS_COMPENSATION = 0.0375 ether;
+uint256 constant ETH_GAS_COMPENSATION = 0.001 ether;
 
 // Liquidation
 uint256 constant MIN_LIQUIDATION_PENALTY_SP = 5e16; // 5%
 uint256 constant MAX_LIQUIDATION_PENALTY_REDISTRIBUTION = 20e16; // 20%
 
 // Collateral branch parameters (SETH = staked ETH, i.e. wstETH / rETH)
+// WETH
 uint256 constant CCR_WETH = 150 * _1pct;
-uint256 constant CCR_SETH = 160 * _1pct;
-
 uint256 constant MCR_WETH = 110 * _1pct;
-uint256 constant MCR_SETH = 120 * _1pct;
-
 uint256 constant SCR_WETH = 110 * _1pct;
-uint256 constant SCR_SETH = 120 * _1pct;
+uint256 constant DEBT_LIMIT_WETH = 100_000_000e18;
+uint256 constant LIQUIDATION_PENALTY_SP_WETH = 5 * _1pct;
+uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_WETH = 10 * _1pct;
 
-uint256 constant WETH_DEBT_LIMIT = 1000000000000000000000000000000000000000;
-uint256 constant SETH_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+// SETH (wstETH, rETH, cbETH)
+uint256 constant CCR_SETH = 160 * _1pct;
+uint256 constant MCR_SETH = 120 * _1pct;
+uint256 constant SCR_SETH = 120 * _1pct;
+uint256 constant DEBT_LIMIT_SETH = 25_000_000e18;
+uint256 constant LIQUIDATION_PENALTY_SP_SETH = 5 * _1pct;
+uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_SETH = 20 * _1pct;
 
 // cbBTC (Coinbase wrapped Bitcoin) parameters
 uint256 constant CCR_CBBTC = 150 * _1pct;
 uint256 constant MCR_CBBTC = 110 * _1pct;
 uint256 constant SCR_CBBTC = 110 * _1pct;
-uint256 constant CBBTC_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+uint256 constant DEBT_LIMIT_CBBTC = 10_000_000e18;
 uint256 constant LIQUIDATION_PENALTY_SP_CBBTC = 5 * _1pct;
 uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_CBBTC = 10 * _1pct;
 
@@ -41,7 +45,7 @@ uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_CBBTC = 10 * _1pct;
 uint256 constant CCR_CBETH = 160 * _1pct;
 uint256 constant MCR_CBETH = 120 * _1pct;
 uint256 constant SCR_CBETH = 120 * _1pct;
-uint256 constant CBETH_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+uint256 constant DEBT_LIMIT_CBETH = 10_000_000e18;
 uint256 constant LIQUIDATION_PENALTY_SP_CBETH = 5 * _1pct;
 uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_CBETH = 20 * _1pct;
 
@@ -49,7 +53,7 @@ uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_CBETH = 20 * _1pct;
 uint256 constant CCR_AERO = 200 * _1pct;
 uint256 constant MCR_AERO = 150 * _1pct;
 uint256 constant SCR_AERO = 150 * _1pct;
-uint256 constant AERO_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+uint256 constant DEBT_LIMIT_AERO = 5_000_000e18;
 uint256 constant LIQUIDATION_PENALTY_SP_AERO = 5 * _1pct;
 uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_AERO = 20 * _1pct;
 
@@ -57,7 +61,7 @@ uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_AERO = 20 * _1pct;
 uint256 constant CCR_AERO_LP = 200 * _1pct;
 uint256 constant MCR_AERO_LP = 150 * _1pct;
 uint256 constant SCR_AERO_LP = 150 * _1pct;
-uint256 constant AERO_LP_DEBT_LIMIT = 1000000000000000000000000000000000000000;
+uint256 constant DEBT_LIMIT_AERO_LP = 1_000_000e18;
 uint256 constant LIQUIDATION_PENALTY_SP_AERO_LP = 5 * _1pct;
 uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_AERO_LP = 20 * _1pct;
 
@@ -65,15 +69,9 @@ uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_AERO_LP = 20 * _1pct;
 // On top of MCR to join a batch, or adjust inside a batch
 uint256 constant BCR_ALL = 10 * _1pct;
 
-uint256 constant LIQUIDATION_PENALTY_SP_WETH = 5 * _1pct;
-uint256 constant LIQUIDATION_PENALTY_SP_SETH = 5 * _1pct;
-
-uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_WETH = 10 * _1pct;
-uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_SETH = 20 * _1pct;
-
 // Fraction of collateral awarded to liquidator
 uint256 constant COLL_GAS_COMPENSATION_DIVISOR = 200; // dividing by 200 yields 0.5%
-uint256 constant COLL_GAS_COMPENSATION_CAP = 2 ether; // Max coll gas compensation capped at 2 ETH
+uint256 constant COLL_GAS_COMPENSATION_CAP = 2e16; // Max coll gas compensation capped at 0.02 ETH
 
 // Minimum amount of net Bold debt a trove must have
 uint256 constant MIN_DEBT = 200e18;

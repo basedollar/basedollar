@@ -378,7 +378,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             MCR: MCR_WETH,
             SCR: SCR_WETH,
             BCR: BCR_ALL,
-            debtLimit: WETH_DEBT_LIMIT,
+            debtLimit: DEBT_LIMIT_WETH,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_WETH,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_WETH
         });
@@ -391,7 +391,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             MCR: MCR_SETH,
             SCR: SCR_SETH,
             BCR: BCR_ALL,
-            debtLimit: SETH_DEBT_LIMIT,
+            debtLimit: DEBT_LIMIT_SETH,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_SETH,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_SETH
         });
@@ -407,7 +407,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             MCR: MCR_CBBTC,
             SCR: SCR_CBBTC,
             BCR: BCR_ALL,
-            debtLimit: CBBTC_DEBT_LIMIT,
+            debtLimit: DEBT_LIMIT_CBBTC,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_CBBTC,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_CBBTC
         });
@@ -420,7 +420,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             MCR: MCR_CBETH,
             SCR: SCR_CBETH,
             BCR: BCR_ALL,
-            debtLimit: CBETH_DEBT_LIMIT,
+            debtLimit: DEBT_LIMIT_CBETH,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_CBETH,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_CBETH
         });
@@ -433,7 +433,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             MCR: MCR_AERO,
             SCR: SCR_AERO,
             BCR: BCR_ALL,
-            debtLimit: AERO_DEBT_LIMIT,
+            debtLimit: DEBT_LIMIT_AERO,
             LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_AERO,
             LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_AERO
         });
