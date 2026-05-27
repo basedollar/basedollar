@@ -25,6 +25,7 @@ contract CollateralRegistryExtendedCoverageTest is DevTestSetup {
     }
 
     event CollateralGovernorUpdated(address oldGovernor, address newGovernor);
+    event AeroManagerUpdated(address oldAeroManager, address newAeroManager);
     event CollateralBranchAdded(
         uint256 totalCollaterals, uint256 index, IERC20Metadata token, ITroveManager troveManager, bool isRedeemable
     ); // matches CollateralRegistry.CollateralBranchAdded (no indexed topics)
@@ -220,6 +221,74 @@ contract CollateralRegistryExtendedCoverageTest is DevTestSetup {
         emit CollateralGovernorUpdated(gov, next);
         CollateralRegistry(address(collateralRegistry)).updateCollateralGovernor(next);
         assertEq(CollateralRegistry(address(collateralRegistry)).collateralGovernor(), next);
+    }
+
+    function test_updateAeroManager_succeedsWhenNoAeroLpBranches() public {
+        AeroManager current = AeroManager(address(aeroManager));
+        AeroManager newAeroManager = new AeroManager(current.aeroTokenAddress(), gov, current.treasuryAddress());
+        address oldAeroManager = address(CollateralRegistry(address(collateralRegistry)).aeroManager());
+
+        assertFalse(CollateralRegistry(address(collateralRegistry)).hasAeroLPCollateralBranch());
+
+        vm.prank(gov);
+        vm.expectEmit(false, false, false, true);
+        emit AeroManagerUpdated(oldAeroManager, address(newAeroManager));
+        CollateralRegistry(address(collateralRegistry)).updateAeroManager(newAeroManager);
+
+        assertEq(address(CollateralRegistry(address(collateralRegistry)).aeroManager()), address(newAeroManager));
+    }
+
+    function test_updateAeroManager_revertsAfterAeroLpBranchAdded() public {
+        TestDeployer d = _freshDeployer();
+        IERC20Metadata lst = _lstToken("AERO");
+        MockAeroGaugeForCR gauge = new MockAeroGaugeForCR(address(lst), AeroManager(address(aeroManager)).aeroTokenAddress());
+        TestDeployer.AeroParams memory ap = TestDeployer.AeroParams(aeroManager, true, address(gauge));
+        TestDeployer.LiquityContractsDev memory c = _deployExtraBranch(d, lst, ap);
+
+        vm.prank(gov);
+        CollateralRegistry(address(collateralRegistry)).createNewBranch(c.addressesRegistry, true);
+        assertTrue(CollateralRegistry(address(collateralRegistry)).hasAeroLPCollateralBranch());
+
+        AeroManager current = AeroManager(address(aeroManager));
+        AeroManager newAeroManager = new AeroManager(current.aeroTokenAddress(), gov, current.treasuryAddress());
+        vm.prank(gov);
+        vm.expectRevert("CR: Cannot update AeroManager with Aero LP collateral branches");
+        CollateralRegistry(address(collateralRegistry)).updateAeroManager(newAeroManager);
+    }
+
+    function test_updateAeroManager_revertsIfNotGovernor() public {
+        AeroManager current = AeroManager(address(aeroManager));
+        AeroManager newAeroManager = new AeroManager(current.aeroTokenAddress(), gov, current.treasuryAddress());
+        vm.prank(A);
+        vm.expectRevert("CollateralRegistry: Only governor can call this function");
+        CollateralRegistry(address(collateralRegistry)).updateAeroManager(newAeroManager);
+    }
+
+    function test_updateAeroManager_revertsIfZeroAddress() public {
+        vm.prank(gov);
+        vm.expectRevert("CR: AeroManager cannot be zero address");
+        CollateralRegistry(address(collateralRegistry)).updateAeroManager(IAeroManager(address(0)));
+    }
+
+    function test_updateAeroManager_revertsIfSameAddress() public {
+        vm.prank(gov);
+        vm.expectRevert("CR: AeroManager already set to this address");
+        CollateralRegistry(address(collateralRegistry)).updateAeroManager(aeroManager);
+    }
+
+    function test_createNewBranch_aeroLpCollateral_setsHasAeroLPCollateralBranch() public {
+        TestDeployer d = _freshDeployer();
+        IERC20Metadata lst = _lstToken("AERO2");
+        MockAeroGaugeForCR gauge = new MockAeroGaugeForCR(address(lst), AeroManager(address(aeroManager)).aeroTokenAddress());
+        TestDeployer.AeroParams memory ap = TestDeployer.AeroParams(aeroManager, true, address(gauge));
+        TestDeployer.LiquityContractsDev memory c = _deployExtraBranch(d, lst, ap);
+
+        assertFalse(CollateralRegistry(address(collateralRegistry)).hasAeroLPCollateralBranch());
+
+        vm.prank(gov);
+        CollateralRegistry(address(collateralRegistry)).createNewBranch(c.addressesRegistry, true);
+
+        assertTrue(CollateralRegistry(address(collateralRegistry)).hasAeroLPCollateralBranch());
     }
 
     function test_updateNonRedeemableDebtLimit_increaseBeyond2xAndAboveInitial_reverts() public {
