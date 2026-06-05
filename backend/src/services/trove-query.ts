@@ -14,15 +14,13 @@ interface TroveQueryResult {
   borrower: string;
   collateral: { id: string };
   deposit: string;
+  debt: string;
+  interestRate: string;
+  interestBatch: { annualInterestRate: string } | null;
   createdAt: string;
   closedAt: string | null;
   updatedAt: string;
   status: string;
-}
-
-interface TrovesQueryResponse {
-  activeTroves: TroveQueryResult[];
-  closedTroves: TroveQueryResult[];
 }
 
 export class TroveQueryService {
@@ -63,11 +61,17 @@ export class TroveQueryService {
    * Convert raw trove query result to Trove type
    */
   private parseTrove(raw: TroveQueryResult): Trove {
+    const directInterestRate = BigInt(raw.interestRate);
+
     return {
       id: raw.id,
       borrower: raw.borrower as Address,
       collateral: { id: raw.collateral.id },
       deposit: BigInt(raw.deposit),
+      debt: BigInt(raw.debt),
+      interestRate: directInterestRate > 0n
+        ? directInterestRate
+        : BigInt(raw.interestBatch?.annualInterestRate ?? "0"),
       createdAt: BigInt(raw.createdAt),
       closedAt: raw.closedAt ? BigInt(raw.closedAt) : null,
       updatedAt: BigInt(raw.updatedAt),
@@ -79,7 +83,7 @@ export class TroveQueryService {
    * Query troves that were active at any point during the distribution period.
    * This includes:
    * - Currently active troves created before period end
-   * - Troves that were closed after period start (they contributed collateral for part of the period)
+   * - Troves that became inactive after period start (they contributed for part of the period)
    *
    * @param collateralIds - Array of collateral IDs (collIndex) to filter by
    * @param period - The distribution period to query for
@@ -91,7 +95,7 @@ export class TroveQueryService {
     const allTroves: Trove[] = [];
 
     // Query in batches due to subgraph limits
-    // We need two separate queries: one for active troves and one for closed troves
+    // We need two separate queries: one for active troves and one for inactive troves
 
     // 1. Query currently active troves (paginated)
     let activeCursor = "";
@@ -113,6 +117,9 @@ export class TroveQueryService {
             borrower
             collateral { id }
             deposit
+            debt
+            interestRate
+            interestBatch { annualInterestRate }
             createdAt
             closedAt
             updatedAt
@@ -135,18 +142,20 @@ export class TroveQueryService {
       activeCursor = result.troves[result.troves.length - 1].id;
     }
 
-    // 2. Query troves that were closed during the period (paginated)
-    let closedCursor = "";
+    // 2. Query troves that became inactive during or after the period start (paginated).
+    // Redeemed troves do not always have closedAt set, so updatedAt is the broadest
+    // reliable boundary for "was active for part of the period".
+    let inactiveCursor = "";
     while (true) {
       const result = await this.query<{ troves: TroveQueryResult[] }>(
         `
-        query ClosedTroves($collateralIds: [String!]!, $periodStart: BigInt!, $periodEnd: BigInt!, $cursor: ID!, $limit: Int!) {
+        query InactiveTroves($collateralIds: [String!]!, $periodStart: BigInt!, $periodEnd: BigInt!, $cursor: ID!, $limit: Int!) {
           troves(
             where: {
               status_not: active
               collateral_in: $collateralIds
               createdAt_lt: $periodEnd
-              closedAt_gt: $periodStart
+              updatedAt_gt: $periodStart
               id_gt: $cursor
             }
             orderBy: id
@@ -156,6 +165,9 @@ export class TroveQueryService {
             borrower
             collateral { id }
             deposit
+            debt
+            interestRate
+            interestBatch { annualInterestRate }
             createdAt
             closedAt
             updatedAt
@@ -167,7 +179,7 @@ export class TroveQueryService {
           collateralIds,
           periodStart: period.startTimestamp.toString(),
           periodEnd: period.endTimestamp.toString(),
-          cursor: closedCursor,
+          cursor: inactiveCursor,
           limit: SUBGRAPH_QUERY_LIMIT,
         },
       );
@@ -176,7 +188,7 @@ export class TroveQueryService {
       allTroves.push(...troves);
 
       if (troves.length < SUBGRAPH_QUERY_LIMIT) break;
-      closedCursor = result.troves[result.troves.length - 1].id;
+      inactiveCursor = result.troves[result.troves.length - 1].id;
     }
 
     return allTroves;

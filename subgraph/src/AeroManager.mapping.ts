@@ -24,7 +24,7 @@ export function handleStaked(event: StakedEvent): void {
   stake.activePool = activePool;
   stake.gauge = event.params.gauge;
   stake.token = event.params.token;
-  stake.amount = event.params.amount;
+  stake.amount = event.params.amountReceived;
   stake.blockNumber = event.block.number;
   stake.timestamp = event.block.timestamp;
   stake.transactionHash = event.transaction.hash;
@@ -70,4 +70,3 @@ export function handleAeroDistributed(event: AeroDistributedEvent): void {
   distribution.transactionHash = event.transaction.hash;
   distribution.save();
 }
-

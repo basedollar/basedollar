@@ -124,6 +124,7 @@ type TroveSnapshot @entity(immutable: true) {
   borrower: Bytes!
   debt: BigInt!
   deposit: BigInt!
+  interestRate: BigInt!
   stake: BigInt!
   timestamp: BigInt!
   blockNumber: BigInt!

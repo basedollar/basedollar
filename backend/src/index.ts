@@ -3,7 +3,7 @@ import { AeroEventsService } from "./services/aero-events.js";
 import { CollateralTrackerService } from "./services/collateral-tracker.js";
 import { RewardsCalculatorService } from "./services/rewards-calculator.js";
 import { TroveQueryService } from "./services/trove-query.js";
-import type { GaugeDistributionInfo, GaugeDistributionResult } from "./types.js";
+import type { GaugeDistributionInfo, GaugeDistributionResult, TrovePositionTWA } from "./types.js";
 
 /**
  * Main distribution calculation flow.
@@ -11,8 +11,9 @@ import type { GaugeDistributionInfo, GaugeDistributionResult } from "./types.js"
  * This function orchestrates the entire AERO rewards distribution calculation:
  * 1. Gets per-gauge distribution info based on epoch data from distributed events
  * 2. For each gauge: queries troves active during the gauge's period
- * 3. Calculates time-weighted average collateral for each trove
- * 4. Distributes rewards per gauge based on claim events at epoch = latestDistributedEpoch + 1
+ * 3. Calculates time-weighted average deposit, debt, and interest rate for each trove
+ * 4. Calculates the global AERO LP time-weighted average interest rate
+ * 5. Distributes rewards per gauge based on claim events at epoch = latestDistributedEpoch + 1
  */
 async function calculateDistribution(gaugeInfoOverride?: GaugeDistributionInfo[]): Promise<GaugeDistributionResult[]> {
   const config = loadConfig();
@@ -47,11 +48,18 @@ async function calculateDistribution(gaugeInfoOverride?: GaugeDistributionInfo[]
     );
   }
 
-  // Step 2: Process each gauge separately and build per-gauge results
-  const results: GaugeDistributionResult[] = [];
+  console.log(`Max recipients per epoch: ${config.maxRecipientsPerEpoch}`);
+
+  // Step 2: Collect TWA position data for each gauge first. Reward weights use
+  // the average interest rate across all AERO LP collateral branches.
+  const gaugeTwaResults: Array<{
+    gaugeInfo: GaugeDistributionInfo;
+    twaResults: TrovePositionTWA[];
+  }> = [];
+  const allTwaResults: TrovePositionTWA[] = [];
 
   for (const gaugeInfo of gaugeDistributionInfos) {
-    console.log(`\nProcessing gauge ${gaugeInfo.gauge}...`);
+    console.log(`\nCollecting position metrics for gauge ${gaugeInfo.gauge}...`);
 
     // Get collateral ID for this gauge's LP token
     const collateralIds = await troveQueryService.getCollateralIdsForTokens([gaugeInfo.token]);
@@ -72,10 +80,30 @@ async function calculateDistribution(gaugeInfoOverride?: GaugeDistributionInfo[]
 
     // Calculate TWA for troves in this gauge's period
     const twaResults = await collateralTrackerService.calculateTWAForTroves(troves, gaugeInfo.period);
-    console.log(`  Calculated TWA for ${twaResults.length} trove(s)`);
+    const activeTwaResults = twaResults.filter((twa) => twa.activeTime > 0n);
+    console.log(`  Calculated active TWA for ${activeTwaResults.length} trove(s)`);
+
+    gaugeTwaResults.push({ gaugeInfo, twaResults: activeTwaResults });
+    allTwaResults.push(...activeTwaResults);
+  }
+
+  const globalAverageInterestRate =
+    rewardsCalculatorService.calculateGlobalAverageInterestRate(allTwaResults);
+  console.log(`\nGlobal AERO LP average interest rate: ${globalAverageInterestRate}`);
+
+  // Step 3: Process each gauge separately and build per-gauge results
+  const results: GaugeDistributionResult[] = [];
+
+  for (const { gaugeInfo, twaResults } of gaugeTwaResults) {
+    console.log(`\nProcessing gauge ${gaugeInfo.gauge}...`);
 
     // Calculate reward distributions for this gauge
-    const distributions = rewardsCalculatorService.calculateRewards(twaResults, gaugeInfo.totalRewards);
+    const distributions = rewardsCalculatorService.calculateRewards(
+      twaResults,
+      gaugeInfo.totalRewards,
+      globalAverageInterestRate,
+      config.maxRecipientsPerEpoch,
+    );
     console.log(`  Generated distributions for ${distributions.length} trove(s), total rewards: ${gaugeInfo.totalRewards}`);
 
     // Build per-gauge result

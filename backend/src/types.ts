@@ -37,6 +37,8 @@ export interface Trove {
     id: string; // collIndex
   };
   deposit: bigint; // collateral amount
+  debt: bigint; // borrowed debt amount
+  interestRate: bigint; // annual interest rate, or effective batch rate
   createdAt: bigint; // timestamp
   closedAt: bigint | null; // timestamp, null if still active
   updatedAt: bigint; // timestamp
@@ -45,26 +47,36 @@ export interface Trove {
 
 export type TroveStatus = "active" | "closed" | "liquidated" | "redeemed";
 
-// Collateral snapshot for TWA calculation
-export interface CollateralSnapshot {
+// Position snapshot for TWA calculation
+export interface TrovePositionSnapshot {
   troveId: string;
   deposit: bigint;
+  debt: bigint;
+  interestRate: bigint;
+  status: TroveStatus;
   timestamp: bigint;
 }
 
 // Time-weighted average result for a trove
-export interface TroveCollateralTWA {
+export interface TrovePositionTWA {
   troveId: string;
   borrower: Address;
   collateralId: string;
-  timeWeightedAverage: bigint;
+  timeWeightedAverageDeposit: bigint;
+  timeWeightedAverageDebt: bigint;
+  timeWeightedAverageInterestRate: bigint;
   // Time this trove was active during the period (in seconds)
   activeTime: bigint;
 }
 
 // Final distribution data per trove (keyed by troveId)
-export interface TroveDistribution extends TroveCollateralTWA {
-  // Weight used for distribution (e.g. TWA * activeTime)
+export interface TroveDistribution extends TrovePositionTWA {
+  // Weight before the interest multiplier: (TWA deposit + TWA debt) * activeTime
+  baseWeight: bigint;
+  // Multiplier is numerator / denominator; denominator is 1 when global average rate is zero.
+  interestMultiplierNumerator: bigint;
+  interestMultiplierDenominator: bigint;
+  // Scaled weight used for distribution. When denominator > 1, the common denominator is omitted.
   weight: bigint;
   // Reward amount allocated to this troveId
   rewardAmount: bigint;
