@@ -11,6 +11,8 @@ export interface Config {
   distributionPeriodSeconds: bigint;
   // Block to start fetching events from
   startBlock: bigint;
+  // Maximum number of recipients to include in an epoch distribution
+  maxRecipientsPerEpoch: number;
 }
 
 function getEnvOrThrow(name: string): string {
@@ -26,6 +28,11 @@ function getEnvOrDefault(name: string, defaultValue: string): string {
 }
 
 export function loadConfig(): Config {
+  const maxRecipientsPerEpoch = Number(getEnvOrDefault("MAX_RECIPIENTS", "500"));
+  if (!Number.isSafeInteger(maxRecipientsPerEpoch) || maxRecipientsPerEpoch < 1) {
+    throw new Error("MAX_RECIPIENTS must be a positive safe integer");
+  }
+
   return {
     rpcUrl: getEnvOrThrow("RPC_URL"),
     subgraphUrl: getEnvOrThrow("SUBGRAPH_URL"),
@@ -34,6 +41,7 @@ export function loadConfig(): Config {
       getEnvOrDefault("DISTRIBUTION_PERIOD_SECONDS", "604800"), // 7 days
     ),
     startBlock: BigInt(getEnvOrDefault("START_BLOCK", "0")),
+    maxRecipientsPerEpoch,
   };
 }
 
@@ -45,7 +53,8 @@ export const AERO_MANAGER_ABI = [
     inputs: [
       { name: "gauge", type: "address", indexed: true },
       { name: "token", type: "address", indexed: false },
-      { name: "amount", type: "uint256", indexed: false },
+      { name: "amountReceived", type: "uint256", indexed: false },
+      { name: "amountStaked", type: "uint256", indexed: false },
     ],
   },
   {
@@ -55,6 +64,25 @@ export const AERO_MANAGER_ABI = [
       { name: "gauge", type: "address", indexed: true },
       { name: "total", type: "uint256", indexed: false },
       { name: "claimFee", type: "uint256", indexed: false },
+      { name: "epoch", type: "uint256", indexed: true },
+    ],
+  },
+  {
+    type: "event",
+    name: "AeroDistributed",
+    inputs: [
+      { name: "gauge", type: "address", indexed: true },
+      { name: "recipients", type: "uint256", indexed: false },
+      { name: "totalRewardAmount", type: "uint256", indexed: false },
+      { name: "epoch", type: "uint256", indexed: true },
+    ],
+  },
+  {
+    type: "event",
+    name: "EpochClosed",
+    inputs: [
+      { name: "gauge", type: "address", indexed: true },
+      { name: "epoch", type: "uint256", indexed: true },
     ],
   },
   {

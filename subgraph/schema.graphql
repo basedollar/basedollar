@@ -72,6 +72,17 @@ type AeroDistribution @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
+# Raw AeroManager epoch close events. These define reward accounting windows.
+type AeroEpochClose @entity(immutable: true) {
+  id: ID! # txHash:logIndex
+  collateral: Collateral!
+  gauge: Bytes!
+  epoch: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
 type InterestRateBracket @entity(immutable: false) {
   id: ID! # "type:collIndex:rateFloored", e.g. "r:0:44000000000000000" or "n:0:44000000000000000"
   collateral: Collateral!
@@ -124,6 +135,7 @@ type TroveSnapshot @entity(immutable: true) {
   borrower: Bytes!
   debt: BigInt!
   deposit: BigInt!
+  interestRate: BigInt!
   stake: BigInt!
   timestamp: BigInt!
   blockNumber: BigInt!

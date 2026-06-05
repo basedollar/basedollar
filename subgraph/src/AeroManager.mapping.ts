@@ -1,9 +1,10 @@
 import {
   AeroDistributed as AeroDistributedEvent,
   Claimed as ClaimedEvent,
+  EpochClosed as EpochClosedEvent,
   Staked as StakedEvent,
 } from "../generated/templates/AeroManager/AeroManager";
-import { AeroClaim, AeroDistribution, AeroGauge, AeroStake } from "../generated/schema";
+import { AeroClaim, AeroDistribution, AeroEpochClose, AeroGauge, AeroStake } from "../generated/schema";
 
 function eventId(txHash: string, logIndex: string): string {
   return txHash + ":" + logIndex;
@@ -24,7 +25,7 @@ export function handleStaked(event: StakedEvent): void {
   stake.activePool = activePool;
   stake.gauge = event.params.gauge;
   stake.token = event.params.token;
-  stake.amount = event.params.amount;
+  stake.amount = event.params.amountReceived;
   stake.blockNumber = event.block.number;
   stake.timestamp = event.block.timestamp;
   stake.transactionHash = event.transaction.hash;
@@ -71,3 +72,19 @@ export function handleAeroDistributed(event: AeroDistributedEvent): void {
   distribution.save();
 }
 
+export function handleEpochClosed(event: EpochClosedEvent): void {
+  let gauge = AeroGauge.load(event.params.gauge.toHexString());
+  if (!gauge) {
+    return;
+  }
+
+  let id = eventId(event.transaction.hash.toHexString(), event.logIndex.toString());
+  let epochClose = new AeroEpochClose(id);
+  epochClose.collateral = gauge.collateral;
+  epochClose.gauge = event.params.gauge;
+  epochClose.epoch = event.params.epoch;
+  epochClose.blockNumber = event.block.number;
+  epochClose.timestamp = event.block.timestamp;
+  epochClose.transactionHash = event.transaction.hash;
+  epochClose.save();
+}

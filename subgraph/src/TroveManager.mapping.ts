@@ -228,6 +228,7 @@ export function handleTroveOperation(event: TroveOperationEvent): void {
   troveSnapshot.borrower = trove.borrower;
   troveSnapshot.debt = trove.debt;
   troveSnapshot.deposit = trove.deposit;
+  troveSnapshot.interestRate = event.params._annualInterestRate;
   troveSnapshot.stake = trove.stake;
   troveSnapshot.timestamp = timestamp;
   troveSnapshot.blockNumber = event.block.number;

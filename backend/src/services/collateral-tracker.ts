@@ -1,5 +1,11 @@
 import type { Config } from "../config.js";
-import type { CollateralSnapshot, DistributionPeriod, Trove, TroveCollateralTWA } from "../types.js";
+import type {
+  DistributionPeriod,
+  Trove,
+  TrovePositionSnapshot,
+  TrovePositionTWA,
+  TroveStatus,
+} from "../types.js";
 
 const SUBGRAPH_QUERY_LIMIT = 1000;
 const TROVE_SNAPSHOT_TROVE_ID_BATCH = 100;
@@ -13,6 +19,9 @@ interface TroveSnapshotRow {
   id: string;
   trove: { id: string };
   deposit: string;
+  debt: string;
+  interestRate: string;
+  status: string;
   timestamp: string;
 }
 
@@ -41,14 +50,15 @@ export class CollateralTrackerService {
   }
 
   /**
-   * Fetch all TroveSnapshot rows for the given trove IDs within the period.
-   * This assumes the subgraph is indexing `TroveSnapshot` entities.
+   * Fetch all TroveSnapshot rows needed to reconstruct position state through the
+   * period. Snapshots are post-operation state, so the latest snapshot before the
+   * period start is needed to price the first interval correctly.
    */
   async getSnapshotsForTroves(
     troveIds: string[],
     period: DistributionPeriod,
-  ): Promise<Map<string, CollateralSnapshot[]>> {
-    const byTrove = new Map<string, CollateralSnapshot[]>();
+  ): Promise<Map<string, TrovePositionSnapshot[]>> {
+    const byTrove = new Map<string, TrovePositionSnapshot[]>();
     for (const id of troveIds) byTrove.set(id, []);
 
     for (let offset = 0; offset < troveIds.length; offset += TROVE_SNAPSHOT_TROVE_ID_BATCH) {
@@ -58,9 +68,9 @@ export class CollateralTrackerService {
       for (;;) {
         const result = await this.query<{ troveSnapshots: TroveSnapshotRow[] }>(
           `
-          query TroveSnapshots($troveIds: [String!]!, $start: BigInt!, $end: BigInt!, $cursor: ID!, $limit: Int!) {
+          query TroveSnapshots($troveIds: [String!]!, $end: BigInt!, $cursor: ID!, $limit: Int!) {
             troveSnapshots(
-              where: { trove_in: $troveIds, timestamp_gte: $start, timestamp_lte: $end, id_gt: $cursor }
+              where: { trove_in: $troveIds, timestamp_lte: $end, id_gt: $cursor }
               orderBy: id
               orderDirection: asc
               first: $limit
@@ -68,13 +78,15 @@ export class CollateralTrackerService {
               id
               trove { id }
               deposit
+              debt
+              interestRate
+              status
               timestamp
             }
           }
           `,
           {
             troveIds: troveIdBatch,
-            start: period.startTimestamp.toString(),
             end: period.endTimestamp.toString(),
             cursor,
             limit: SUBGRAPH_QUERY_LIMIT,
@@ -83,9 +95,12 @@ export class CollateralTrackerService {
 
         const rows = result.troveSnapshots;
         for (const row of rows) {
-          const snapshot: CollateralSnapshot = {
+          const snapshot: TrovePositionSnapshot = {
             troveId: row.trove.id,
             deposit: BigInt(row.deposit),
+            debt: BigInt(row.debt),
+            interestRate: BigInt(row.interestRate),
+            status: row.status as TroveStatus,
             timestamp: BigInt(row.timestamp),
           };
           const arr = byTrove.get(row.trove.id);
@@ -97,7 +112,6 @@ export class CollateralTrackerService {
       }
     }
 
-    // Sort snapshots per trove by timestamp asc
     for (const [id, arr] of byTrove.entries()) {
       arr.sort((a, b) => (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0));
       byTrove.set(id, arr);
@@ -107,105 +121,120 @@ export class CollateralTrackerService {
   }
 
   /**
-   * Calculate time-weighted average *deposit size* for a single trove over the period.
-   *
-   * TWA(deposit) = Sum of (deposit × time_held) / active_time_in_period
-   *
-   * @param trove - The trove to calculate TWA for
-   * @param snapshots - Collateral snapshots within the period
-   * @param period - The distribution period
+   * Calculate time-weighted average deposit, debt, and interest rate for a trove
+   * over the period. Only intervals whose state is active contribute to activeTime.
    */
   calculateTWA(
     trove: Trove,
-    snapshots: CollateralSnapshot[],
+    snapshots: TrovePositionSnapshot[],
     period: DistributionPeriod,
-  ): TroveCollateralTWA {
-    // Determine the effective start and end times for this trove in the period
-    const troveStart = trove.createdAt > period.startTimestamp ? trove.createdAt : period.startTimestamp;
-    const troveEnd = trove.closedAt && trove.closedAt < period.endTimestamp
-      ? trove.closedAt
-      : period.endTimestamp;
-
-    // If trove wasn't active during the period, return zero
-    if (troveStart >= troveEnd) {
-      return {
-        troveId: trove.id,
-        borrower: trove.borrower,
-        collateralId: trove.collateral.id,
-        timeWeightedAverage: 0n,
-        activeTime: 0n,
-      };
-    }
-
-    const activeTime = troveEnd - troveStart;
-
-    // If no snapshots found for this trove, assume TWA deposit size is the current trove deposit.
-    // (User-specified fallback behavior.)
-    if (snapshots.length === 0) {
-      return {
-        troveId: trove.id,
-        borrower: trove.borrower,
-        collateralId: trove.collateral.id,
-        timeWeightedAverage: trove.deposit,
-        activeTime,
-      };
-    }
-
-    // Use snapshots that fall within the trove's active window.
-    const relevantSnapshots = snapshots.filter((s) => s.timestamp >= troveStart && s.timestamp <= troveEnd);
-    if (relevantSnapshots.length === 0) {
-      return {
-        troveId: trove.id,
-        borrower: trove.borrower,
-        collateralId: trove.collateral.id,
-        timeWeightedAverage: trove.deposit,
-        activeTime,
-      };
-    }
-
-    // Time-weighted sum over activeTime.
-    let timeWeightedSum = 0n;
-    let lastTimestamp = troveStart;
-    // Assume deposit at troveStart equals the first snapshot's deposit (best effort).
-    let lastDeposit = relevantSnapshots[0].deposit;
-
-    for (const snapshot of relevantSnapshots) {
-      if (snapshot.timestamp <= lastTimestamp) {
-        lastDeposit = snapshot.deposit;
-        continue;
-      }
-      const duration = snapshot.timestamp - lastTimestamp;
-      timeWeightedSum += lastDeposit * duration;
-      lastTimestamp = snapshot.timestamp;
-      lastDeposit = snapshot.deposit;
-    }
-
-    // Tail segment until troveEnd
-    if (lastTimestamp < troveEnd) {
-      timeWeightedSum += lastDeposit * (troveEnd - lastTimestamp);
-    }
-
-    const timeWeightedAverage = timeWeightedSum / activeTime;
-
-    return {
+  ): TrovePositionTWA {
+    const empty = {
       troveId: trove.id,
       borrower: trove.borrower,
       collateralId: trove.collateral.id,
-      timeWeightedAverage,
+      timeWeightedAverageDeposit: 0n,
+      timeWeightedAverageDebt: 0n,
+      timeWeightedAverageInterestRate: 0n,
+      activeTime: 0n,
+    };
+
+    if (period.startTimestamp >= period.endTimestamp) {
+      return empty;
+    }
+
+    if (snapshots.length === 0) {
+      const fallbackStart = trove.createdAt > period.startTimestamp ? trove.createdAt : period.startTimestamp;
+      const fallbackEnd = trove.closedAt && trove.closedAt < period.endTimestamp
+        ? trove.closedAt
+        : period.endTimestamp;
+
+      if (trove.status !== "active" || fallbackStart >= fallbackEnd) {
+        return empty;
+      }
+
+      return {
+        ...empty,
+        timeWeightedAverageDeposit: trove.deposit,
+        timeWeightedAverageDebt: trove.debt,
+        timeWeightedAverageInterestRate: trove.interestRate,
+        activeTime: fallbackEnd - fallbackStart,
+      };
+    }
+
+    let currentDeposit = 0n;
+    let currentDebt = 0n;
+    let currentInterestRate = 0n;
+    let currentStatus: TroveStatus = "closed";
+
+    for (const snapshot of snapshots) {
+      if (snapshot.timestamp > period.startTimestamp) {
+        break;
+      }
+
+      currentDeposit = snapshot.deposit;
+      currentDebt = snapshot.debt;
+      currentInterestRate = snapshot.interestRate;
+      currentStatus = snapshot.status;
+    }
+
+    let cursor = period.startTimestamp;
+    let activeTime = 0n;
+    let depositTimeWeightedSum = 0n;
+    let debtTimeWeightedSum = 0n;
+    let rateTimeWeightedSum = 0n;
+
+    for (const snapshot of snapshots) {
+      if (snapshot.timestamp <= period.startTimestamp) {
+        continue;
+      }
+      if (snapshot.timestamp > period.endTimestamp) {
+        break;
+      }
+
+      if (snapshot.timestamp > cursor && currentStatus === "active") {
+        const duration = snapshot.timestamp - cursor;
+        activeTime += duration;
+        depositTimeWeightedSum += currentDeposit * duration;
+        debtTimeWeightedSum += currentDebt * duration;
+        rateTimeWeightedSum += currentInterestRate * duration;
+      }
+
+      currentDeposit = snapshot.deposit;
+      currentDebt = snapshot.debt;
+      currentInterestRate = snapshot.interestRate;
+      currentStatus = snapshot.status;
+      cursor = snapshot.timestamp;
+    }
+
+    if (cursor < period.endTimestamp && currentStatus === "active") {
+      const duration = period.endTimestamp - cursor;
+      activeTime += duration;
+      depositTimeWeightedSum += currentDeposit * duration;
+      debtTimeWeightedSum += currentDebt * duration;
+      rateTimeWeightedSum += currentInterestRate * duration;
+    }
+
+    if (activeTime === 0n) {
+      return empty;
+    }
+
+    return {
+      ...empty,
+      timeWeightedAverageDeposit: depositTimeWeightedSum / activeTime,
+      timeWeightedAverageDebt: debtTimeWeightedSum / activeTime,
+      timeWeightedAverageInterestRate: rateTimeWeightedSum / activeTime,
       activeTime,
     };
   }
 
   /**
-   * Calculate TWA for multiple troves.
-   *
-   * @param troves - Array of troves to calculate TWA for
-   * @param period - The distribution period
+   * Calculate TWA position metrics for multiple troves.
    */
   async calculateTWAForTroves(
     troves: Trove[],
     period: DistributionPeriod,
-  ): Promise<TroveCollateralTWA[]> {
+  ): Promise<TrovePositionTWA[]> {
     const troveIds = troves.map((t) => t.id);
     const snapshotsByTrove = await this.getSnapshotsForTroves(troveIds, period);
 
