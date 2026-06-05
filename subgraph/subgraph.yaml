@@ -138,6 +138,7 @@ templates:
         - AeroStake
         - AeroClaim
         - AeroDistribution
+        - AeroEpochClose
       abis:
         - name: AeroManager
           file: ../contracts/out/AeroManager.sol/AeroManager.json
@@ -148,6 +149,8 @@ templates:
           handler: handleClaimed
         - event: AeroDistributed(indexed address,uint256,uint256,indexed uint256)
           handler: handleAeroDistributed
+        - event: EpochClosed(indexed address,indexed uint256)
+          handler: handleEpochClosed
   - name: CollateralRegistry
     kind: ethereum/contract
     network: mainnet

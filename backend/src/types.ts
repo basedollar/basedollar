@@ -29,6 +29,14 @@ export interface DistributedEvent {
   transactionHash: `0x${string}`;
 }
 
+export interface EpochClosedEvent {
+  gauge: Address;
+  epoch: bigint;
+  blockNumber: bigint;
+  timestamp: bigint;
+  transactionHash: `0x${string}`;
+}
+
 // Trove data from subgraph
 export interface Trove {
   id: string; // "collIndex:troveId"

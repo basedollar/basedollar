@@ -26,12 +26,9 @@ async function calculateDistribution(gaugeInfoOverride?: GaugeDistributionInfo[]
 
   console.log("Starting AERO rewards distribution calculation...");
 
-  // Step 1: Get current timestamp and per-gauge distribution info
-  const currentTimestamp = await aeroEventsService.getCurrentBlockTimestamp();
-  console.log(`Current timestamp: ${currentTimestamp}`);
-
+  // Step 1: Get per-gauge distribution info for closed, undistributed epochs
   const gaugeDistributionInfos =
-    gaugeInfoOverride ?? (await aeroEventsService.getGaugeDistributionInfo(currentTimestamp));
+    gaugeInfoOverride ?? (await aeroEventsService.getGaugeDistributionInfo());
 
   if (gaugeDistributionInfos.length === 0) {
     console.log("No gauge distribution info found. Exiting.");

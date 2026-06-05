@@ -64,6 +64,25 @@ export const AERO_MANAGER_ABI = [
       { name: "gauge", type: "address", indexed: true },
       { name: "total", type: "uint256", indexed: false },
       { name: "claimFee", type: "uint256", indexed: false },
+      { name: "epoch", type: "uint256", indexed: true },
+    ],
+  },
+  {
+    type: "event",
+    name: "AeroDistributed",
+    inputs: [
+      { name: "gauge", type: "address", indexed: true },
+      { name: "recipients", type: "uint256", indexed: false },
+      { name: "totalRewardAmount", type: "uint256", indexed: false },
+      { name: "epoch", type: "uint256", indexed: true },
+    ],
+  },
+  {
+    type: "event",
+    name: "EpochClosed",
+    inputs: [
+      { name: "gauge", type: "address", indexed: true },
+      { name: "epoch", type: "uint256", indexed: true },
     ],
   },
   {

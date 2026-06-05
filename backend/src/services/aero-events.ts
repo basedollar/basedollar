@@ -5,12 +5,17 @@ import type {
   ClaimedEvent,
   DistributedEvent,
   DistributionPeriod,
+  EpochClosedEvent,
   GaugeDistributionInfo,
   StakedEvent,
 } from "../types.js";
 
 const SUBGRAPH_QUERY_LIMIT = 1000;
 const ORIGIN_TIMESTAMP = 0n;
+
+function gaugeEpochKey(gauge: Address, epoch: bigint): string {
+  return `${gauge.toLowerCase()}:${epoch.toString()}`;
+}
 
 export class AeroEventsService {
   private config: Config;
@@ -243,6 +248,70 @@ export class AeroEventsService {
   }
 
   /**
+   * Fetch all EpochClosed events from AeroManager contract
+   */
+  async getEpochClosedEvents(period?: DistributionPeriod): Promise<EpochClosedEvent[]> {
+    const events: EpochClosedEvent[] = [];
+    let cursor = "";
+
+    for (;;) {
+      const data = await this.query<{
+        aeroEpochCloses: Array<{
+          id: string;
+          gauge: string;
+          epoch: string;
+          blockNumber: string;
+          timestamp: string;
+          transactionHash: string;
+        }>;
+      }>(
+        `
+        query AeroEpochCloses($cursor: ID!, $limit: Int!, $start: BigInt, $end: BigInt) {
+          aeroEpochCloses(
+            where: {
+              id_gt: $cursor
+              timestamp_gte: $start
+              timestamp_lt: $end
+            }
+            orderBy: id
+            orderDirection: asc
+            first: $limit
+          ) {
+            id
+            gauge
+            epoch
+            blockNumber
+            timestamp
+            transactionHash
+          }
+        }
+        `,
+        {
+          cursor,
+          limit: SUBGRAPH_QUERY_LIMIT,
+          start: period ? period.startTimestamp.toString() : null,
+          end: period ? period.endTimestamp.toString() : null,
+        },
+      );
+
+      for (const row of data.aeroEpochCloses) {
+        events.push({
+          gauge: row.gauge as Address,
+          epoch: BigInt(row.epoch),
+          blockNumber: BigInt(row.blockNumber),
+          timestamp: BigInt(row.timestamp),
+          transactionHash: row.transactionHash as `0x${string}`,
+        });
+      }
+
+      if (data.aeroEpochCloses.length < SUBGRAPH_QUERY_LIMIT) break;
+      cursor = data.aeroEpochCloses[data.aeroEpochCloses.length - 1].id;
+    }
+
+    return events;
+  }
+
+  /**
    * Extract unique Aero LP collateral tokens from Staked events.
    * These are the tokens that qualify for AERO rewards distribution.
    */
@@ -295,12 +364,14 @@ export class AeroEventsService {
       aeroClaims: Array<{ timestamp: string }>;
       aeroStakes: Array<{ timestamp: string }>;
       aeroDistributions: Array<{ timestamp: string }>;
+      aeroEpochCloses: Array<{ timestamp: string }>;
     }>(
       `
       query LatestAeroTimestamps {
         aeroClaims(first: 1, orderBy: timestamp, orderDirection: desc) { timestamp }
         aeroStakes(first: 1, orderBy: timestamp, orderDirection: desc) { timestamp }
         aeroDistributions(first: 1, orderBy: timestamp, orderDirection: desc) { timestamp }
+        aeroEpochCloses(first: 1, orderBy: timestamp, orderDirection: desc) { timestamp }
       }
       `,
       {},
@@ -309,8 +380,10 @@ export class AeroEventsService {
     const claimTs = data.aeroClaims.length > 0 ? BigInt(data.aeroClaims[0].timestamp) : 0n;
     const stakeTs = data.aeroStakes.length > 0 ? BigInt(data.aeroStakes[0].timestamp) : 0n;
     const distTs = data.aeroDistributions.length > 0 ? BigInt(data.aeroDistributions[0].timestamp) : 0n;
+    const closeTs = data.aeroEpochCloses.length > 0 ? BigInt(data.aeroEpochCloses[0].timestamp) : 0n;
     let ts = claimTs > stakeTs ? claimTs : stakeTs;
     ts = ts > distTs ? ts : distTs;
+    ts = ts > closeTs ? ts : closeTs;
 
     // If nothing indexed yet, fall back to wall-clock time.
     if (ts === 0n) return BigInt(Math.floor(Date.now() / 1000));
@@ -341,11 +414,12 @@ export class AeroEventsService {
   /**
    * Build per-gauge distribution info based on epoch data.
    * For each gauge:
-   * - Start timestamp = timestamp of latest distributed event for that gauge
-   * - End timestamp = current timestamp
-   * - Total rewards = sum of claim events where gauge matches AND epoch = latestDistributedEpoch + 1
+   * - Epoch = latest distributed epoch + 1
+   * - Start timestamp = previous EpochClosed timestamp, or origin for epoch 0
+   * - End timestamp = matching EpochClosed timestamp
+   * - Total rewards = sum of claim events where gauge matches AND epoch matches the closed epoch
    */
-  async getGaugeDistributionInfo(currentTimestamp: bigint): Promise<GaugeDistributionInfo[]> {
+  async getGaugeDistributionInfo(): Promise<GaugeDistributionInfo[]> {
     // Get LP collaterals (gauge -> token mapping)
     const lpCollaterals = await this.getAeroLPCollaterals();
     if (lpCollaterals.length === 0) {
@@ -355,8 +429,12 @@ export class AeroEventsService {
     // Get latest distributed epoch per gauge
     const latestDistributed = await this.getLatestDistributedEpochPerGauge();
 
-    // Get all claim events (unfiltered by time)
     const allClaims = await this.getClaimedEvents();
+    const allEpochCloses = await this.getEpochClosedEvents();
+    const closeByGaugeEpoch = new Map<string, EpochClosedEvent>();
+    for (const close of allEpochCloses) {
+      closeByGaugeEpoch.set(gaugeEpochKey(close.gauge, close.epoch), close);
+    }
 
     // Build distribution info per gauge
     const result: GaugeDistributionInfo[] = [];
@@ -365,6 +443,21 @@ export class AeroEventsService {
       const distributed = latestDistributed.get(lp.gauge);
 
       const claimEpoch = distributed ? distributed.epoch + 1n : 0n;
+      const close = closeByGaugeEpoch.get(gaugeEpochKey(lp.gauge, claimEpoch));
+      if (!close) {
+        continue;
+      }
+
+      let startTimestamp = ORIGIN_TIMESTAMP;
+      if (claimEpoch > 0n) {
+        const previousClose = closeByGaugeEpoch.get(gaugeEpochKey(lp.gauge, claimEpoch - 1n));
+        if (!previousClose) {
+          throw new Error(
+            `Missing EpochClosed event for previous epoch ${claimEpoch - 1n} on gauge ${lp.gauge}`,
+          );
+        }
+        startTimestamp = previousClose.timestamp;
+      }
 
       // Sum claims for this gauge at claimEpoch
       let totalRewards = 0n;
@@ -379,8 +472,8 @@ export class AeroEventsService {
         gauge: lp.gauge,
         token: lp.token,
         period: {
-          startTimestamp: distributed?.timestamp ?? ORIGIN_TIMESTAMP,
-          endTimestamp: currentTimestamp,
+          startTimestamp,
+          endTimestamp: close.timestamp,
         },
         latestDistributedEpoch: distributed?.epoch ?? 0n,
         claimEpoch,
