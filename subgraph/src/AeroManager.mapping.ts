@@ -2,6 +2,7 @@ import {
   AeroDistributed as AeroDistributedEvent,
   Claimed as ClaimedEvent,
   Staked as StakedEvent,
+  StakedRemaining as StakedRemainingEvent,
 } from "../generated/templates/AeroManager/AeroManager";
 import { AeroClaim, AeroDistribution, AeroGauge, AeroStake } from "../generated/schema";
 
@@ -12,6 +13,26 @@ function eventId(txHash: string, logIndex: string): string {
 export function handleStaked(event: StakedEvent): void {
   // The AeroManager event does not include branch info.
   // The staking call comes from the branch's ActivePool, which is the tx sender.
+  let activePool = event.transaction.from;
+  let gauge = AeroGauge.load(event.params.gauge.toHexString());
+  if (!gauge) {
+    return;
+  }
+
+  let id = eventId(event.transaction.hash.toHexString(), event.logIndex.toString());
+  let stake = new AeroStake(id);
+  stake.collateral = gauge.collateral;
+  stake.activePool = activePool;
+  stake.gauge = event.params.gauge;
+  stake.token = event.params.token;
+  stake.amount = event.params.amountReceived;
+  stake.blockNumber = event.block.number;
+  stake.timestamp = event.block.timestamp;
+  stake.transactionHash = event.transaction.hash;
+  stake.save();
+}
+
+export function handleStakedRemaining(event: StakedRemainingEvent): void {
   let activePool = event.transaction.from;
   let gauge = AeroGauge.load(event.params.gauge.toHexString());
   if (!gauge) {
