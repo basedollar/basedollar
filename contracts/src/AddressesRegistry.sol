@@ -82,7 +82,7 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
         uint256 _liquidationPenaltySP,
         uint256 _liquidationPenaltyRedistribution
     ) Ownable(_owner) {
-        if (_ccr <= 1e18 || _ccr >= 2e18) revert InvalidCCR();
+        if (_ccr <= 1e18 || _ccr >= 3e18) revert InvalidCCR(); // <-- Changed from 2e18 to 3e18
         if (_mcr <= 1e18 || _mcr >= 2e18) revert InvalidMCR();
         if (_bcr < 5e16 || _bcr >= 50e16) revert InvalidBCR();
         if (_scr <= 1e18 || _scr >= 2e18) revert InvalidSCR();
