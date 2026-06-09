@@ -973,20 +973,21 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
             return;
         }
 
-        uint256 stake = Troves[_troveId].stake;
+        Trove memory t = Troves[_troveId];
+        uint256 stake = t.stake;
         trove.redistBoldDebtGain = stake * (L_boldDebt - rewardSnapshots[_troveId].boldDebt) / DECIMAL_PRECISION;
         trove.redistCollGain = stake * (L_coll - rewardSnapshots[_troveId].coll) / DECIMAL_PRECISION;
 
-        trove.recordedDebt = Troves[_troveId].debt;
-        trove.annualInterestRate = Troves[_troveId].annualInterestRate;
+        trove.recordedDebt = t.debt;
+        trove.annualInterestRate = t.annualInterestRate;
         trove.weightedRecordedDebt = trove.recordedDebt * trove.annualInterestRate;
 
-        uint256 period = _getInterestPeriod(Troves[_troveId].lastDebtUpdateTime);
+        uint256 period = _getInterestPeriod(t.lastDebtUpdateTime);
         trove.accruedInterest = _calcInterest(trove.weightedRecordedDebt, period);
 
         trove.entireDebt = trove.recordedDebt + trove.redistBoldDebtGain + trove.accruedInterest;
-        trove.entireColl = Troves[_troveId].coll + trove.redistCollGain;
-        trove.lastInterestRateAdjTime = Troves[_troveId].lastInterestRateAdjTime;
+        trove.entireColl = t.coll + trove.redistCollGain;
+        trove.lastInterestRateAdjTime = t.lastInterestRateAdjTime;
     }
 
     function _getLatestTroveDataFromBatch(
