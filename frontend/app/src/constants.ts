@@ -106,11 +106,11 @@ export const DEFAULT_LEGACY_CHECKS = new Map<
   ChainId,
   Exclude<v.InferOutput<ReturnType<typeof vEnvLegacyCheck>>, boolean>
 >([
-  // Base mainnet
-  [8453, {
-    ...getDeploymentInfo(8453),
-    INITIATIVES_SNAPSHOT_URL: "/initiatives-snapshot-8453.json",
-    TROVES_SNAPSHOT_URL: "/troves-snapshot-8453.json",
+  // Base Sepolia
+  [84532, {
+    ...getDeploymentInfo(84532),
+    INITIATIVES_SNAPSHOT_URL: "/initiatives-snapshot-84532.json",
+    TROVES_SNAPSHOT_URL: "/troves-snapshot-84532.json",
   }],
 ]);
 
@@ -119,7 +119,7 @@ export const DEFAULT_STRATEGIES: Array<[
   ChainId,
   Array<[BranchId, IcStrategy[]]>,
 ]> = [
-  [8453, []],
+  [84532, []],
 ];
 
 export const DEFAULT_COMMIT_URL = "https://github.com/basedollar/basedollar/tree/{commit}";

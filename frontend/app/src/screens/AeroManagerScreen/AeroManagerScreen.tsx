@@ -118,7 +118,7 @@ function getLpCollateralsWithGauges(): LpCollateral[] {
     // Check if it's an LP type (samm or vamm)
     if ('type' in collateral && (collateral.type === 'samm' || collateral.type === 'vamm')) {
       const deployments = collateral.deployments as Record<number, { gauge?: string }>;
-      const deployment = deployments[8453]; // Base mainnet
+      const deployment = deployments[84532]; // Base Sepolia
       if (deployment?.gauge && deployment.gauge !== "0x0000000000000000000000000000000000000000") {
         lpCollaterals.push({
           symbol: collateral.symbol,

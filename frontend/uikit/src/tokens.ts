@@ -35,6 +35,7 @@ const tokenIconMap: Record<string, string> = {
   "oseth": tokenOseth,
   "superoethb": tokenSuperoethb,
   "cbbtc": tokenCbbtc,
+  "cbeth": tokenEth,
   "aero": tokenAero,
   "usdc": tokenUsdc,
   "mseth": tokenMseth,
