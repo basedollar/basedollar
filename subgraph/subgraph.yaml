@@ -6,8 +6,8 @@ dataSources:
     name: BoldToken
     source:
       abi: BoldToken
-      address: "0x6440f144b7e50d6a8439336510312d2f54beb01d"
-      startBlock: 22483043
+      address: "0x06a350096397728c8158baf5e80841b2aacb6eb1"
+      startBlock: 42636202
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -35,41 +35,11 @@ dataSources:
         - event: CollateralRegistryAddressChanged(address)
           handler: handleCollateralRegistryAddressChanged
       file: ./src/BoldToken.mapping.ts
-    network: mainnet
-  - kind: ethereum/contract
-    name: Governance
-    source:
-      abi: Governance
-      address: "0x807def5e7d057df05c796f4bc75c3fe82bd6eee1"
-      startBlock: 22496547
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.9
-      language: wasm/assemblyscript
-      entities:
-        - GovernanceAllocation
-        - GovernanceInitiative
-        - GovernanceUser
-      abis:
-        - name: Governance
-          file: ../contracts/out/Governance.sol/Governance.json
-      eventHandlers:
-        - event: DepositLQTY(indexed
-            address,address,uint256,uint256,uint256,uint256,uint256)
-          handler: handleDepositLQTY
-        - event: WithdrawLQTY(indexed
-            address,address,uint256,uint256,uint256,uint256,uint256,uint256)
-          handler: handleWithdrawLQTY
-        - event: AllocateLQTY(indexed address,indexed address,int256,int256,uint256,uint8)
-          handler: handleAllocateLQTY
-        - event: RegisterInitiative(address,address,uint256,uint8)
-          handler: handleRegisterInitiative
-      file: ./src/Governance.mapping.ts
-    network: mainnet
+    network: base-sepolia
 templates:
   - name: TroveManager
     kind: ethereum/contract
-    network: mainnet
+    network: base-sepolia
     source:
       abi: TroveManager
     mapping:
@@ -107,7 +77,7 @@ templates:
           handler: handleBatchUpdated
   - name: TroveNFT
     kind: ethereum/contract
-    network: mainnet
+    network: base-sepolia
     source:
       abi: TroveNFT
     mapping:
@@ -126,7 +96,7 @@ templates:
           handler: handleTransfer
   - name: AeroManager
     kind: ethereum/contract
-    network: mainnet
+    network: base-sepolia
     source:
       abi: AeroManager
     mapping:
@@ -152,7 +122,7 @@ templates:
           handler: handleAeroDistributed
   - name: CollateralRegistry
     kind: ethereum/contract
-    network: mainnet
+    network: base-sepolia
     source:
       abi: CollateralRegistry
     mapping:
@@ -180,7 +150,7 @@ templates:
           handler: handleCollateralBranchAdded
   - name: CollSurplusPool
     kind: ethereum/contract
-    network: mainnet
+    network: base-sepolia
     source:
       abi: CollSurplusPool
     mapping:

@@ -99,7 +99,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     address AERO_LP_GAUGE_ADDRESS = address(0); // TODO: Set this to the actual gauge address
 
     // AeroManager treasury address (receives fee from AERO claims)
-    address TREASURY_ADDRESS = address(0); // TODO: Set this to the actual treasury address
+    address TREASURY_ADDRESS = vm.envAddress("TREASURY_ADDRESS"); // TODO: Set this to the actual treasury address
 
     // Oracle addresses (Base Mainnet - API3)
     address ETH_USD_ORACLE_ADDRESS = 0x5b0cf2b36a65a6BB085D501B971e4c102B9Cd473;
@@ -131,7 +131,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     address internal stakingV1;
     address internal lusd;
 
-    address public GOVERNOR_ADDRESS;
+    address public GOVERNOR_ADDRESS = vm.envAddress("GOVERNOR_ADDRESS");
 
     // Curve
     ICurveStableswapNGFactory curveStableswapFactory;
@@ -334,15 +334,15 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             // Base mainnet
             WETH = IWETH(WETH_ADDRESS);
             USDC = IERC20Metadata(USDC_ADDRESS);
-            curveStableswapFactory = curveStableswapFactoryMainnet;
-            uniV3Router = uniV3RouterMainnet;
-            uniV3Quoter = uniV3QuoterMainnet;
-            uniswapV3Factory = uniswapV3FactoryMainnet;
-            uniV3PositionManager = uniV3PositionManagerMainnet;
-            balancerFactory = balancerFactoryMainnet;
-            lqty = LQTY_ADDRESS;
-            stakingV1 = LQTY_STAKING_ADDRESS;
-            lusd = LUSD_ADDRESS;
+            // curveStableswapFactory = curveStableswapFactoryMainnet;
+            // uniV3Router = uniV3RouterMainnet;
+            // uniV3Quoter = uniV3QuoterMainnet;
+            // uniswapV3Factory = uniswapV3FactoryMainnet;
+            // uniV3PositionManager = uniV3PositionManagerMainnet;
+            // balancerFactory = balancerFactoryMainnet;
+            // lqty = LQTY_ADDRESS;
+            // stakingV1 = LQTY_STAKING_ADDRESS;
+            // lusd = LUSD_ADDRESS;
         } else {
             // sepolia, local
             if (block.chainid == 31337) {
@@ -352,20 +352,20 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 // sepolia
                 WETH = new WETHTester({_tapAmount: 0, _tapPeriod: type(uint256).max});
             }
-            USDC = new ERC20Faucet("USDC", "USDC", 0, type(uint256).max);
-            curveStableswapFactory = curveStableswapFactorySepolia;
-            uniV3Router = uniV3RouterSepolia;
-            uniV3Quoter = uniV3QuoterSepolia;
-            uniswapV3Factory = uniswapV3FactorySepolia;
-            uniV3PositionManager = uniV3PositionManagerSepolia;
-            balancerFactory = balancerFactorySepolia;
-            // Needed for Governance (they will be constants for mainnet)
-            lqty = address(new ERC20Faucet("Liquity", "LQTY", 100 ether, 1 days));
-            lusd = address(new ERC20Faucet("Liquity USD", "LUSD", 100 ether, 1 days));
-            stakingV1 = address(new MockStakingV1(IERC20_GOV(lqty), IERC20_GOV(lusd)));
+            // USDC = new ERC20Faucet("USDC", "USDC", 0, type(uint256).max);
+            // curveStableswapFactory = curveStableswapFactorySepolia;
+            // uniV3Router = uniV3RouterSepolia;
+            // uniV3Quoter = uniV3QuoterSepolia;
+            // uniswapV3Factory = uniswapV3FactorySepolia;
+            // uniV3PositionManager = uniV3PositionManagerSepolia;
+            // balancerFactory = balancerFactorySepolia;
+            // // Needed for Governance (they will be constants for mainnet)
+            // lqty = address(new ERC20Faucet("Liquity", "LQTY", 100 ether, 1 days));
+            // lusd = address(new ERC20Faucet("Liquity USD", "LUSD", 100 ether, 1 days));
+            // stakingV1 = address(new MockStakingV1(IERC20_GOV(lqty), IERC20_GOV(lusd)));
 
-            // Let stakingV1 spend anyone's LQTY without approval, like in the real LQTYStaking
-            ERC20Faucet(lqty).mock_setWildcardSpender(address(stakingV1), true);
+            // // Let stakingV1 spend anyone's LQTY without approval, like in the real LQTYStaking
+            // ERC20Faucet(lqty).mock_setWildcardSpender(address(stakingV1), true);
         }
 
         TroveManagerParams[] memory troveManagerParamsArray = new TroveManagerParams[](NUM_BRANCHES);
@@ -451,46 +451,60 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         collNames[4] = "Aerodrome";
         collSymbols[4] = "AERO";
 
-        DeployGovernanceParams memory deployGovernanceParams = DeployGovernanceParams({
-            epochStart: epochStart,
-            deployer: deployer,
-            salt: SALT,
-            stakingV1: stakingV1,
-            lqty: lqty,
-            lusd: lusd,
-            bold: boldAddress
-        });
+        // DeployGovernanceParams memory deployGovernanceParams = DeployGovernanceParams({
+        //     epochStart: epochStart,
+        //     deployer: deployer,
+        //     salt: SALT,
+        //     stakingV1: stakingV1,
+        //     lqty: lqty,
+        //     lusd: lusd,
+        //     bold: boldAddress
+        // });
 
+        // DeploymentResult memory deployed =
+        //     _deployAndConnectContracts(troveManagerParamsArray, collNames, collSymbols, deployGovernanceParams);
         DeploymentResult memory deployed =
-            _deployAndConnectContracts(troveManagerParamsArray, collNames, collSymbols, deployGovernanceParams);
+            _deployAndConnectContracts(troveManagerParamsArray, collNames, collSymbols, boldAddress);
 
-        if (block.chainid == 11155111) {
+        if (block.chainid == 84532) {
             // Provide liquidity for zaps if we're on Sepolia
             ERC20Faucet monkeyBalls = new ERC20Faucet("MonkeyBalls", "MB", 0, type(uint256).max);
             for (uint256 i = 0; i < deployed.contractsArray.length; ++i) {
-                PriceFeedTestnet(address(deployed.contractsArray[i].priceFeed)).setPrice(2_000 ether);
-                _provideFlashloanLiquidity(ERC20Faucet(address(deployed.contractsArray[i].collToken)), monkeyBalls);
                 if (i == 0) {
-                    // WETH, we do USDC-WETH
-                    (uint256 price,) = deployed.contractsArray[0].priceFeed.fetchPrice();
-                    uint256 token1Amount = 1_000_000 ether;
-                    _provideUniV3Liquidity(
-                        ERC20Faucet(address(USDC)), ERC20Faucet(address(WETH)), token1Amount, price, UNIV3_FEE_USDC_WETH
-                    );
+                    // Sets WETH price to 2,000 USD
+                    PriceFeedTestnet(address(deployed.contractsArray[i].priceFeed)).setPrice(2_000 ether);
+                } else if (i == 3) {
+                    // Sets cbBTC price to 60,000 USD
+                    PriceFeedTestnet(address(deployed.contractsArray[i].priceFeed)).setPrice(60_000 ether);
+                } else if (i == 5) {
+                    // Sets AERO price to 0.0001 USD
+                    PriceFeedTestnet(address(deployed.contractsArray[i].priceFeed)).setPrice(0.35 ether);
                 } else {
-                    // LSTs, we do WETH-LST
-                    uint256 token1Amount = 1_000 ether;
-                    _provideUniV3Liquidity(
-                        ERC20Faucet(address(WETH)),
-                        ERC20Faucet(address(deployed.contractsArray[i].collToken)),
-                        token1Amount,
-                        1 ether,
-                        UNIV3_FEE_WETH_COLL
-                    );
+                    // Sets staked ETH (rETH + cbETH) price to 2,500 USD
+                    PriceFeedTestnet(address(deployed.contractsArray[i].priceFeed)).setPrice(2_500 ether);
                 }
+                // _provideFlashloanLiquidity(ERC20Faucet(address(deployed.contractsArray[i].collToken)), monkeyBalls);
+                // if (i == 0) {
+                //     // WETH, we do USDC-WETH
+                //     (uint256 price,) = deployed.contractsArray[0].priceFeed.fetchPrice();
+                //     uint256 token1Amount = 1_000_000 ether;
+                //     _provideUniV3Liquidity(
+                //         ERC20Faucet(address(USDC)), ERC20Faucet(address(WETH)), token1Amount, price, UNIV3_FEE_USDC_WETH
+                //     );
+                // } else {
+                //     // LSTs, we do WETH-LST
+                //     uint256 token1Amount = 1_000 ether;
+                //     _provideUniV3Liquidity(
+                //         ERC20Faucet(address(WETH)),
+                //         ERC20Faucet(address(deployed.contractsArray[i].collToken)),
+                //         token1Amount,
+                //         1 ether,
+                //         UNIV3_FEE_WETH_COLL
+                //     );
+                // }
             }
 
-            _provideCurveLiquidity(deployed.boldToken, deployed.contractsArray[0]);
+            // _provideCurveLiquidity(deployed.boldToken, deployed.contractsArray[0]);
 
             // deployed.contractsArray[1].collToken.mint(deployer, 1 ether);
             // deployed.contractsArray[1].collToken.approve(address(deployed.contractsArray[1].leverageZapper), 1 ether);
@@ -514,23 +528,24 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         }
 
         ICurveStableswapNGPool lusdCurvePool;
-        if (block.chainid == 1) {
-            lusdCurvePool = _deployCurvePool(deployed.boldToken, IERC20Metadata(LUSD_ADDRESS));
-        }
+        // if (block.chainid == 1) {
+        //     lusdCurvePool = _deployCurvePool(deployed.boldToken, IERC20Metadata(LUSD_ADDRESS));
+        // }
 
         // Governance
-        (address governanceAddress, string memory governanceManifest) = deployGovernance(
-            deployGovernanceParams,
-            address(curveStableswapFactory),
-            address(deployed.usdcCurvePool),
-            address(lusdCurvePool)
-        );
-        address computedGovernanceAddress = computeGovernanceAddress(deployGovernanceParams);
-        assert(governanceAddress == computedGovernanceAddress);
+        // (address governanceAddress, string memory governanceManifest) = deployGovernance(
+        //     deployGovernanceParams,
+        //     address(curveStableswapFactory),
+        //     address(deployed.usdcCurvePool),
+        //     address(lusdCurvePool)
+        // );
+        // address computedGovernanceAddress = computeGovernanceAddress(deployGovernanceParams);
+        // assert(governanceAddress == computedGovernanceAddress);
 
         vm.stopBroadcast();
 
-        vm.writeFile("deployment-manifest.json", _getManifestJson(deployed, governanceManifest));
+        // vm.writeFile("deployment-manifest.json", _getManifestJson(deployed, governanceManifest));
+        vm.writeFile("deployment-manifest.json", _getManifestJson(deployed, ""));
 
         if (vm.envOr("OPEN_DEMO_TROVES", false)) {
             // Anvil default accounts
@@ -663,17 +678,19 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         TroveManagerParams[] memory troveManagerParamsArray,
         string[] memory _collNames,
         string[] memory _collSymbols,
-        DeployGovernanceParams memory _deployGovernanceParams
+        // DeployGovernanceParams memory _deployGovernanceParams
+        address _boldToken
     ) internal returns (DeploymentResult memory r) {
         assert(_collNames.length == troveManagerParamsArray.length - 1);
         assert(_collSymbols.length == troveManagerParamsArray.length - 1);
 
         DeploymentVars memory vars;
         vars.numCollaterals = troveManagerParamsArray.length;
-        r.boldToken = BoldToken(_deployGovernanceParams.bold);
+        // r.boldToken = BoldToken(_deployGovernanceParams.bold);
+        r.boldToken = BoldToken(_boldToken);
 
         // USDC and USDC-BOLD pool
-        r.usdcCurvePool = _deployCurvePool(r.boldToken, USDC);
+        // r.usdcCurvePool = _deployCurvePool(r.boldToken, USDC);
 
         r.contractsArray = new LiquityContracts[](vars.numCollaterals);
         vars.collaterals = new IERC20Metadata[](vars.numCollaterals);
@@ -743,7 +760,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 r.hintHelpers,
                 r.multiTroveGetter,
                 troveManagerParamsArray[vars.i],
-                computeGovernanceAddress(_deployGovernanceParams)
+                // computeGovernanceAddress(_deployGovernanceParams)
+                GOVERNOR_ADDRESS
             );
             r.contractsArray[vars.i] = vars.contracts;
         }
@@ -754,27 +772,27 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         r.aeroManager.setAddresses(r.collateralRegistry);
 
         // exchange helpers
-        r.exchangeHelpers = new HybridCurveUniV3ExchangeHelpers(
-            USDC,
-            WETH,
-            r.usdcCurvePool,
-            OTHER_TOKEN_INDEX, // USDC Curve pool index
-            BOLD_TOKEN_INDEX, // BOLD Curve pool index
-            UNIV3_FEE_USDC_WETH,
-            UNIV3_FEE_WETH_COLL,
-            uniV3Quoter
-        );
+        // r.exchangeHelpers = new HybridCurveUniV3ExchangeHelpers(
+        //     USDC,
+        //     WETH,
+        //     r.usdcCurvePool,
+        //     OTHER_TOKEN_INDEX, // USDC Curve pool index
+        //     BOLD_TOKEN_INDEX, // BOLD Curve pool index
+        //     UNIV3_FEE_USDC_WETH,
+        //     UNIV3_FEE_WETH_COLL,
+        //     uniV3Quoter
+        // );
 
-        r.exchangeHelpersV2 = new HybridCurveUniV3ExchangeHelpersV2({
-            _usdc: address(USDC),
-            _weth: address(WETH),
-            _curvePool: r.usdcCurvePool,
-            _usdcIndex: int128(OTHER_TOKEN_INDEX),
-            _boldIndex: int128(BOLD_TOKEN_INDEX),
-            _feeUsdcWeth: UNIV3_FEE_USDC_WETH,
-            _feeWethColl: UNIV3_FEE_WETH_COLL,
-            _uniV3Quoter: uniV3Quoter
-        });
+        // r.exchangeHelpersV2 = new HybridCurveUniV3ExchangeHelpersV2({
+        //     _usdc: address(USDC),
+        //     _weth: address(WETH),
+        //     _curvePool: r.usdcCurvePool,
+        //     _usdcIndex: int128(OTHER_TOKEN_INDEX),
+        //     _boldIndex: int128(BOLD_TOKEN_INDEX),
+        //     _feeUsdcWeth: UNIV3_FEE_USDC_WETH,
+        //     _feeWethColl: UNIV3_FEE_WETH_COLL,
+        //     _uniV3Quoter: uniV3Quoter
+        // });
 
         r.redemptionHelper = new RedemptionHelper(r.collateralRegistry);
     }
@@ -987,20 +1005,22 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         IBoldToken _boldToken,
         ICurveStableswapNGPool _usdcCurvePool
     ) internal returns (GasCompZapper gasCompZapper, WETHZapper wethZapper, ILeverageZapper leverageZapper) {
-        IFlashLoanProvider flashLoanProvider = new BalancerFlashLoan();
+        // IFlashLoanProvider flashLoanProvider = new BalancerFlashLoan();
 
-        IExchange hybridExchange = new HybridCurveUniV3Exchange(
-            _collToken,
-            _boldToken,
-            USDC,
-            WETH,
-            _usdcCurvePool,
-            OTHER_TOKEN_INDEX, // USDC Curve pool index
-            BOLD_TOKEN_INDEX, // BOLD Curve pool index
-            UNIV3_FEE_USDC_WETH,
-            UNIV3_FEE_WETH_COLL,
-            uniV3Router
-        );
+        // IExchange hybridExchange = new HybridCurveUniV3Exchange(
+        //     _collToken,
+        //     _boldToken,
+        //     USDC,
+        //     WETH,
+        //     _usdcCurvePool,
+        //     OTHER_TOKEN_INDEX, // USDC Curve pool index
+        //     BOLD_TOKEN_INDEX, // BOLD Curve pool index
+        //     UNIV3_FEE_USDC_WETH,
+        //     UNIV3_FEE_WETH_COLL,
+        //     uniV3Router
+        // );
+        IFlashLoanProvider flashLoanProvider = IFlashLoanProvider(address(0));
+        IExchange hybridExchange = IExchange(address(0));
 
         bool lst = _collToken != WETH;
         if (lst) {
@@ -1008,243 +1028,244 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         } else {
             wethZapper = new WETHZapper(_addressesRegistry, flashLoanProvider, hybridExchange);
         }
-        leverageZapper = _deployHybridLeverageZapper(_addressesRegistry, flashLoanProvider, hybridExchange, lst);
+        // leverageZapper = _deployHybridLeverageZapper(_addressesRegistry, flashLoanProvider, hybridExchange, lst);
+        leverageZapper = ILeverageZapper(address(0));
     }
 
-    function _deployHybridLeverageZapper(
-        IAddressesRegistry _addressesRegistry,
-        IFlashLoanProvider _flashLoanProvider,
-        IExchange _hybridExchange,
-        bool _lst
-    ) internal returns (ILeverageZapper) {
-        ILeverageZapper leverageZapperHybrid;
-        if (_lst) {
-            leverageZapperHybrid = new LeverageLSTZapper(_addressesRegistry, _flashLoanProvider, _hybridExchange);
-        } else {
-            leverageZapperHybrid = new LeverageWETHZapper(_addressesRegistry, _flashLoanProvider, _hybridExchange);
-        }
+    // function _deployHybridLeverageZapper(
+    //     IAddressesRegistry _addressesRegistry,
+    //     IFlashLoanProvider _flashLoanProvider,
+    //     IExchange _hybridExchange,
+    //     bool _lst
+    // ) internal returns (ILeverageZapper) {
+    //     ILeverageZapper leverageZapperHybrid;
+    //     if (_lst) {
+    //         leverageZapperHybrid = new LeverageLSTZapper(_addressesRegistry, _flashLoanProvider, _hybridExchange);
+    //     } else {
+    //         leverageZapperHybrid = new LeverageWETHZapper(_addressesRegistry, _flashLoanProvider, _hybridExchange);
+    //     }
 
-        return leverageZapperHybrid;
-    }
+    //     return leverageZapperHybrid;
+    // }
 
-    function _deployCurvePool(IBoldToken _boldToken, IERC20Metadata _otherToken)
-        internal
-        returns (ICurveStableswapNGPool)
-    {
-        if (block.chainid == 31337) {
-            // local
-            return ICurveStableswapNGPool(address(0));
-        }
+    // function _deployCurvePool(IBoldToken _boldToken, IERC20Metadata _otherToken)
+    //     internal
+    //     returns (ICurveStableswapNGPool)
+    // {
+    //     if (block.chainid == 31337) {
+    //         // local
+    //         return ICurveStableswapNGPool(address(0));
+    //     }
 
-        // deploy Curve StableswapNG pool
-        address[] memory coins = new address[](2);
-        coins[BOLD_TOKEN_INDEX] = address(_boldToken);
-        coins[OTHER_TOKEN_INDEX] = address(_otherToken);
-        uint8[] memory assetTypes = new uint8[](2); // 0: standard
-        bytes4[] memory methodIds = new bytes4[](2);
-        address[] memory oracles = new address[](2);
+    //     // deploy Curve StableswapNG pool
+    //     address[] memory coins = new address[](2);
+    //     coins[BOLD_TOKEN_INDEX] = address(_boldToken);
+    //     coins[OTHER_TOKEN_INDEX] = address(_otherToken);
+    //     uint8[] memory assetTypes = new uint8[](2); // 0: standard
+    //     bytes4[] memory methodIds = new bytes4[](2);
+    //     address[] memory oracles = new address[](2);
 
-        ICurveStableswapNGPool curvePool = curveStableswapFactory.deploy_plain_pool({
-            name: string.concat("BOLD/", _otherToken.symbol(), " Pool"),
-            symbol: string.concat("BOLD", _otherToken.symbol()),
-            coins: coins,
-            A: 100,
-            fee: 4000000,
-            offpeg_fee_multiplier: 20000000000,
-            ma_exp_time: 866,
-            implementation_id: 0,
-            asset_types: assetTypes,
-            method_ids: methodIds,
-            oracles: oracles
-        });
+    //     ICurveStableswapNGPool curvePool = curveStableswapFactory.deploy_plain_pool({
+    //         name: string.concat("BOLD/", _otherToken.symbol(), " Pool"),
+    //         symbol: string.concat("BOLD", _otherToken.symbol()),
+    //         coins: coins,
+    //         A: 100,
+    //         fee: 4000000,
+    //         offpeg_fee_multiplier: 20000000000,
+    //         ma_exp_time: 866,
+    //         implementation_id: 0,
+    //         asset_types: assetTypes,
+    //         method_ids: methodIds,
+    //         oracles: oracles
+    //     });
 
-        return curvePool;
-    }
+    //     return curvePool;
+    // }
 
-    function _provideFlashloanLiquidity(ERC20Faucet _collToken, ERC20Faucet _monkeyBalls) internal {
-        uint256[] memory amountsIn = new uint256[](2);
-        amountsIn[0] = 1_000_000 ether;
-        amountsIn[1] = 1_000_000 ether;
+    // function _provideFlashloanLiquidity(ERC20Faucet _collToken, ERC20Faucet _monkeyBalls) internal {
+    //     uint256[] memory amountsIn = new uint256[](2);
+    //     amountsIn[0] = 1_000_000 ether;
+    //     amountsIn[1] = 1_000_000 ether;
 
-        _collToken.mint(deployer, amountsIn[0]);
-        _monkeyBalls.mint(deployer, amountsIn[1]);
+    //     _collToken.mint(deployer, amountsIn[0]);
+    //     _monkeyBalls.mint(deployer, amountsIn[1]);
 
-        IERC20[] memory tokens = new IERC20[](2);
-        (tokens[0], tokens[1]) =
-            address(_collToken) < address(_monkeyBalls) ? (_collToken, _monkeyBalls) : (_monkeyBalls, _collToken);
+    //     IERC20[] memory tokens = new IERC20[](2);
+    //     (tokens[0], tokens[1]) =
+    //         address(_collToken) < address(_monkeyBalls) ? (_collToken, _monkeyBalls) : (_monkeyBalls, _collToken);
 
-        uint256[] memory normalizedWeights = new uint256[](2);
-        normalizedWeights[0] = 0.5 ether;
-        normalizedWeights[1] = 0.5 ether;
+    //     uint256[] memory normalizedWeights = new uint256[](2);
+    //     normalizedWeights[0] = 0.5 ether;
+    //     normalizedWeights[1] = 0.5 ether;
 
-        IWeightedPool pool = balancerFactorySepolia.create({
-            name: string.concat(_collToken.name(), "-", _monkeyBalls.name()),
-            symbol: string.concat("bpt", _collToken.symbol(), _monkeyBalls.symbol()),
-            tokens: tokens,
-            normalizedWeights: normalizedWeights,
-            rateProviders: new IRateProvider[](2), // all zeroes
-            swapFeePercentage: 0.000001 ether, // 0.0001%, which is the minimum allowed
-            owner: deployer,
-            salt: bytes32("NaCl")
-        });
+    //     IWeightedPool pool = balancerFactorySepolia.create({
+    //         name: string.concat(_collToken.name(), "-", _monkeyBalls.name()),
+    //         symbol: string.concat("bpt", _collToken.symbol(), _monkeyBalls.symbol()),
+    //         tokens: tokens,
+    //         normalizedWeights: normalizedWeights,
+    //         rateProviders: new IRateProvider[](2), // all zeroes
+    //         swapFeePercentage: 0.000001 ether, // 0.0001%, which is the minimum allowed
+    //         owner: deployer,
+    //         salt: bytes32("NaCl")
+    //     });
 
-        _collToken.approve(address(balancerVault), amountsIn[0]);
-        _monkeyBalls.approve(address(balancerVault), amountsIn[1]);
+    //     _collToken.approve(address(balancerVault), amountsIn[0]);
+    //     _monkeyBalls.approve(address(balancerVault), amountsIn[1]);
 
-        balancerVault.joinPool(
-            pool.getPoolId(),
-            deployer,
-            deployer,
-            IVault.JoinPoolRequest({
-                assets: tokens,
-                maxAmountsIn: amountsIn,
-                userData: abi.encode(IWeightedPool.JoinKind.INIT, amountsIn),
-                fromInternalBalance: false
-            })
-        );
-    }
+    //     balancerVault.joinPool(
+    //         pool.getPoolId(),
+    //         deployer,
+    //         deployer,
+    //         IVault.JoinPoolRequest({
+    //             assets: tokens,
+    //             maxAmountsIn: amountsIn,
+    //             userData: abi.encode(IWeightedPool.JoinKind.INIT, amountsIn),
+    //             fromInternalBalance: false
+    //         })
+    //     );
+    // }
 
-    function _mintBold(uint256 _boldAmount, uint256 _price, LiquityContracts memory _contracts) internal {
-        uint256 collAmount = _boldAmount * 2 ether / _price; // CR of ~200%
+    // function _mintBold(uint256 _boldAmount, uint256 _price, LiquityContracts memory _contracts) internal {
+    //     uint256 collAmount = _boldAmount * 2 ether / _price; // CR of ~200%
 
-        ERC20Faucet(address(_contracts.collToken)).mint(deployer, collAmount);
-        WETHTester(payable(address(WETH))).mint(deployer, ETH_GAS_COMPENSATION);
+    //     ERC20Faucet(address(_contracts.collToken)).mint(deployer, collAmount);
+    //     WETHTester(payable(address(WETH))).mint(deployer, ETH_GAS_COMPENSATION);
 
-        if (_contracts.collToken == WETH) {
-            WETH.approve(address(_contracts.borrowerOperations), collAmount + ETH_GAS_COMPENSATION);
-        } else {
-            _contracts.collToken.approve(address(_contracts.borrowerOperations), collAmount);
-            WETH.approve(address(_contracts.borrowerOperations), ETH_GAS_COMPENSATION);
-        }
+    //     if (_contracts.collToken == WETH) {
+    //         WETH.approve(address(_contracts.borrowerOperations), collAmount + ETH_GAS_COMPENSATION);
+    //     } else {
+    //         _contracts.collToken.approve(address(_contracts.borrowerOperations), collAmount);
+    //         WETH.approve(address(_contracts.borrowerOperations), ETH_GAS_COMPENSATION);
+    //     }
 
-        _contracts.borrowerOperations.openTrove({
-            _owner: deployer,
-            _ownerIndex: lastTroveIndex++,
-            _ETHAmount: collAmount,
-            _boldAmount: _boldAmount,
-            _upperHint: 0,
-            _lowerHint: 0,
-            _annualInterestRate: 0.05 ether,
-            _maxUpfrontFee: type(uint256).max,
-            _addManager: address(0),
-            _removeManager: address(0),
-            _receiver: address(0)
-        });
-    }
+    //     _contracts.borrowerOperations.openTrove({
+    //         _owner: deployer,
+    //         _ownerIndex: lastTroveIndex++,
+    //         _ETHAmount: collAmount,
+    //         _boldAmount: _boldAmount,
+    //         _upperHint: 0,
+    //         _lowerHint: 0,
+    //         _annualInterestRate: 0.05 ether,
+    //         _maxUpfrontFee: type(uint256).max,
+    //         _addManager: address(0),
+    //         _removeManager: address(0),
+    //         _receiver: address(0)
+    //     });
+    // }
 
-    struct ProvideUniV3LiquidityVars {
-        uint256 token2Amount;
-        address[2] tokens;
-        uint256[2] amounts;
-        uint256 price;
-        int24 tickLower;
-        int24 tickUpper;
-    }
+    // struct ProvideUniV3LiquidityVars {
+    //     uint256 token2Amount;
+    //     address[2] tokens;
+    //     uint256[2] amounts;
+    //     uint256 price;
+    //     int24 tickLower;
+    //     int24 tickUpper;
+    // }
 
     // _price should be _token1 / _token2
-    function _provideUniV3Liquidity(
-        ERC20Faucet _token1,
-        ERC20Faucet _token2,
-        uint256 _token1Amount,
-        uint256 _price,
-        uint24 _fee
-    ) internal {
-        ProvideUniV3LiquidityVars memory vars;
-        // tokens and amounts
-        vars.token2Amount = _token1Amount * DECIMAL_PRECISION / _price;
+    // function _provideUniV3Liquidity(
+    //     ERC20Faucet _token1,
+    //     ERC20Faucet _token2,
+    //     uint256 _token1Amount,
+    //     uint256 _price,
+    //     uint24 _fee
+    // ) internal {
+    //     ProvideUniV3LiquidityVars memory vars;
+    //     // tokens and amounts
+    //     vars.token2Amount = _token1Amount * DECIMAL_PRECISION / _price;
 
-        if (address(_token1) < address(_token2)) {
-            vars.tokens[0] = address(_token1);
-            vars.tokens[1] = address(_token2);
-            vars.amounts[0] = _token1Amount;
-            vars.amounts[1] = vars.token2Amount;
-            // inverse price if token1 goes first
-            vars.price = DECIMAL_PRECISION * DECIMAL_PRECISION / _price;
-        } else {
-            vars.tokens[0] = address(_token2);
-            vars.tokens[1] = address(_token1);
-            vars.amounts[0] = vars.token2Amount;
-            vars.amounts[1] = _token1Amount;
-            vars.price = _price;
-        }
+    //     if (address(_token1) < address(_token2)) {
+    //         vars.tokens[0] = address(_token1);
+    //         vars.tokens[1] = address(_token2);
+    //         vars.amounts[0] = _token1Amount;
+    //         vars.amounts[1] = vars.token2Amount;
+    //         // inverse price if token1 goes first
+    //         vars.price = DECIMAL_PRECISION * DECIMAL_PRECISION / _price;
+    //     } else {
+    //         vars.tokens[0] = address(_token2);
+    //         vars.tokens[1] = address(_token1);
+    //         vars.amounts[0] = vars.token2Amount;
+    //         vars.amounts[1] = _token1Amount;
+    //         vars.price = _price;
+    //     }
 
-        //console2.log(priceToSqrtPriceX96(vars.price), "_priceToSqrtPrice(price)");
-        uniV3PositionManagerSepolia.createAndInitializePoolIfNecessary(
-            vars.tokens[0], vars.tokens[1], _fee, priceToSqrtPriceX96(vars.price)
-        );
+    //     //console2.log(priceToSqrtPriceX96(vars.price), "_priceToSqrtPrice(price)");
+    //     uniV3PositionManagerSepolia.createAndInitializePoolIfNecessary(
+    //         vars.tokens[0], vars.tokens[1], _fee, priceToSqrtPriceX96(vars.price)
+    //     );
 
-        // mint and approve
-        _token1.mint(deployer, _token1Amount);
-        _token2.mint(deployer, vars.token2Amount);
-        _token1.approve(address(uniV3PositionManagerSepolia), _token1Amount);
-        _token2.approve(address(uniV3PositionManagerSepolia), vars.token2Amount);
+    //     // mint and approve
+    //     _token1.mint(deployer, _token1Amount);
+    //     _token2.mint(deployer, vars.token2Amount);
+    //     _token1.approve(address(uniV3PositionManagerSepolia), _token1Amount);
+    //     _token2.approve(address(uniV3PositionManagerSepolia), vars.token2Amount);
 
-        // mint new position
-        address uniV3PoolAddress = uniswapV3FactorySepolia.getPool(vars.tokens[0], vars.tokens[1], _fee);
-        int24 TICK_SPACING = IUniswapV3Pool(uniV3PoolAddress).tickSpacing();
-        ( /* uint256 finalSqrtPriceX96 */ , int24 tick,,,,,) = IUniswapV3Pool(uniV3PoolAddress).slot0();
-        //console2.log(finalSqrtPriceX96, "finalSqrtPriceX96");
-        vars.tickLower = (tick - 60) / TICK_SPACING * TICK_SPACING;
-        vars.tickUpper = (tick + 60) / TICK_SPACING * TICK_SPACING;
+    //     // mint new position
+    //     address uniV3PoolAddress = uniswapV3FactorySepolia.getPool(vars.tokens[0], vars.tokens[1], _fee);
+    //     int24 TICK_SPACING = IUniswapV3Pool(uniV3PoolAddress).tickSpacing();
+    //     ( /* uint256 finalSqrtPriceX96 */ , int24 tick,,,,,) = IUniswapV3Pool(uniV3PoolAddress).slot0();
+    //     //console2.log(finalSqrtPriceX96, "finalSqrtPriceX96");
+    //     vars.tickLower = (tick - 60) / TICK_SPACING * TICK_SPACING;
+    //     vars.tickUpper = (tick + 60) / TICK_SPACING * TICK_SPACING;
 
-        INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
-            token0: vars.tokens[0],
-            token1: vars.tokens[1],
-            fee: _fee,
-            tickLower: vars.tickLower,
-            tickUpper: vars.tickUpper,
-            amount0Desired: vars.amounts[0],
-            amount1Desired: vars.amounts[1],
-            amount0Min: 0,
-            amount1Min: 0,
-            recipient: deployer,
-            deadline: block.timestamp + 600 minutes
-        });
+    //     INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
+    //         token0: vars.tokens[0],
+    //         token1: vars.tokens[1],
+    //         fee: _fee,
+    //         tickLower: vars.tickLower,
+    //         tickUpper: vars.tickUpper,
+    //         amount0Desired: vars.amounts[0],
+    //         amount1Desired: vars.amounts[1],
+    //         amount0Min: 0,
+    //         amount1Min: 0,
+    //         recipient: deployer,
+    //         deadline: block.timestamp + 600 minutes
+    //     });
 
-        uniV3PositionManagerSepolia.mint(params);
-        //(finalSqrtPriceX96, tick,,,,,) = IUniswapV3Pool(uniV3PoolAddress).slot0();
-        //console2.log(finalSqrtPriceX96, "finalSqrtPriceX96");
+    //     uniV3PositionManagerSepolia.mint(params);
+    //     //(finalSqrtPriceX96, tick,,,,,) = IUniswapV3Pool(uniV3PoolAddress).slot0();
+    //     //console2.log(finalSqrtPriceX96, "finalSqrtPriceX96");
 
-        /*
-        console2.log("--");
-        console2.log(_token1.name());
-        console2.log(address(_token1), "address(_token1)");
-        console2.log(_token1Amount, "_token1Amount");
-        console2.log(_token1.balanceOf(uniV3PoolAddress), "token1.balanceOf(pool)");
-        console2.log(_token2.name());
-        console2.log(address(_token2), "address(_token2)");
-        console2.log(vars.token2Amount, "token2Amount");
-        console2.log(_token2.balanceOf(uniV3PoolAddress), "token2.balanceOf(pool)");
-        */
-    }
+    //     /*
+    //     console2.log("--");
+    //     console2.log(_token1.name());
+    //     console2.log(address(_token1), "address(_token1)");
+    //     console2.log(_token1Amount, "_token1Amount");
+    //     console2.log(_token1.balanceOf(uniV3PoolAddress), "token1.balanceOf(pool)");
+    //     console2.log(_token2.name());
+    //     console2.log(address(_token2), "address(_token2)");
+    //     console2.log(vars.token2Amount, "token2Amount");
+    //     console2.log(_token2.balanceOf(uniV3PoolAddress), "token2.balanceOf(pool)");
+    //     */
+    // }
 
-    function _priceToSqrtPrice(uint256 _price) public pure returns (uint160) {
-        return uint160(Math.sqrt((_price << 192) / DECIMAL_PRECISION));
-    }
+    // function _priceToSqrtPrice(uint256 _price) public pure returns (uint160) {
+    //     return uint160(Math.sqrt((_price << 192) / DECIMAL_PRECISION));
+    // }
 
-    function _provideCurveLiquidity(IBoldToken _boldToken, LiquityContracts memory _contracts) internal {
-        ICurveStableswapNGPool usdcCurvePool =
-            HybridCurveUniV3Exchange(address(_contracts.leverageZapper.exchange())).curvePool();
-        // Add liquidity to USDC-BOLD
-        //uint256 usdcAmount = 1e15; // 1B with 6 decimals
-        //boldAmount = usdcAmount * 1e12; // from 6 to 18 decimals
-        uint256 usdcAmount = 1e27;
-        uint256 boldAmount = usdcAmount;
+    // function _provideCurveLiquidity(IBoldToken _boldToken, LiquityContracts memory _contracts) internal {
+    //     ICurveStableswapNGPool usdcCurvePool =
+    //         HybridCurveUniV3Exchange(address(_contracts.leverageZapper.exchange())).curvePool();
+    //     // Add liquidity to USDC-BOLD
+    //     //uint256 usdcAmount = 1e15; // 1B with 6 decimals
+    //     //boldAmount = usdcAmount * 1e12; // from 6 to 18 decimals
+    //     uint256 usdcAmount = 1e27;
+    //     uint256 boldAmount = usdcAmount;
 
-        // mint
-        ERC20Faucet(address(USDC)).mint(deployer, usdcAmount);
-        (uint256 price,) = _contracts.priceFeed.fetchPrice();
-        _mintBold(boldAmount, price, _contracts);
-        // approve
-        USDC.approve(address(usdcCurvePool), usdcAmount);
-        _boldToken.approve(address(usdcCurvePool), boldAmount);
+    //     // mint
+    //     ERC20Faucet(address(USDC)).mint(deployer, usdcAmount);
+    //     (uint256 price,) = _contracts.priceFeed.fetchPrice();
+    //     _mintBold(boldAmount, price, _contracts);
+    //     // approve
+    //     USDC.approve(address(usdcCurvePool), usdcAmount);
+    //     _boldToken.approve(address(usdcCurvePool), boldAmount);
 
-        uint256[] memory amountsDynamic = new uint256[](2);
-        amountsDynamic[0] = boldAmount;
-        amountsDynamic[1] = usdcAmount;
-        // add liquidity
-        usdcCurvePool.add_liquidity(amountsDynamic, 0);
-    }
+    //     uint256[] memory amountsDynamic = new uint256[](2);
+    //     amountsDynamic[0] = boldAmount;
+    //     amountsDynamic[1] = usdcAmount;
+    //     // add liquidity
+    //     usdcCurvePool.add_liquidity(amountsDynamic, 0);
+    // }
 
     function formatAmount(uint256 amount, uint256 decimals, uint256 digits) internal pure returns (string memory) {
         if (digits > decimals) {
