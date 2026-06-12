@@ -28,9 +28,12 @@ contract CollateralRegistry is ICollateralRegistry {
     IERC20Metadata[] internal nonRedeemableBranchesTokens;
     ITroveManager[] internal nonRedeemableBranchesTroveManagers;
 
-    IAeroManager public immutable aeroManager;
+    IAeroManager public aeroManager;
 
     IBoldToken public immutable boldToken;
+
+    /// @dev Set to true when any branch added via `createNewBranch` uses Aero LP collateral
+    bool public hasAeroLPCollateralBranch;
 
     uint256 public baseRate;
 
@@ -50,6 +53,7 @@ contract CollateralRegistry is ICollateralRegistry {
     event GovernorProposed(address indexed pendingGovernor, uint256 activateAtTimestamp);
     event GovernorProposalCancelled(address indexed cancelledGovernor);
     event GovernorUpdated(address oldGovernor, address newGovernor);
+    event AeroManagerUpdated(address oldAeroManager, address newAeroManager);
 
     /// @dev The constructor assumes only redeemable branches
     /// @param _boldToken The address of the bold token
@@ -137,6 +141,7 @@ contract CollateralRegistry is ICollateralRegistry {
 
         // If AERO LP collateral, add to AeroManager
         if (_isAeroLPCollateral) {
+            hasAeroLPCollateralBranch = true;
             aeroManager.addActivePool(address(_activePool));
         }
     }
@@ -480,6 +485,18 @@ contract CollateralRegistry is ICollateralRegistry {
         pendingGovernor = address(0);
         pendingGovernorTimestamp = 0;
         emit GovernorProposalCancelled(cancelled);
+    }
+
+    /// @notice Update the AeroManager address
+    /// @dev Only allowed before any Aero LP collateral branch has been added
+    /// @param _newAeroManager The new AeroManager address
+    function updateAeroManager(IAeroManager _newAeroManager) external onlyGovernor {
+        require(!hasAeroLPCollateralBranch, "CR: Cannot update AeroManager with Aero LP collateral branches");
+        require(address(_newAeroManager) != address(0), "CR: AeroManager cannot be zero address");
+        require(address(_newAeroManager) != address(aeroManager), "CR: AeroManager already set to this address");
+        address oldAeroManager = address(aeroManager);
+        aeroManager = _newAeroManager;
+        emit AeroManagerUpdated(oldAeroManager, address(_newAeroManager));
     }
 
     /// @notice Update the collateral governor
