@@ -39,14 +39,15 @@ export const LEVERAGE_FACTOR_PRECISION = 0.1;
 export const MAX_LTV_ALLOWED_RATIO = 0.916666667; // ratio of the max LTV allowed by the app (when opening a position)
 export const MAX_LTV_RESERVE_RATIO = 0.04; // ratio of the max LTV in non-limited mode (e.g. when updating a position), to prevent reaching the max LTV
 
-export const ETH_MAX_RESERVE = dn.from(0.1, 18); // leave 0.1 ETH when users click on "max" to deposit from their account
+export const ETH_MAX_RESERVE = dn.from(0.001, 18); // leave 0.001 ETH when users click on "max" to deposit from their account
 
-export const ETH_GAS_COMPENSATION = dn.from(0.0375, 18); // see contracts/src/Dependencies/Constants.sol
+export const ETH_GAS_COMPENSATION = dn.from(0.001, 18); // see contracts/src/Dependencies/Constants.sol
 
 export const INTEREST_RATE_ADJ_COOLDOWN = 7 * 24 * 60 * 60; // 7 days in seconds
 
 // interest rate field config
 export const INTEREST_RATE_START = 0.005; // 0.5%
+export const INTEREST_RATE_START_NONREDEMPTION_PROTECTED = 0.03; // 3%
 export const INTEREST_RATE_END = 0.25; // 25%
 export const INTEREST_RATE_MAX = 2.5; // 250%
 export const INTEREST_RATE_DEFAULT = 0.1; // 10%
@@ -63,7 +64,7 @@ export const DATA_STALE_TIME = 5_000;
 export const LEVERAGE_SLIPPAGE_TOLERANCE = 0.0005; // 0.05%
 export const LEVERAGE_PRICE_IMPACT_HIGH = 0.01; // 1%
 export const MAX_UPFRONT_FEE = maxUint256;
-export const MIN_DEBT = dn.from(2000, 18);
+export const MIN_DEBT = dn.from(200, 18);
 
 export const TROVE_STATUS_NONEXISTENT = 0;
 export const TROVE_STATUS_ACTIVE = 1;
