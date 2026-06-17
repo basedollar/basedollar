@@ -605,23 +605,22 @@ contract AeroManagerTest is DevTestSetup {
         aeroManagerImpl.acceptAeroTokenAddressUpdate();
 
         uint256 newStakeAmount = 6e18;
-        AeroGaugeTester newGauge = new AeroGaugeTester(address(weth), address(newTok));
-        deal(address(weth), address(aeroManagerImpl), newStakeAmount);
-        vm.startPrank(address(aeroManagerImpl));
-        weth.approve(address(newGauge), newStakeAmount);
-        newGauge.deposit(newStakeAmount);
-        vm.stopPrank();
+        vm.prank(address(aeroActivePool));
+        aeroManagerImpl.withdraw(address(gauge), address(weth), 10e18);
+        gauge.setRewardToken(newTok);
+        _stakeThroughActivePool(newStakeAmount);
 
-        aeroManagerImpl.claim(address(newGauge));
-        uint256 newClaimed = aeroManagerImpl.claimedAeroPerEpoch(0, address(newGauge));
+        aeroManagerImpl.claim(address(gauge));
+        uint256 newEpoch = aeroManagerImpl.currentEpochs(address(gauge));
+        uint256 newClaimed = aeroManagerImpl.claimedAeroPerEpoch(newEpoch, address(gauge));
 
         vm.prank(governor);
-        aeroManagerImpl.closeCurrentEpoch(address(newGauge));
+        aeroManagerImpl.closeCurrentEpoch(address(gauge));
 
         AeroManager.AeroRecipient[] memory recipients1 = new AeroManager.AeroRecipient[](1);
         recipients1[0] = AeroManager.AeroRecipient({borrower: B, amount: newClaimed});
         vm.prank(governor);
-        aeroManagerImpl.distributeAero(address(newGauge), recipients1);
+        aeroManagerImpl.distributeAero(address(gauge), recipients1);
 
         assertEq(aeroManagerImpl.claimedAero(), newClaimed);
         assertEq(aeroManagerImpl.claimedAero(address(newTok)), newClaimed);

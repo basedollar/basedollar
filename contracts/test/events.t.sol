@@ -521,11 +521,13 @@ contract TroveEventsTest is EventsTest, ITroveEvents {
             l.debtRedistributed = liquidatedDebt[i] - l.debtOffsetBySP;
 
             l.ethGasCompensation = ETH_GAS_COMPENSATION;
-            uint256 collToOffset = liquidatedColl[i] * l.debtOffsetBySP / liquidatedDebt[i];
-            collRemaining -= l.collGasCompensation = collToOffset / COLL_GAS_COMPENSATION_DIVISOR;
+            uint256 collSPPortion = liquidatedColl[i] * l.debtOffsetBySP / liquidatedDebt[i];
+            collRemaining -= l.collGasCompensation = Math.min(
+                collSPPortion / COLL_GAS_COMPENSATION_DIVISOR, COLL_GAS_COMPENSATION_CAP
+            );
 
             collRemaining -= l.collSentToSP = Math.min(
-                collToOffset - l.collGasCompensation,
+                collSPPortion - l.collGasCompensation,
                 l.debtOffsetBySP * (DECIMAL_PRECISION + LIQUIDATION_PENALTY_SP) / price
             );
 

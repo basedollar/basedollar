@@ -39,6 +39,10 @@ contract AeroGaugeTester is IAeroGauge {
         return address(aeroToken);
     }
 
+    function setRewardToken(MockAeroToken _aeroToken) external {
+        aeroToken = _aeroToken;
+    }
+
     /// @notice Address of the FeesVotingReward contract linked to the gauge
     function feesVotingReward() external view returns (address) {
         return nullAddress;

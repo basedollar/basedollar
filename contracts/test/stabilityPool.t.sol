@@ -3,6 +3,11 @@
 pragma solidity 0.8.24;
 
 import "./TestContracts/DevTestSetup.sol";
+import {
+    COLL_GAS_COMPENSATION_CAP,
+    COLL_GAS_COMPENSATION_DIVISOR,
+    ETH_GAS_COMPENSATION
+} from "src/Dependencies/Constants.sol";
 import {mulDivCeil} from "./Utils/Math.sol";
 
 contract SPTest is DevTestSetup {
@@ -2370,12 +2375,17 @@ contract SPTest is DevTestSetup {
         );
 
         uint256 collToOffset = vars.collBBefore * liqDebtOffset / vars.debtBBefore;
-        // For < 400 units of LST collateral, collGasComp = 0.0375 WETH + 0.5% * coll.
-        // We only need the Trove's component here.
-        vars.collGasComp = collToOffset / 200;
+        vars.collGasComp = collToOffset / COLL_GAS_COMPENSATION_DIVISOR;
+        if (vars.collGasComp > COLL_GAS_COMPENSATION_CAP) {
+            vars.collGasComp = COLL_GAS_COMPENSATION_CAP;
+        }
 
         // Check C's total WETH balance increased by the total gas comp
-        assertEq(collToken.balanceOf(C), vars.collCBefore + vars.collGasComp + 375e14, "Incorrect coll increase C");
+        assertEq(
+            collToken.balanceOf(C),
+            vars.collCBefore + vars.collGasComp + ETH_GAS_COMPENSATION,
+            "Incorrect coll increase C"
+        );
 
         // Check SP Coll has increased.  Expect no coll surplus for Trove owner, given massive price decrease
         vars.spCollBalAfter = stabilityPool.getCollBalance();
@@ -2586,12 +2596,13 @@ contract SPTest is DevTestSetup {
         // Check coll redistribution is correct
 
         uint256 collToOffset = vars.collBBefore * liqDebtOffset / vars.debtBBefore;
-        // For < 400 units of LST collateral, collGasComp = 0.0375 WETH + 0.5% * coll.
-        // We only need the Trove's component here.
-        vars.collGasComp = collToOffset / 200;
+        vars.collGasComp = collToOffset / COLL_GAS_COMPENSATION_DIVISOR;
+        if (vars.collGasComp > COLL_GAS_COMPENSATION_CAP) {
+            vars.collGasComp = COLL_GAS_COMPENSATION_CAP;
+        }
 
         // Check C's total WETH balance increased by the total gas comp
-        assertEq(collToken.balanceOf(C), vars.collCBefore + vars.collGasComp + 375e14);
+        assertEq(collToken.balanceOf(C), vars.collCBefore + vars.collGasComp + ETH_GAS_COMPENSATION, "Incorrect coll increase C");
 
         // Check SP Coll has increased.  Expect no coll surplus for Trove owner, given massive price decrease
         vars.spCollBalAfter = stabilityPool.getCollBalance();

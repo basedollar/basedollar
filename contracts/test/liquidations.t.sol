@@ -193,9 +193,12 @@ contract LiquidationsTest is DevTestSetup {
         assertEq(initialSPBoldBalance - finalSPBoldBalance, liquidationAmount + AInterest, "SP Bold balance mismatch");
         // Check SP Coll has increased by coll minus coll gas comp
         uint256 finalSPCollBalance = stabilityPool.getCollBalance();
-        // liquidationAmount to Coll + 5%
+        uint256 collGasCompensation = collAmount / COLL_GAS_COMPENSATION_DIVISOR;
+        if (collGasCompensation > COLL_GAS_COMPENSATION_CAP) {
+            collGasCompensation = COLL_GAS_COMPENSATION_CAP;
+        }
         assertApproxEqAbs(
-            finalSPCollBalance - initialSPCollBalance, collAmount * 995 / 1000, 10, "SP Coll balance mismatch"
+            finalSPCollBalance - initialSPCollBalance, collAmount - collGasCompensation, 10, "SP Coll balance mismatch"
         );
 
         // Check there’s no surplus
