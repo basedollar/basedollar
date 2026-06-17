@@ -1,18 +1,25 @@
 import bundleAnalyzer from "@next/bundle-analyzer";
-import { execSync } from "node:child_process";
+// import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-const commitHashCmd = "git log -1 --pretty=format:%h";
+// const commitHashCmd = "git log -1 --pretty=format:%h";
 
 const APP_VERSION_FROM_BUILD = JSON.parse(
   readFileSync("./package.json", "utf-8"),
 ).version;
-const APP_COMMIT_HASH_FROM_BUILD = String(execSync(
-  commitHashCmd + " -- ./ ../uikit/",
-)).trim();
-const CONTRACTS_COMMIT_HASH_FROM_BUILD = String(execSync(
-  commitHashCmd + " -- ../../contracts/addresses/11155111.json",
-)).trim();
+
+// TODO: Uncomment this
+// Build metadata is disabled for testnet deployment so production builds do not
+// depend on shelling out to git from next.config.js.
+
+// const APP_COMMIT_HASH_FROM_BUILD = String(execSync(
+//   commitHashCmd + " -- ./ ../uikit/",
+// )).trim();
+// const CONTRACTS_COMMIT_HASH_FROM_BUILD = String(execSync(
+//   commitHashCmd + " -- ../../contracts/addresses/11155111.json",
+// )).trim();
+const APP_COMMIT_HASH_FROM_BUILD = "";
+const CONTRACTS_COMMIT_HASH_FROM_BUILD = "";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
