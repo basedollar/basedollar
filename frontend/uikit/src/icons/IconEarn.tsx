@@ -8,11 +8,12 @@ export function IconEarn({
 }) {
   return (
     <svg fill="none" viewBox="0 0 24 24" width={size} height={size}>
+      <circle cx={8} cy={8} r={2.2} fill="currentColor" />
+      <circle cx={12} cy={5.2} r={2.2} fill="currentColor" />
+      <circle cx={16} cy={8} r={2.2} fill="currentColor" />
       <path
         fill="currentColor"
-        fillRule="evenodd"
-        d="M21 3H3v18h18zm-8.999 14.143a5.143 5.143 0 1 0 0-10.286 5.143 5.143 0 0 0 0 10.286"
-        clipRule="evenodd"
+        d="M3.6 12.2c-.7 0-1.2.6-1.1 1.3.6 4.4 4.4 7.7 9 7.7h1c4.6 0 8.4-3.3 9-7.7.1-.7-.4-1.3-1.1-1.3H3.6Zm2.2 2.4h12.4c-.9 2.4-3.1 4.1-5.7 4.1h-1c-2.6 0-4.8-1.7-5.7-4.1Z"
       />
     </svg>
   );

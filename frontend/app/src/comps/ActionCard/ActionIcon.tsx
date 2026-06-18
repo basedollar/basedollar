@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { IconBorrow, IconEarn } from "@liquity2/uikit";
 import { a, useSpring } from "@react-spring/web";
 import { match } from "ts-pattern";
 
@@ -44,40 +45,58 @@ export function ActionIcon({
 }
 
 function ActionIconBorrow({ foreground, state }: IconProps) {
-  const { t1, t2 } = useSpring({
-    t1: state === "active"
-      ? "translate(36 0) scale(1.1)"
-      : "translate(0 0) scale(1)",
-    t2: state === "active"
-      ? "translate(-36 0) scale(1.1)"
-      : "translate(0 0) scale(1)",
+  // const { t1, t2 } = useSpring({
+  //   t1: state === "active"
+  //     ? "translate(36 0) scale(1.1)"
+  //     : "translate(0 0) scale(1)",
+  //   t2: state === "active"
+  //     ? "translate(-36 0) scale(1.1)"
+  //     : "translate(0 0) scale(1)",
+  //   config: springConfig,
+  // });
+
+  // return (
+  //   <IconBase>
+  //     <a.path
+  //       fill={foreground}
+  //       d="
+  //         M 20 48
+  //         A 28 28 0 0 1 0 56
+  //         V 0
+  //         a 28 28 0 0 1 20 48
+  //       "
+  //       transform={t1}
+  //       style={{ transformOrigin: "50% 50%" }}
+  //     />
+  //     <a.path
+  //       fill={foreground}
+  //       d="
+  //         M 28 28
+  //         A 28 28 0 0 1 56 0
+  //         v 56
+  //         a 28 28 0 0 1 -28 -28
+  //       "
+  //       transform={t2}
+  //       style={{ transformOrigin: "50% 50%" }}
+  //     />
+  //   </IconBase>
+  // );
+  const { transform } = useSpring({
+    transform: state === "active" ? "scale(1.12)" : "scale(1)",
     config: springConfig,
   });
+
   return (
-    <IconBase>
-      <a.path
-        fill={foreground}
-        d="
-          M 20 48
-          A 28 28 0 0 1 0 56
-          V 0
-          a 28 28 0 0 1 20 48
-        "
-        transform={t1}
-        style={{ transformOrigin: "50% 50%" }}
-      />
-      <a.path
-        fill={foreground}
-        d="
-          M 28 28
-          A 28 28 0 0 1 56 0
-          v 56
-          a 28 28 0 0 1 -28 -28
-        "
-        transform={t2}
-        style={{ transformOrigin: "50% 50%" }}
-      />
-    </IconBase>
+    <a.div
+      style={{
+        color: foreground,
+        display: "grid",
+        transform,
+        transformOrigin: "50% 50%",
+      }}
+    >
+      <IconBorrow size={24} />
+    </a.div>
   );
 }
 
@@ -120,32 +139,54 @@ function ActionIconLeverage({ foreground, state }: IconProps) {
   );
 }
 
-function ActionIconEarn({ foreground, background, state }: IconProps) {
-  const { squareT, squareRadius, circleT } = useSpring({
-    squareT: state === "active" ? "scale(1.4)" : "scale(1)",
-    squareRadius: state === "active" ? "28" : "0",
-    circleT: state === "active" ? "scale(0.8)" : "scale(1)",
+function ActionIconEarn({
+  foreground,
+  // background,
+  state
+}: IconProps) {
+  // const { squareT, squareRadius, circleT } = useSpring({
+  //   squareT: state === "active" ? "scale(1.4)" : "scale(1)",
+  //   squareRadius: state === "active" ? "28" : "0",
+  //   circleT: state === "active" ? "scale(0.8)" : "scale(1)",
+  //   config: springConfig,
+  // });
+
+  // return (
+  //   <IconBase>
+  //     <a.rect
+  //       fill={foreground}
+  //       width="56"
+  //       height="56"
+  //       rx={squareRadius}
+  //       transform={squareT}
+  //       style={{ transformOrigin: "50% 50%" }}
+  //     />
+  //     <a.circle
+  //       fill={background}
+  //       cx="28"
+  //       cy="28"
+  //       r="16"
+  //       transform={circleT}
+  //       style={{ transformOrigin: "50% 50%" }}
+  //     />
+  //   </IconBase>
+  // );
+  const { transform } = useSpring({
+    transform: state === "active" ? "scale(1.12)" : "scale(1)",
     config: springConfig,
   });
+
   return (
-    <IconBase>
-      <a.rect
-        fill={foreground}
-        width="56"
-        height="56"
-        rx={squareRadius}
-        transform={squareT}
-        style={{ transformOrigin: "50% 50%" }}
-      />
-      <a.circle
-        fill={background}
-        cx="28"
-        cy="28"
-        r="16"
-        transform={circleT}
-        style={{ transformOrigin: "50% 50%" }}
-      />
-    </IconBase>
+    <a.div
+      style={{
+        color: foreground,
+        display: "grid",
+        transform,
+        transformOrigin: "50% 50%",
+      }}
+    >
+      <IconEarn size={24} />
+    </a.div>
   );
 }
 
