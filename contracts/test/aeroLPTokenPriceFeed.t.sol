@@ -90,6 +90,35 @@ contract AeroLPTokenPriceFeedTest is Test {
 
     // ============ TWAP Exchange Rate Tests ============
 
+    function test_constructor_revertsWhenGaugeIsZero() public {
+        vm.expectRevert("Gauge is 0 address");
+        new AeroLPTokenPriceFeedTester(
+            address(borrowerOperations),
+            IAeroGauge(address(0)),
+            address(token0UsdOracle),
+            address(token1UsdOracle),
+            1 days,
+            1 days
+        );
+    }
+
+    function test_constructor_revertsWhenOracleDecimalsMismatch() public {
+        ChainlinkOracleMock mismatchedOracle = new ChainlinkOracleMock();
+        mismatchedOracle.setDecimals(18);
+        mismatchedOracle.setPrice(2000e18);
+        mismatchedOracle.setUpdatedAt(block.timestamp);
+
+        vm.expectRevert("Token0 and token1 decimals do not match");
+        new AeroLPTokenPriceFeedTester(
+            address(borrowerOperations),
+            IAeroGauge(address(gauge)),
+            address(token0UsdOracle),
+            address(mismatchedOracle),
+            1 days,
+            1 days
+        );
+    }
+
     function test_getTwapExchangeRate_scalesCorrectly() public {
         // quote returns 0.0005e18 (token1 has 18 decimals)
         // Scaled to 18 decimals: 0.0005e18 * 10^(18-18) = 0.0005e18
@@ -97,6 +126,39 @@ contract AeroLPTokenPriceFeedTest is Test {
         
         assertEq(exchangeRate.token1PerToken0, 0.0005e18);
         assertEq(exchangeRate.token0PerToken1, 2000e18);
+        assertFalse(exchangeRate.isDown);
+    }
+
+    function test_getTwapExchangeRate_stablePairCoversBothTokenDirections() public {
+        ERC20DecimalsMock s0 = new ERC20DecimalsMock("S0", "S0", 18);
+        ERC20DecimalsMock s1 = new ERC20DecimalsMock("S1", "S1", 18);
+        AeroGaugeMock g = new AeroGaugeMock(address(s0), address(s1));
+        AeroPoolMock p = g.pool();
+        p.setStable(true);
+        p.setReserves(1_000_000e18, 1_000_000e18);
+        p.setTotalSupply(1_000_000e18);
+
+        ChainlinkOracleMock o0 = new ChainlinkOracleMock();
+        o0.setDecimals(8);
+        o0.setPrice(1e8);
+        o0.setUpdatedAt(block.timestamp);
+        ChainlinkOracleMock o1 = new ChainlinkOracleMock();
+        o1.setDecimals(8);
+        o1.setPrice(1e8);
+        o1.setUpdatedAt(block.timestamp);
+
+        AeroLPTokenPriceFeedTester stableFeed = new AeroLPTokenPriceFeedTester(
+            address(borrowerOperations),
+            IAeroGauge(address(g)),
+            address(o0),
+            address(o1),
+            1 days,
+            1 days
+        );
+
+        AeroLPTokenPriceFeedBase.ExchangeRate memory exchangeRate = stableFeed.i_getTwapExchangeRates();
+        assertApproxEqAbs(exchangeRate.token1PerToken0, 1e18, 1);
+        assertApproxEqAbs(exchangeRate.token0PerToken1, 1e18, 1);
         assertFalse(exchangeRate.isDown);
     }
 

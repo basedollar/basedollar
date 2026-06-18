@@ -946,4 +946,36 @@ contract AeroManagerTest is DevTestSetup {
         assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), 3e18);
         assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), 0);
     }
+
+    function test_defaultPool_receiveColl_aeroLPCollateralAccountsWithoutTokenTransfer() public {
+        uint256 amount = 2e18;
+        _stakeThroughActivePool(amount);
+
+        uint256 gaugeBalanceBefore = weth.balanceOf(address(gauge));
+
+        vm.prank(address(aeroActivePool));
+        defaultPool.receiveColl(amount);
+
+        assertEq(defaultPool.getCollBalance(), amount);
+        assertEq(weth.balanceOf(address(defaultPool)), 0);
+        assertEq(weth.balanceOf(address(gauge)), gaugeBalanceBefore);
+    }
+
+    function test_collSurplusPool_claimColl_aeroLPCollateralWithdrawsFromGauge() public {
+        uint256 amount = 2e18;
+        _stakeThroughActivePool(amount);
+
+        uint256 balanceBefore = weth.balanceOf(A);
+
+        vm.prank(address(troveManager));
+        collSurplusPool.accountSurplus(A, amount);
+
+        vm.prank(address(borrowerOperations));
+        collSurplusPool.claimColl(A);
+
+        assertEq(collSurplusPool.getCollBalance(), 0);
+        assertEq(collSurplusPool.getCollateral(A), 0);
+        assertEq(weth.balanceOf(A), balanceBefore + amount);
+        assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), 0);
+    }
 }
