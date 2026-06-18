@@ -5,8 +5,11 @@ import "./TestContracts/DevTestSetup.sol";
 import "./TestContracts/Deployment.t.sol";
 import {ERC20Faucet} from "./TestContracts/ERC20Faucet.sol";
 import "src/CollateralRegistry.sol";
+import "src/HintHelpers.sol";
 import "src/MultiTroveGetter.sol";
 import "src/Interfaces/IMultiTroveGetter.sol";
+import "src/Interfaces/ISortedTroves.sol";
+import "src/Interfaces/ITroveManager.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {INTEREST_RATE_ADJ_COOLDOWN, MIN_INTEREST_RATE_CHANGE_PERIOD} from "src/Dependencies/Constants.sol";
 import {IBorrowerOperations} from "src/Interfaces/IBorrowerOperations.sol";
@@ -74,6 +77,15 @@ contract HintHelpersNonRedeemableMultiTroveTest is DevTestSetup {
         assertTrue(nr.sortedTroves.contains(hintId));
     }
 
+    function test_getApproxHintNonRedeemable_skipsZombieAndUpdatesToCloserHint() public {
+        HintHelpers mockHintHelpers =
+            new HintHelpers(ICollateralRegistry(address(new NonRedeemableApproxHintRegistry())));
+
+        (uint256 hintId, uint256 diff,) = mockHintHelpers.getApproxHintNonRedeemable(0, 5e16, 50, 1);
+        assertEq(hintId, 2);
+        assertEq(diff, 0);
+    }
+
     function test_predictOpenTroveUpfrontFeeNonRedeemable_matchesOpenPath() public {
         nr.priceFeed.setPrice(2000e18);
         _fundNr(A);
@@ -98,6 +110,15 @@ contract HintHelpersNonRedeemableMultiTroveTest is DevTestSetup {
         _fundNr(A);
         _registerNrBatch(D);
         uint256 tid = openNrTroveInBatch(A, 0, 40 ether, 2000e18, 5e16, D);
+        uint256 fee = hintHelpers.predictAdjustTroveUpfrontFeeNonRedeemable(0, tid, 500e18);
+        assertGt(fee, 0);
+    }
+
+    function test_predictAdjustTroveUpfrontFeeNonRedeemable_withIndividualDebtIncrease() public {
+        nr.priceFeed.setPrice(2000e18);
+        _fundNr(A);
+        uint256 tid = openNrTrove(A, 0, 25 ether, 1500e18, 5e16);
+
         uint256 fee = hintHelpers.predictAdjustTroveUpfrontFeeNonRedeemable(0, tid, 500e18);
         assertGt(fee, 0);
     }
@@ -139,6 +160,18 @@ contract HintHelpersNonRedeemableMultiTroveTest is DevTestSetup {
         assertGt(fee, 0);
     }
 
+    function test_predictAdjustBatchInterestRateUpfrontFeeNonRedeemable_zeroWhenRateUnchangedOrAfterCooldown() public {
+        nr.priceFeed.setPrice(2000e18);
+        _fundNr(A);
+        _registerNrBatch(D);
+        openNrTroveInBatch(A, 0, 40 ether, 2000e18, 5e16, D);
+
+        assertEq(hintHelpers.predictAdjustBatchInterestRateUpfrontFeeNonRedeemable(0, D, 5e16), 0);
+
+        vm.warp(block.timestamp + INTEREST_RATE_ADJ_COOLDOWN + 1);
+        assertEq(hintHelpers.predictAdjustBatchInterestRateUpfrontFeeNonRedeemable(0, D, 6e16), 0);
+    }
+
     function test_predictJoinBatchInterestRateUpfrontFeeNonRedeemable() public {
         nr.priceFeed.setPrice(2000e18);
         _fundNr(A);
@@ -159,6 +192,17 @@ contract HintHelpersNonRedeemableMultiTroveTest is DevTestSetup {
         assertGt(fee, 0);
     }
 
+    function test_predictRemoveFromBatchUpfrontFeeNonRedeemable_zeroWhenRateUnchangedOrAfterCooldown() public {
+        nr.priceFeed.setPrice(2000e18);
+        _fundNr(A);
+        uint256 tid = openNrTroveInBatch(A, 0, 40 ether, 2000e18, 5e16, D);
+
+        assertEq(hintHelpers.predictRemoveFromBatchUpfrontFeeNonRedeemable(0, tid, 5e16), 0);
+
+        vm.warp(block.timestamp + INTEREST_RATE_ADJ_COOLDOWN + 1);
+        assertEq(hintHelpers.predictRemoveFromBatchUpfrontFeeNonRedeemable(0, tid, 6e16), 0);
+    }
+
     function test_getMultipleSortedNonRedeemableTroves_andDebtAscending() public {
         nr.priceFeed.setPrice(2000e18);
         _fundNr(A);
@@ -172,6 +216,47 @@ contract HintHelpersNonRedeemableMultiTroveTest is DevTestSetup {
         (IMultiTroveGetter.DebtPerInterestRate[] memory data,) =
             mtg.getNonRedeemableDebtPerInterestRateAscending(0, 0, 3);
         assertGt(data[0].debt, 0);
+    }
+
+    function test_getMultipleSortedNonRedeemableTroves_tailAndBounds() public {
+        nr.priceFeed.setPrice(2000e18);
+        _fundNr(A);
+        _fundNr(B);
+        openNrTrove(A, 0, 25 ether, 1200e18, 4e16);
+        openNrTrove(B, 0, 25 ether, 1200e18, 7e16);
+
+        IMultiTroveGetter.CombinedTroveData[] memory outOfBounds = mtg.getMultipleSortedNonRedeemableTroves(0, -3, 2);
+        assertEq(outOfBounds.length, 0);
+
+        IMultiTroveGetter.CombinedTroveData[] memory truncated = mtg.getMultipleSortedNonRedeemableTroves(0, 0, 100);
+        assertEq(truncated.length, nr.sortedTroves.getSize());
+
+        IMultiTroveGetter.CombinedTroveData[] memory tail = mtg.getMultipleSortedNonRedeemableTroves(0, -1, 1);
+        assertEq(tail.length, 1);
+        assertEq(tail[0].id, nr.sortedTroves.getLast());
+
+        IMultiTroveGetter.CombinedTroveData[] memory exactCount = mtg.getMultipleSortedNonRedeemableTroves(0, 1, 1);
+        assertEq(exactCount.length, 1);
+    }
+
+    function test_getNonRedeemableDebtPerInterestRateAscending_explicitStartAndZeroIterations() public {
+        nr.priceFeed.setPrice(2000e18);
+        _fundNr(A);
+        _fundNr(B);
+        openNrTrove(A, 0, 25 ether, 1200e18, 4e16);
+        openNrTrove(B, 0, 25 ether, 1200e18, 7e16);
+
+        uint256 startId = nr.sortedTroves.getLast();
+        (IMultiTroveGetter.DebtPerInterestRate[] memory data, uint256 currId) =
+            mtg.getNonRedeemableDebtPerInterestRateAscending(0, startId, 1);
+        assertEq(data.length, 1);
+        assertGt(data[0].debt, 0);
+        assertEq(currId, nr.sortedTroves.getPrev(startId));
+
+        (IMultiTroveGetter.DebtPerInterestRate[] memory empty, uint256 zeroIterCurrId) =
+            mtg.getNonRedeemableDebtPerInterestRateAscending(0, startId, 0);
+        assertEq(empty.length, 0);
+        assertEq(zeroIterCurrId, startId);
     }
 
     // --- internal NR open helpers ---
@@ -222,5 +307,53 @@ contract HintHelpersNonRedeemableMultiTroveTest is DevTestSetup {
         vm.startPrank(account);
         troveId = nr.borrowerOperations.openTroveAndJoinInterestBatchManager(params);
         vm.stopPrank();
+    }
+}
+
+contract NonRedeemableApproxHintRegistry {
+    ITroveManager internal immutable manager;
+
+    constructor() {
+        manager = ITroveManager(address(new NonRedeemableApproxHintTroveManager()));
+    }
+
+    function getNonRedeemableTroveManager(uint256) external view returns (ITroveManager) {
+        return manager;
+    }
+}
+
+contract NonRedeemableApproxHintTroveManager {
+    ISortedTroves internal immutable sorted;
+
+    constructor() {
+        sorted = ISortedTroves(address(new NonRedeemableApproxHintSortedTroves()));
+    }
+
+    function sortedTroves() external view returns (ISortedTroves) {
+        return sorted;
+    }
+
+    function getTroveIdsCount() external pure returns (uint256) {
+        return 3;
+    }
+
+    function getTroveFromTroveIdsArray(uint256 index) external pure returns (uint256) {
+        return index == 1 ? 3 : 2;
+    }
+
+    function getTroveAnnualInterestRate(uint256 id) external pure returns (uint256) {
+        if (id == 1) return 10e16;
+        if (id == 2) return 5e16;
+        return 20e16;
+    }
+}
+
+contract NonRedeemableApproxHintSortedTroves {
+    function getLast() external pure returns (uint256) {
+        return 1;
+    }
+
+    function contains(uint256 id) external pure returns (bool) {
+        return id == 1 || id == 2;
     }
 }

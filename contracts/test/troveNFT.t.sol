@@ -17,6 +17,9 @@ contract troveNFTTest is DevTestSetup {
     TroveNFT troveNFTRETH;
     uint256[] troveIds;
 
+    event MetadataNFTUpdated(address indexed _oldMetadataNFT, address indexed _newMetadataNFT);
+    event GovernorUpdated(address indexed _oldGovernor, address indexed _newGovernor);
+
     function openMulticollateralTroveNoHints100pctWithIndex(
         uint256 _collIndex,
         address _account,
@@ -148,6 +151,77 @@ contract troveNFTTest is DevTestSetup {
 
         assertEq(troveNFTRETH.name(), "Base Dollar - Rocket Pool ETH", "Invalid Trove Name");
         assertEq(troveNFTRETH.symbol(), "BD_rETH", "Invalid Trove Symbol");
+    }
+
+    function test_mint_revertsWhenCallerIsNotTroveManager() public {
+        vm.expectRevert("TroveNFT: Caller is not the TroveManager contract");
+        troveNFTWETH.mint(A, 123);
+    }
+
+    function test_burn_revertsWhenCallerIsNotTroveManager() public {
+        vm.expectRevert("TroveNFT: Caller is not the TroveManager contract");
+        troveNFTWETH.burn(troveIds[0]);
+    }
+
+    function test_burnThroughTroveManagerClosesToken() public {
+        uint256 troveId = troveIds[0];
+        uint256 debt = contractsArray[0].troveManager.getTroveEntireDebt(troveId);
+        deal(address(boldToken), A, debt);
+
+        vm.startPrank(A);
+        boldToken.approve(address(contractsArray[0].borrowerOperations), debt);
+        contractsArray[0].borrowerOperations.closeTrove(troveId);
+        vm.stopPrank();
+
+        vm.expectRevert("ERC721: invalid token ID");
+        troveNFTWETH.ownerOf(troveId);
+    }
+
+    function test_updateMetadataNFT_revertsWhenCallerIsNotGovernor() public {
+        vm.expectRevert("TroveNFT: Caller is not the governor.");
+        troveNFTWETH.updateMetadataNFT(address(0xBEEF));
+    }
+
+    function test_updateMetadataNFT_revertsForZeroAddress() public {
+        vm.prank(troveNFTWETH.governor());
+        vm.expectRevert("TroveNFT: MetadataNFT cannot be the zero address");
+        troveNFTWETH.updateMetadataNFT(address(0));
+    }
+
+    function test_updateMetadataNFT_revertsWhenAlreadySet() public {
+        address currentMetadataNFT = address(troveNFTWETH.metadataNFT());
+
+        vm.prank(troveNFTWETH.governor());
+        vm.expectRevert("TroveNFT: MetadataNFT already set to this address");
+        troveNFTWETH.updateMetadataNFT(currentMetadataNFT);
+    }
+
+    function test_updateMetadataNFT_emitsAndUpdates() public {
+        address oldMetadataNFT = address(troveNFTWETH.metadataNFT());
+        MetadataNFT newMetadataNFT = new MetadataNFT(MetadataNFT(oldMetadataNFT).assetReader());
+
+        vm.prank(troveNFTWETH.governor());
+        vm.expectEmit(true, true, false, true, address(troveNFTWETH));
+        emit MetadataNFTUpdated(oldMetadataNFT, address(newMetadataNFT));
+        troveNFTWETH.updateMetadataNFT(address(newMetadataNFT));
+
+        assertEq(address(troveNFTWETH.metadataNFT()), address(newMetadataNFT));
+    }
+
+    function test_updateGovernor_revertsWhenCallerIsNotGovernor() public {
+        vm.expectRevert("TroveNFT: Caller is not the governor.");
+        troveNFTWETH.updateGovernor(B);
+    }
+
+    function test_updateGovernor_emitsAndUpdates() public {
+        address oldGovernor = troveNFTWETH.governor();
+
+        vm.prank(oldGovernor);
+        vm.expectEmit(true, true, false, true, address(troveNFTWETH));
+        emit GovernorUpdated(oldGovernor, B);
+        troveNFTWETH.updateGovernor(B);
+
+        assertEq(troveNFTWETH.governor(), B);
     }
 
     string topMulti =

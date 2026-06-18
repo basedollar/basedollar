@@ -35,6 +35,17 @@ contract HintHelpersTest is DevTestSetup {
         assertEq(outSeed, 123);
     }
 
+    function test_getApproxHint_canUpdateToCloserTrove() public {
+        priceFeed.setPrice(2000e18);
+        openTroveHelper(A, 0, 10 ether, 1000e18, 1e16);
+        openTroveHelper(A, 1, 10 ether, 1000e18, 5e16);
+        openTroveHelper(A, 2, 10 ether, 1000e18, 10e16);
+
+        (uint256 hintId, uint256 diff,) = hintHelpers.getApproxHint(0, 5e16, 100, 1);
+        assertEq(troveManager.getTroveAnnualInterestRate(hintId), 5e16);
+        assertEq(diff, 0);
+    }
+
     function test_forcePredictAdjustInterestRateUpfrontFee_canBeNonZeroWhenPredictReturnsZeroAfterCooldown() public {
         priceFeed.setPrice(2000e18);
         uint256 troveId = openTroveNoHints100pct(A, 10 ether, 2000e18, 5e16);
@@ -54,5 +65,61 @@ contract HintHelpersTest is DevTestSetup {
 
         uint256 predicted = hintHelpers.predictAdjustInterestRateUpfrontFee(0, troveId, 6e16);
         assertGt(predicted, 0);
+    }
+
+    function test_predictAdjustInterestRateUpfrontFee_zeroWhenRateUnchanged() public {
+        priceFeed.setPrice(2000e18);
+        uint256 troveId = openTroveNoHints100pct(A, 10 ether, 2000e18, 5e16);
+
+        assertEq(hintHelpers.predictAdjustInterestRateUpfrontFee(0, troveId, 5e16), 0);
+    }
+
+    function test_predictAdjustTroveUpfrontFee_zeroDebtIncrease() public {
+        priceFeed.setPrice(2000e18);
+        uint256 troveId = openTroveNoHints100pct(A, 10 ether, 2000e18, 5e16);
+
+        assertEq(hintHelpers.predictAdjustTroveUpfrontFee(0, troveId, 0), 0);
+    }
+
+    function test_predictAdjustTroveUpfrontFee_withBatchDebtIncrease() public {
+        priceFeed.setPrice(2000e18);
+        uint256 troveId = openTroveAndJoinBatchManager(A, 10 ether, 2000e18, B, 5e16);
+
+        assertGt(hintHelpers.predictAdjustTroveUpfrontFee(0, troveId, 500e18), 0);
+    }
+
+    function test_predictAdjustBatchInterestRateUpfrontFee_zeroWhenRateUnchangedOrAfterCooldown() public {
+        priceFeed.setPrice(2000e18);
+        openTroveAndJoinBatchManager(A, 10 ether, 2000e18, B, 5e16);
+
+        assertEq(hintHelpers.predictAdjustBatchInterestRateUpfrontFee(0, B, 5e16), 0);
+
+        vm.warp(block.timestamp + INTEREST_RATE_ADJ_COOLDOWN + 1);
+        assertEq(hintHelpers.predictAdjustBatchInterestRateUpfrontFee(0, B, 6e16), 0);
+    }
+
+    function test_predictOpenTroveAndJoinBatchUpfrontFee() public {
+        priceFeed.setPrice(2000e18);
+        registerBatchManager(B);
+
+        assertGt(hintHelpers.predictOpenTroveAndJoinBatchUpfrontFee(0, 2000e18, B), 0);
+    }
+
+    function test_predictJoinBatchInterestRateUpfrontFee() public {
+        priceFeed.setPrice(2000e18);
+        registerBatchManager(B);
+        uint256 troveId = openTroveNoHints100pct(A, 10 ether, 2000e18, 5e16);
+
+        assertGt(hintHelpers.predictJoinBatchInterestRateUpfrontFee(0, troveId, B), 0);
+    }
+
+    function test_predictRemoveFromBatchUpfrontFee_zeroWhenRateUnchangedOrAfterCooldown() public {
+        priceFeed.setPrice(2000e18);
+        uint256 troveId = openTroveAndJoinBatchManager(A, 10 ether, 2000e18, B, 5e16);
+
+        assertEq(hintHelpers.predictRemoveFromBatchUpfrontFee(0, troveId, 5e16), 0);
+
+        vm.warp(block.timestamp + INTEREST_RATE_ADJ_COOLDOWN + 1);
+        assertEq(hintHelpers.predictRemoveFromBatchUpfrontFee(0, troveId, 6e16), 0);
     }
 }
