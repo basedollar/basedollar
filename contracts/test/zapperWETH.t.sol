@@ -6,6 +6,7 @@ import "./TestContracts/DevTestSetup.sol";
 import "./TestContracts/WETH.sol";
 import "src/Zappers/WETHZapper.sol";
 import "src/Zappers/Interfaces/IFlashLoanReceiver.sol";
+import "src/Zappers/Interfaces/ILeverageZapper.sol";
 import "src/Dependencies/AddRemoveManagers.sol";
 
 contract ZapperWETHTest is DevTestSetup {
@@ -1252,5 +1253,63 @@ contract ZapperWETHTest is DevTestSetup {
         vm.expectRevert(AddRemoveManagers.NotOwnerNorRemoveManager.selector);
         wethZapper.withdrawBold(troveId, boldWithdraw, boldWithdraw);
         vm.stopPrank();
+    }
+
+    function testCloseTroveFromCollateralCallbackRevertsIfMinCollateralNotMet() external {
+        uint256 ethAmount = 10 ether;
+        IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
+            owner: A,
+            ownerIndex: 0,
+            collAmount: 0,
+            boldAmount: 1000e18,
+            upperHint: 0,
+            lowerHint: 0,
+            annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
+            batchManager: address(0),
+            maxUpfrontFee: 100e18,
+            addManager: address(0),
+            removeManager: address(0),
+            receiver: address(0)
+        });
+
+        vm.prank(A);
+        uint256 troveId = wethZapper.openTroveWithRawETH{value: ethAmount + ETH_GAS_COMPENSATION}(params);
+
+        IZapper.CloseTroveParams memory closeParams = IZapper.CloseTroveParams({
+            troveId: troveId, flashLoanAmount: 1 ether, minExpectedCollateral: ethAmount, receiver: A
+        });
+
+        vm.prank(address(wethZapper.flashLoanProvider()));
+        vm.expectRevert("WZ: Not enough collateral received");
+        IFlashLoanReceiver(address(wethZapper)).receiveFlashLoanOnCloseTroveFromCollateral(closeParams, 1 ether);
+    }
+
+    function testNoOpLeverageFlashLoanCallbacks() external {
+        IFlashLoanReceiver receiver = IFlashLoanReceiver(address(wethZapper));
+
+        receiver.receiveFlashLoanOnOpenLeveragedTrove(
+            ILeverageZapper.OpenLeveragedTroveParams({
+                owner: A,
+                ownerIndex: 0,
+                collAmount: 0,
+                flashLoanAmount: 0,
+                boldAmount: 0,
+                upperHint: 0,
+                lowerHint: 0,
+                annualInterestRate: 0,
+                batchManager: address(0),
+                maxUpfrontFee: 0,
+                addManager: address(0),
+                removeManager: address(0),
+                receiver: address(0)
+            }),
+            0
+        );
+        receiver.receiveFlashLoanOnLeverUpTrove(
+            ILeverageZapper.LeverUpTroveParams({troveId: 0, flashLoanAmount: 0, boldAmount: 0, maxUpfrontFee: 0}), 0
+        );
+        receiver.receiveFlashLoanOnLeverDownTrove(
+            ILeverageZapper.LeverDownTroveParams({troveId: 0, flashLoanAmount: 0, minBoldAmount: 0}), 0
+        );
     }
 }

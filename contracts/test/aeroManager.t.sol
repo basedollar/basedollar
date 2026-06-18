@@ -605,23 +605,22 @@ contract AeroManagerTest is DevTestSetup {
         aeroManagerImpl.acceptAeroTokenAddressUpdate();
 
         uint256 newStakeAmount = 6e18;
-        AeroGaugeTester newGauge = new AeroGaugeTester(address(weth), address(newTok));
-        deal(address(weth), address(aeroManagerImpl), newStakeAmount);
-        vm.startPrank(address(aeroManagerImpl));
-        weth.approve(address(newGauge), newStakeAmount);
-        newGauge.deposit(newStakeAmount);
-        vm.stopPrank();
+        vm.prank(address(aeroActivePool));
+        aeroManagerImpl.withdraw(address(gauge), address(weth), 10e18);
+        gauge.setRewardToken(newTok);
+        _stakeThroughActivePool(newStakeAmount);
 
-        aeroManagerImpl.claim(address(newGauge));
-        uint256 newClaimed = aeroManagerImpl.claimedAeroPerEpoch(0, address(newGauge));
+        aeroManagerImpl.claim(address(gauge));
+        uint256 newEpoch = aeroManagerImpl.currentEpochs(address(gauge));
+        uint256 newClaimed = aeroManagerImpl.claimedAeroPerEpoch(newEpoch, address(gauge));
 
         vm.prank(governor);
-        aeroManagerImpl.closeCurrentEpoch(address(newGauge));
+        aeroManagerImpl.closeCurrentEpoch(address(gauge));
 
         AeroManager.AeroRecipient[] memory recipients1 = new AeroManager.AeroRecipient[](1);
         recipients1[0] = AeroManager.AeroRecipient({borrower: B, amount: newClaimed});
         vm.prank(governor);
-        aeroManagerImpl.distributeAero(address(newGauge), recipients1);
+        aeroManagerImpl.distributeAero(address(gauge), recipients1);
 
         assertEq(aeroManagerImpl.claimedAero(), newClaimed);
         assertEq(aeroManagerImpl.claimedAero(address(newTok)), newClaimed);
@@ -946,5 +945,37 @@ contract AeroManagerTest is DevTestSetup {
         assertEq(weth.balanceOf(A), preA + 7e18);
         assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), 3e18);
         assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), 0);
+    }
+
+    function test_defaultPool_receiveColl_aeroLPCollateralAccountsWithoutTokenTransfer() public {
+        uint256 amount = 2e18;
+        _stakeThroughActivePool(amount);
+
+        uint256 gaugeBalanceBefore = weth.balanceOf(address(gauge));
+
+        vm.prank(address(aeroActivePool));
+        defaultPool.receiveColl(amount);
+
+        assertEq(defaultPool.getCollBalance(), amount);
+        assertEq(weth.balanceOf(address(defaultPool)), 0);
+        assertEq(weth.balanceOf(address(gauge)), gaugeBalanceBefore);
+    }
+
+    function test_collSurplusPool_claimColl_aeroLPCollateralWithdrawsFromGauge() public {
+        uint256 amount = 2e18;
+        _stakeThroughActivePool(amount);
+
+        uint256 balanceBefore = weth.balanceOf(A);
+
+        vm.prank(address(troveManager));
+        collSurplusPool.accountSurplus(A, amount);
+
+        vm.prank(address(borrowerOperations));
+        collSurplusPool.claimColl(A);
+
+        assertEq(collSurplusPool.getCollBalance(), 0);
+        assertEq(collSurplusPool.getCollateral(A), 0);
+        assertEq(weth.balanceOf(A), balanceBefore + amount);
+        assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), 0);
     }
 }

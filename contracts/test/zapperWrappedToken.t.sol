@@ -10,6 +10,7 @@ import "src/ERC20Wrappers/WrappedToken.sol";
 import "src/Zappers/WrappedTokenZapper.sol";
 import "src/Interfaces/IWrappedToken.sol";
 import "src/Zappers/Interfaces/IFlashLoanReceiver.sol";
+import "src/Zappers/Interfaces/ILeverageZapper.sol";
 import "src/Dependencies/AddRemoveManagers.sol";
 
 contract ZapperWrappedTokenTest is DevTestSetup {
@@ -1251,5 +1252,64 @@ contract ZapperWrappedTokenTest is DevTestSetup {
         vm.expectRevert(AddRemoveManagers.NotOwnerNorRemoveManager.selector);
         wrappedTokenZapper.withdrawBold(troveId, boldWithdraw, boldWithdraw);
         vm.stopPrank();
+    }
+
+    function testCloseTroveFromCollateralCallbackRevertsIfMinCollateralNotMet() external {
+        uint256 underlyingAmount = 10e6;
+        uint256 wrappedAmount = wrappedTokenZapper.convertUnderlyingToWrapped(underlyingAmount);
+        IZapper.OpenTroveParams memory params = IZapper.OpenTroveParams({
+            owner: A,
+            ownerIndex: 0,
+            collAmount: underlyingAmount,
+            boldAmount: 1000e18,
+            upperHint: 0,
+            lowerHint: 0,
+            annualInterestRate: MIN_ANNUAL_INTEREST_RATE,
+            batchManager: address(0),
+            maxUpfrontFee: 100e18,
+            addManager: address(0),
+            removeManager: address(0),
+            receiver: address(0)
+        });
+
+        vm.prank(A);
+        uint256 troveId = wrappedTokenZapper.openTroveWithRawETH{value: ETH_GAS_COMPENSATION}(params);
+
+        IZapper.CloseTroveParams memory closeParams = IZapper.CloseTroveParams({
+            troveId: troveId, flashLoanAmount: 1 ether, minExpectedCollateral: wrappedAmount, receiver: A
+        });
+
+        vm.prank(address(wrappedTokenZapper.flashLoanProvider()));
+        vm.expectRevert("WZ: Not enough collateral received");
+        IFlashLoanReceiver(address(wrappedTokenZapper)).receiveFlashLoanOnCloseTroveFromCollateral(closeParams, 1 ether);
+    }
+
+    function testNoOpLeverageFlashLoanCallbacks() external {
+        IFlashLoanReceiver receiver = IFlashLoanReceiver(address(wrappedTokenZapper));
+
+        receiver.receiveFlashLoanOnOpenLeveragedTrove(
+            ILeverageZapper.OpenLeveragedTroveParams({
+                owner: A,
+                ownerIndex: 0,
+                collAmount: 0,
+                flashLoanAmount: 0,
+                boldAmount: 0,
+                upperHint: 0,
+                lowerHint: 0,
+                annualInterestRate: 0,
+                batchManager: address(0),
+                maxUpfrontFee: 0,
+                addManager: address(0),
+                removeManager: address(0),
+                receiver: address(0)
+            }),
+            0
+        );
+        receiver.receiveFlashLoanOnLeverUpTrove(
+            ILeverageZapper.LeverUpTroveParams({troveId: 0, flashLoanAmount: 0, boldAmount: 0, maxUpfrontFee: 0}), 0
+        );
+        receiver.receiveFlashLoanOnLeverDownTrove(
+            ILeverageZapper.LeverDownTroveParams({troveId: 0, flashLoanAmount: 0, minBoldAmount: 0}), 0
+        );
     }
 }

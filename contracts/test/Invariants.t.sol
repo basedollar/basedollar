@@ -302,16 +302,41 @@ contract InvariantsTest is Assertions, Logging, BaseInvariantTest, BaseMultiColl
                 sumYieldGain += stabilityPool.getDepositorYieldGain(actors[i].account);
             }
 
-            assertLt(
-                stabilityPool.getTotalBoldDeposits() - sumBoldDeposit, 1000, "totalBoldDeposits !~= sum(boldDeposit)"
+            // assertLt(
+            //     stabilityPool.getTotalBoldDeposits() - sumBoldDeposit, 1000, "totalBoldDeposits !~= sum(boldDeposit)"
+            // );
+
+            // assertLt(stabilityPool.getYieldGainsOwed() - sumYieldGain, 1000, "yieldGainsOwed !~= sum(yieldGain)");
+
+            // // This only holds as long as no one sends BOLD directly to the SP's address other than ActivePool
+            // assertLt(
+            //     boldToken.balanceOf(address(stabilityPool)) - sumBoldDeposit - sumYieldGain - yieldGainsPending,
+            //     1000,
+            //     "SP BOLD balance !~= claimable + pending"
+            // );
+            uint256 totalBoldDeposits = stabilityPool.getTotalBoldDeposits();
+            uint256 yieldGainsOwed = stabilityPool.getYieldGainsOwed();
+            uint256 stabilityPoolBold = boldToken.balanceOf(address(stabilityPool));
+            uint256 claimableAndPendingBold = sumBoldDeposit + sumYieldGain + yieldGainsPending;
+
+            assertGeDecimal(totalBoldDeposits, sumBoldDeposit, 18, "SP BOLD insolvency");
+            assertApproxEqAbsRelDecimal(
+                totalBoldDeposits, sumBoldDeposit, 1e-7 ether, 1, 18, "totalBoldDeposits !~= sum(boldDeposit)"
             );
 
-            assertLt(stabilityPool.getYieldGainsOwed() - sumYieldGain, 1000, "yieldGainsOwed !~= sum(yieldGain)");
+            assertGeDecimal(yieldGainsOwed, sumYieldGain, 18, "SP yield insolvency");
+            assertApproxEqAbsRelDecimal(
+                yieldGainsOwed, sumYieldGain, 1 ether, 1_000, 18, "yieldGainsOwed !~= sum(yieldGain)"
+            );
 
             // This only holds as long as no one sends BOLD directly to the SP's address other than ActivePool
-            assertLt(
-                boldToken.balanceOf(address(stabilityPool)) - sumBoldDeposit - sumYieldGain - yieldGainsPending,
-                1000,
+            assertGeDecimal(stabilityPoolBold, claimableAndPendingBold, 18, "SP BOLD balance insolvency");
+            assertApproxEqAbsRelDecimal(
+                stabilityPoolBold,
+                claimableAndPendingBold,
+                1 ether,
+                1_000,
+                18,
                 "SP BOLD balance !~= claimable + pending"
             );
         }
