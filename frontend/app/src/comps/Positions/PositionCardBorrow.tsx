@@ -7,7 +7,7 @@ import { CrossedText } from "@/src/comps/CrossedText/CrossedText";
 import { DNUM_0 } from "@/src/dnum-utils";
 import { fmtnum } from "@/src/formatting";
 import { getLiquidationRisk, getLtv } from "@/src/liquity-math";
-import { getCollToken, shortenTroveId, useRedemptionRiskOfLoan } from "@/src/liquity-utils";
+import { getCollToken, getPrefixedTroveId, shortenTroveId, useRedemptionRiskOfLoan } from "@/src/liquity-utils";
 import { usePrice } from "@/src/services/Prices";
 import { css } from "@/styled-system/css";
 import { HFlex, IconBorrow, TokenIcon } from "@liquity2/uikit";
@@ -19,6 +19,7 @@ export function PositionCardBorrow({
   batchManager,
   borrowed,
   branchId,
+  id,
   deposit,
   interestRate,
   isZombie,
@@ -36,6 +37,7 @@ export function PositionCardBorrow({
     | "batchManager"
     | "borrowed"
     | "branchId"
+    | "id"
     | "deposit"
     | "interestRate"
     | "isZombie"
@@ -49,6 +51,7 @@ export function PositionCardBorrow({
   & { statusTag?: ReactNode; collSurplusOnChain: dn.Dnum | null })
 {
   const token = getCollToken(branchId);
+  const prefixedTroveId = id ?? getPrefixedTroveId(branchId, troveId);
   const collateralPriceUsd = usePrice(token?.symbol ?? null);
 
   const ltv = collateralPriceUsd.data && getLtv(deposit, borrowed, collateralPriceUsd.data);
@@ -69,7 +72,7 @@ export function PositionCardBorrow({
   return (
     <PositionCard
       className="position-card position-card-loan position-card-borrow"
-      href={`/loan?id=${branchId}:${troveId}`}
+      href={`/loan?id=${prefixedTroveId}`}
       title={title.join("\n")}
       heading={
         <div
