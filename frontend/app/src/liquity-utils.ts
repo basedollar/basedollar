@@ -243,7 +243,7 @@ export function useEarnPool(branchId: BranchId | null) {
         totalDeposited: dnum18(totalBoldDeposits),
       };
     },
-    enabled: stats.isSuccess,
+    enabled: branchId !== null,
   });
 }
 
@@ -289,7 +289,7 @@ export function useEarnPools(branchIds: (BranchId | null)[]) {
       
       return poolsMap;
     },
-    enabled: stats.isSuccess,
+    enabled: branchIds.some((branchId) => branchId !== null),
   });
 }
 
