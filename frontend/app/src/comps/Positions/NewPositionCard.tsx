@@ -20,16 +20,16 @@ const actions = {
     path: "/borrow",
     title: "Borrow",
   },
-  multiply: {
-    colors: {
-      background: token("colors.brandGreen"),
-      foreground: token("colors.brandGreenContent"),
-      foregroundAlt: token("colors.brandGreenContentAlt"),
-    },
-    description: contentActions.multiply.description,
-    path: "/multiply",
-    title: "Multiply",
-  },
+  // multiply: {
+  //   colors: {
+  //     background: token("colors.brandGreen"),
+  //     foreground: token("colors.brandGreenContent"),
+  //     foregroundAlt: token("colors.brandGreenContentAlt"),
+  //   },
+  //   description: contentActions.multiply.description,
+  //   path: "/multiply",
+  //   title: "Multiply",
+  // },
   earn: {
     colors: {
       background: token("colors.brandBlue"),
@@ -40,15 +40,15 @@ const actions = {
     path: "/earn",
     title: "Earn",
   },
-  stake: {
+  vote: {
     colors: {
       background: token("colors.brandGolden"),
       foreground: token("colors.brandGoldenContent"),
       foregroundAlt: token("colors.brandGoldenContentAlt"),
     },
-    description: contentActions.stake.description,
-    path: "/stake",
-    title: "Stake",
+    description: "Vote for BaseDollar on Aerodrome.",
+    path: "https://aerodrome.finance/vote?query=basedollar",
+    title: "Vote",
   },
 } as const;
 

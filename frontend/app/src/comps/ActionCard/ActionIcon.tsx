@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { IconBorrow, IconEarn } from "@liquity2/uikit";
+import { IconBorrow, IconEarn, IconExternal } from "@liquity2/uikit";
 import { a, useSpring } from "@react-spring/web";
 import { match } from "ts-pattern";
 
@@ -25,7 +25,7 @@ export function ActionIcon({
     background: string;
     foreground: string;
   };
-  iconType: "borrow" | "multiply" | "earn" | "stake";
+  iconType: "borrow" | "multiply" | "earn" | "stake" | "vote";
   state: IconProps["state"];
 }) {
   const Icon = match(iconType)
@@ -33,6 +33,7 @@ export function ActionIcon({
     .with("multiply", () => ActionIconLeverage)
     .with("earn", () => ActionIconEarn)
     .with("stake", () => ActionIconStake)
+    .with("vote", () => ActionIconVote)
     .exhaustive();
 
   return (
@@ -249,6 +250,26 @@ export function ActionIconStake({ foreground, state }: IconProps) {
         />
       ))}
     </IconBase>
+  );
+}
+
+function ActionIconVote({ foreground, state }: IconProps) {
+  const { transform } = useSpring({
+    transform: state === "active" ? "scale(1.12)" : "scale(1)",
+    config: springConfig,
+  });
+
+  return (
+    <a.div
+      style={{
+        color: foreground,
+        display: "grid",
+        transform,
+        transformOrigin: "50% 50%",
+      }}
+    >
+      <IconExternal size={24} />
+    </a.div>
   );
 }
 
