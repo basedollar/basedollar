@@ -79,13 +79,14 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         address _token1UsdOracleAddress,
         uint256 _token0UsdStalenessThreshold,
         uint256 _token1UsdStalenessThreshold
+        // v3: bool _isStablePair
     ) {
         borrowerOperations = IBorrowerOperations(_borrowerOperationsAddress);
         gauge = _gauge;
         require(address(_gauge) != address(0), "Gauge is 0 address");
 
         pool = IAeroPool(gauge.stakingToken());
-        isStablePair = pool.stable();
+        isStablePair = pool.stable(); // v3: isStablePair = _isStablePair;
 
         token0PoolDecimals = IERC20Metadata(pool.token0()).decimals();
         token1PoolDecimals = IERC20Metadata(pool.token1()).decimals();
@@ -192,10 +193,10 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         uint256[] memory _prices1 = new uint256[](points);
 
         uint256 length = pool.observationLength() - 1;
-        uint256 i = length - points;
+        uint256 i = length - points; // v3: uint256 i = length - (points * 30 minutes)
         uint256 index = 0;
 
-        for (; i < length; i += 1) {
+        for (; i < length; i += 1) { // v3: for (; i < length; i += 30 minutes) {
             IAeroPool.Observation memory nextObs = pool.observations(i + 1);
             IAeroPool.Observation memory currentObs = pool.observations(i);
             uint256 timeElapsed = nextObs.timestamp - currentObs.timestamp;
