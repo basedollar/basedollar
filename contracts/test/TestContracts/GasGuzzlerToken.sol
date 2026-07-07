@@ -17,6 +17,15 @@ contract GasGuzzlerToken {
         return 11e17;
     }
 
+    // RETH exchange rate getter
+    function rate() external view returns (uint256) {
+        // Expensive SLOAD loop that hits the block gas limit before completing
+        for (uint256 i = 0; i < 1000000; i++) {
+            uint256 unusedVar = pointlessStorageVar + i;
+        }
+        return 11e17;
+    }
+
     // WSTETH exchange rate getter
     function stEthPerToken() external view returns (uint256) {
         // Expensive SLOAD loop that hits the block gas limit before completing

@@ -13,19 +13,24 @@ import "../TestContracts/RETHTokenMock.sol";
 /// @dev Lets us flip `getExchangeRate()` to revert after a successful constructor `fetch`.
 contract ToggleRethToken {
     bool public fail;
-    uint256 public rate = 1e18;
+    uint256 private _rate = 1e18;
 
     function setFail(bool f) external {
         fail = f;
     }
 
     function setRate(uint256 r) external {
-        rate = r;
+        _rate = r;
     }
 
     function getExchangeRate() external view returns (uint256) {
         if (fail) revert();
-        return rate;
+        return _rate;
+    }
+
+    function rate() external view returns (uint256) {
+        if (fail) revert();
+        return _rate;
     }
 }
 

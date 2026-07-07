@@ -111,6 +111,9 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     address CBETH_ETH_ORACLE_ADDRESS = address(0); // TODO: Not activated yet
     address AERO_USD_ORACLE_ADDRESS = 0x201bC62f44f018B70E0c5eC8fF524fB26261959c;
 
+    // Canonical Rocket OVM Price Oracle
+    address RETH_RATE_PROVIDER_ADDRESS = 0x658843BB859B7b85cEAb5cF77167e3F0a78dFE7f;
+
     // Staleness thresholds
     uint256 ETH_USD_STALENESS_THRESHOLD = 24 hours;
     uint256 STETH_USD_STALENESS_THRESHOLD = 24 hours;
@@ -957,7 +960,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 return new RETHPriceFeed(
                     ETH_USD_ORACLE_ADDRESS,
                     RETH_ETH_ORACLE_ADDRESS,
-                    RETH_ADDRESS,
+                    RETH_RATE_PROVIDER_ADDRESS,
                     ETH_USD_STALENESS_THRESHOLD,
                     RETH_ETH_STALENESS_THRESHOLD,
                     _borrowerOperationsAddress
