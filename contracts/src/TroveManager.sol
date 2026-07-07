@@ -40,8 +40,8 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
 
     // Maximum debt allowed on this branch
     //Current debt on this branch is tracked via getEntireBranchDebt() in LiquityBase.sol
-    uint256 public debtLimit;
-    uint256 public initalDebtLimit;
+    uint256 internal debtLimit;
+    uint256 internal initialDebtLimit;
 
     // Liquidation penalty for troves offset to the SP
     uint256 internal immutable LIQUIDATION_PENALTY_SP;
@@ -196,7 +196,7 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
         MCR = _addressesRegistry.MCR();
         SCR = _addressesRegistry.SCR();
         debtLimit = _addressesRegistry.debtLimit();
-        initalDebtLimit = debtLimit;
+        initialDebtLimit = debtLimit;
         LIQUIDATION_PENALTY_SP = _addressesRegistry.LIQUIDATION_PENALTY_SP();
         LIQUIDATION_PENALTY_REDISTRIBUTION = _addressesRegistry.LIQUIDATION_PENALTY_REDISTRIBUTION();
 
@@ -2019,8 +2019,8 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
         return debtLimit;
     }
 
-    function getInitalDebtLimit() external view returns (uint256){
-        return initalDebtLimit;
+    function getInitialDebtLimit() external view returns (uint256){
+        return initialDebtLimit;
     }
 
     function setDebtLimit(uint256 _newDebtLimit) external {
