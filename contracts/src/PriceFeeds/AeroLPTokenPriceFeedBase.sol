@@ -336,7 +336,7 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         uint256 reserve1
     ) internal pure returns (uint256) {
         uint256 k = _getK(reserve0, reserve1);
-        //fair_reserves = ( (k * (price0 ** 3) * (price1 ** 3)) )^(1/4) / ((price0 ** 2) + (price1 ** 2));
+        //fair_reserves = ( (k * (price0 ** 3) * (price1 ** 3)) / ((price0 ** 2) + (price1 ** 2)) )^(1/4);
         uint256 a = FixedPointMathLib.rpow(price0, 3, 1e18); //keep same decimals as chainlink
         uint256 b = FixedPointMathLib.rpow(price1, 3, 1e18);
         uint256 c = FixedPointMathLib.rpow(price0, 2, 1e18);
