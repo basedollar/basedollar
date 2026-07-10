@@ -106,8 +106,8 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     function _getTwapExchangeRates() internal view returns (ExchangeRate memory exchangeRate) {
         if (!_deployed) {
             (uint256 price0, uint256 price1) = getExchangeRates(1, TWAP_GRANULARITY);
-            exchangeRate.token1PerToken0 = price0 * 10 ** (18 - token1PoolDecimals);
-            exchangeRate.token0PerToken1 = price1 * 10 ** (18 - token0PoolDecimals);
+            exchangeRate.token1PerToken0 = price0;
+            exchangeRate.token0PerToken1 = price1;
             exchangeRate.isDown = false;
             return exchangeRate;
         }
@@ -117,8 +117,8 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         try this.getExchangeRates(1, TWAP_GRANULARITY)
             returns (uint256 price0, uint256 price1)
         {
-            exchangeRate.token1PerToken0 = price0 * 10 ** (18 - token1PoolDecimals);
-            exchangeRate.token0PerToken1 = price1 * 10 ** (18 - token0PoolDecimals);
+            exchangeRate.token1PerToken0 = price0;
+            exchangeRate.token0PerToken1 = price1;
         } catch {
             if (gasleft() <= gasBefore / 64) revert InsufficientGasForExternalCall();
             exchangeRate.isDown = true;
@@ -213,6 +213,13 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         return (_prices0, _prices1);
     }
 
+    /// @notice Calculate the amount out for a given amount in and reserves
+    /// @dev The amount out is returned in 18 decimals while all other values are in their own decimals
+    /// @param amountIn Amount of token in
+    /// @param tokenIn Token address of either token0 or token1
+    /// @param _reserve0 Reserve of token0
+    /// @param _reserve1 Reserve of token1
+    /// @return amountOut Amount of token out in 18 decimals
     function _getAmountOut(
         uint256 amountIn,
         address tokenIn,
@@ -226,10 +233,11 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
             (uint256 reserveA, uint256 reserveB) = tokenIn == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
             amountIn = tokenIn == token0 ? amountIn * (10 ** (18 - token0PoolDecimals)) : amountIn * (10 ** (18 - token1PoolDecimals));
             uint256 y = (amountIn * _d(reserveB, reserveA)) / _d(reserveA, reserveB);
-            return (y * 10 ** (tokenIn == token0 ? token1PoolDecimals : token0PoolDecimals)) / 1e18;
+            return y;
         } else {
             (uint256 reserveA, uint256 reserveB) = tokenIn == token0 ? (_reserve0, _reserve1) : (_reserve1, _reserve0);
-            return (amountIn * reserveB) / reserveA;
+            uint256 y = (amountIn * reserveB) / reserveA;
+            return tokenIn == token0 ? y * (10 ** (18 - token1PoolDecimals)) : y * (10 ** (18 - token0PoolDecimals));
         }
     }
 
