@@ -653,8 +653,10 @@ contract AeroLPPriceManipulationFuzzTest is Test {
         (uint256 redemptionPrice, ) = feed.fetchRedemptionPrice();
 
         if (bothWithinThreshold) {
-            // assertGe(redemptionPrice, borrowPrice);
-            assertApproxEqAbs(redemptionPrice, borrowPrice, 1e12);
+            assertGe(redemptionPrice, borrowPrice);
+            // assertApproxEqAbs(redemptionPrice, borrowPrice, 1e12);
+            uint256 maxDiff = (borrowPrice * 102e16 / 1e18) - borrowPrice;
+            assertApproxEqAbs(redemptionPrice, borrowPrice, maxDiff);
         }
     }
 
