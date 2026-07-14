@@ -241,6 +241,49 @@ contract AeroLPTokenPriceFeedTest is Test {
         assertFalse(exchangeRate.isDown);
     }
 
+    function test_getTwapExchangeRate_stablePairPreservesPrecisionForLowDecimalToken() public {
+        ERC20DecimalsMock s0 = new ERC20DecimalsMock("S0", "S0", 6);
+        ERC20DecimalsMock s1 = new ERC20DecimalsMock("S1", "S1", 18);
+        AeroGaugeMock g = new AeroGaugeMock(address(s0), address(s1));
+        AeroPoolMock p = g.pool();
+        p.setStable(true);
+        p.setReserves(1_000_000e6, 1_000_000e18);
+        p.setTotalSupply(1_000_000e18);
+
+        // A slight imbalance produces a token1 -> token0 marginal quote with
+        // meaningful digits below token0's 6-decimal precision.
+        p.setQuoteAmounts(1.01e18, 0);
+
+        ChainlinkOracleMock o0 = new ChainlinkOracleMock();
+        o0.setDecimals(8);
+        o0.setPrice(1e8);
+        o0.setUpdatedAt(block.timestamp);
+        ChainlinkOracleMock o1 = new ChainlinkOracleMock();
+        o1.setDecimals(8);
+        o1.setPrice(1e8);
+        o1.setUpdatedAt(block.timestamp);
+
+        AeroLPTokenPriceFeedTester stableFeed = new AeroLPTokenPriceFeedTester(
+            address(borrowerOperations),
+            IAeroGauge(address(g)),
+            address(o0),
+            address(o1),
+            1 days,
+            1 days
+        );
+
+        AeroLPTokenPriceFeedBase.ExchangeRate memory exchangeRate = stableFeed.i_getTwapExchangeRates();
+        assertEq(exchangeRate.token1PerToken0, 1_000_000_246_287_220_156);
+        assertEq(exchangeRate.token0PerToken1, 999_999_753_712_840_501);
+        assertNotEq(exchangeRate.token0PerToken1 % 1e12, 0, "sub-token precision was truncated");
+
+        // The normalized TWAP still feeds the existing fair-price path without
+        // changing the expected value of the balanced, equally priced pool.
+        (uint256 price, bool newFailure) = stableFeed.fetchPrice();
+        assertFalse(newFailure);
+        assertApproxEqAbs(price, 2e18, 1e12);
+    }
+
     function test_getTwapExchangeRate_returnsDownOnRevert() public {
         pool.setShouldRevert(true);
 
