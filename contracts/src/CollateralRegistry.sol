@@ -399,7 +399,7 @@ contract CollateralRegistry is ICollateralRegistry {
     function updateDebtLimit(uint256 _indexTroveManager, uint256 _newDebtLimit) external onlyGovernor {
         uint256 currentDebtLimit = getTroveManager(_indexTroveManager).getDebtLimit();
         if (_newDebtLimit > currentDebtLimit) {
-            require(_newDebtLimit <= currentDebtLimit * 2 || _newDebtLimit <= getTroveManager(_indexTroveManager).getInitalDebtLimit(), "CollateralRegistry: Debt limit increase by more than 2x is not allowed");
+            require(_newDebtLimit <= currentDebtLimit * 2 || _newDebtLimit <= getTroveManager(_indexTroveManager).getInitialDebtLimit(), "CollateralRegistry: Debt limit increase by more than 2x is not allowed");
         }
         getTroveManager(_indexTroveManager).setDebtLimit(_newDebtLimit);
     }
@@ -420,7 +420,7 @@ contract CollateralRegistry is ICollateralRegistry {
     function updateNonRedeemableDebtLimit(uint256 _indexTroveManager, uint256 _newDebtLimit) external onlyGovernor {
         uint256 currentDebtLimit = getNonRedeemableTroveManager(_indexTroveManager).getDebtLimit();
         if (_newDebtLimit > currentDebtLimit) {
-            require(_newDebtLimit <= currentDebtLimit * 2 || _newDebtLimit <= getNonRedeemableTroveManager(_indexTroveManager).getInitalDebtLimit(), "CollateralRegistry: Debt limit increase by more than 2x is not allowed");
+            require(_newDebtLimit <= currentDebtLimit * 2 || _newDebtLimit <= getNonRedeemableTroveManager(_indexTroveManager).getInitialDebtLimit(), "CollateralRegistry: Debt limit increase by more than 2x is not allowed");
         }
         getNonRedeemableTroveManager(_indexTroveManager).setDebtLimit(_newDebtLimit);
     }

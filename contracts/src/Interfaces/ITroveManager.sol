@@ -79,7 +79,7 @@ interface ITroveManager is ILiquityBase {
 
     function getLatestBatchData(address _batchAddress) external view returns (LatestBatchData memory);
 
-    function getInitalDebtLimit() external view returns (uint256);
+    function getInitialDebtLimit() external view returns (uint256);
     function getDebtLimit() external view returns (uint256);
 
     // -- permissioned functions called by BorrowerOperations
