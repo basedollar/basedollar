@@ -1,17 +1,17 @@
 import * as dn from "dnum";
 
-import type { TypedDocumentString } from "@/src/graphql/graphql";
-import type { Address, BranchId, Dnum, TroveId, TroveStatus } from "@/src/types";
+import type { Address, BranchId, Dnum, PrefixedTroveId, TroveId, TroveStatus } from "@/src/types";
 
 import { ONE_YEAR_D18 } from "@/src/constants";
 import { dnum18, dnum36 } from "@/src/dnum-utils";
 import { SUBGRAPH_URL } from "@/src/env";
 import { graphql } from "@/src/graphql";
+import { TypedDocumentString } from "@/src/graphql/graphql";
 import { subgraphIndicator } from "@/src/indicators/subgraph-indicator";
-import { getPrefixedTroveId } from "@/src/liquity-utils";
+import { isPrefixedtroveId } from "@/src/types";
 
 export type IndexedTrove = {
-  id: string;
+  id: PrefixedTroveId;
   borrower: Address;
   closedAt: number | null;
   createdAt: number;
@@ -113,7 +113,32 @@ export async function getNextOwnerIndex(
   }
 }
 
-const TrovesByAccountQuery = graphql(`
+type TrovesByAccountQueryResult = {
+  troves: Array<{
+    id: string;
+    borrower: string;
+    previousOwner: string;
+    closedAt?: string | null;
+    createdAt: string;
+    lastUserActionAt: string;
+    updatedAt: string;
+    mightBeLeveraged: boolean;
+    status: TroveStatus;
+    debt: string;
+    redemptionCount: number;
+    redeemedColl: string;
+    redeemedDebt: string;
+    liquidatedColl?: string | null;
+    liquidatedDebt?: string | null;
+    collSurplus?: string | null;
+    priceAtLiquidation?: string | null;
+  }>;
+};
+
+const TrovesByAccountQuery = new TypedDocumentString<
+  TrovesByAccountQueryResult,
+  { account: string }
+>(`
   query TrovesByAccount($account: Bytes!) {
     troves(
       where: {
@@ -126,6 +151,8 @@ const TrovesByAccountQuery = graphql(`
       orderDirection: desc
     ) {
       id
+      borrower
+      previousOwner
       closedAt
       createdAt
       lastUserActionAt
@@ -148,32 +175,71 @@ export async function getIndexedTrovesByAccount(account: Address): Promise<Index
   const { troves } = await graphQuery(TrovesByAccountQuery, {
     account: account.toLowerCase(),
   });
-  return troves.map((trove) => ({
-    id: trove.id,
-    borrower: account,
-    // TODO: eliminate conversion to milliseconds
-    closedAt: trove.closedAt === null || trove.closedAt === undefined
-      ? null
-      : Number(trove.closedAt) * 1000,
-    createdAt: Number(trove.createdAt) * 1000,
-    lastUserActionAt: Number(trove.lastUserActionAt) * 1000,
-    updatedAt: Number(trove.updatedAt) * 1000,
-    mightBeLeveraged: trove.mightBeLeveraged,
-    status: trove.status,
-    debt: dnum18(trove.debt),
-    redemptionCount: trove.redemptionCount,
-    redeemedColl: dnum18(trove.redeemedColl),
-    redeemedDebt: dnum18(trove.redeemedDebt),
-    liquidatedColl: dnum18(trove.liquidatedColl),
-    liquidatedDebt: dnum18(trove.liquidatedDebt),
-    collSurplus: dnum18(trove.collSurplus),
-    priceAtLiquidation: dnum18(trove.priceAtLiquidation),
-  }));
+  return troves.map((trove) => {
+    if (!isPrefixedtroveId(trove.id)) {
+      throw new Error(`Invalid trove ID from subgraph: ${trove.id}`);
+    }
+
+    return {
+      id: trove.id,
+      borrower: (
+        trove.status === "liquidated" ? trove.previousOwner : trove.borrower
+      ) as Address,
+      // TODO: eliminate conversion to milliseconds
+      closedAt: trove.closedAt === null || trove.closedAt === undefined
+        ? null
+        : Number(trove.closedAt) * 1000,
+      createdAt: Number(trove.createdAt) * 1000,
+      lastUserActionAt: Number(trove.lastUserActionAt) * 1000,
+      updatedAt: Number(trove.updatedAt) * 1000,
+      mightBeLeveraged: trove.mightBeLeveraged,
+      status: trove.status,
+      debt: dnum18(trove.debt),
+      redemptionCount: trove.redemptionCount,
+      redeemedColl: dnum18(trove.redeemedColl),
+      redeemedDebt: dnum18(trove.redeemedDebt),
+      liquidatedColl: dnum18(trove.liquidatedColl),
+      liquidatedDebt: dnum18(trove.liquidatedDebt),
+      collSurplus: dnum18(trove.collSurplus),
+      priceAtLiquidation: dnum18(trove.priceAtLiquidation),
+    };
+  });
 }
 
-const TroveByIdQuery = graphql(`
-  query TroveById($id: ID!) {
-    trove(id: $id) {
+type TroveByIdQueryResult = {
+  troves: Array<{
+    id: string;
+    borrower: string;
+    closedAt?: string | null;
+    createdAt: string;
+    lastUserActionAt: string;
+    updatedAt: string;
+    mightBeLeveraged: boolean;
+    previousOwner: string;
+    status: TroveStatus;
+    debt: string;
+    redemptionCount: number;
+    redeemedColl: string;
+    redeemedDebt: string;
+    liquidatedColl?: string | null;
+    liquidatedDebt?: string | null;
+    collSurplus?: string | null;
+    priceAtLiquidation?: string | null;
+  }>;
+};
+
+const TroveByIdQuery = new TypedDocumentString<
+  TroveByIdQueryResult,
+  { branchId: number; troveId: string }
+>(`
+  query TroveById($branchId: Int!, $troveId: String!) {
+    troves(
+      first: 1
+      where: {
+        collateral_: { collIndex: $branchId }
+        troveId: $troveId
+      }
+    ) {
       id
       borrower
       closedAt
@@ -199,10 +265,13 @@ export async function getIndexedTroveById(
   branchId: BranchId,
   troveId: TroveId,
 ): Promise<IndexedTrove | null> {
-  const prefixedTroveId = getPrefixedTroveId(branchId, troveId);
-  const { trove } = await graphQuery(TroveByIdQuery, { id: prefixedTroveId });
+  const { troves } = await graphQuery(TroveByIdQuery, { branchId, troveId });
+  const trove = troves[0] ?? null;
+  if (trove && !isPrefixedtroveId(trove.id)) {
+    throw new Error(`Invalid trove ID from subgraph: ${trove.id}`);
+  }
   return !trove ? null : {
-    id: trove.id,
+    id: trove.id as PrefixedTroveId,
     borrower: (
       trove.status === "liquidated" ? trove.previousOwner : trove.borrower
     ) as Address,

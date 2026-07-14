@@ -11,8 +11,9 @@ export type ChainId = number;
 
 export type BranchId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19;
 
+export type CollateralType = "r" | "n";
 export type TroveId = `0x${string}`;
-export type PrefixedTroveId = `${BranchId}:${TroveId}`;
+export type PrefixedTroveId = `${CollateralType}:${BranchId}:${TroveId}` | `${BranchId}:${TroveId}`;
 
 export type Branch = {
   id: BranchId;
@@ -33,7 +34,7 @@ export function isTroveId(value: unknown): value is TroveId {
 }
 
 export function isPrefixedtroveId(value: unknown): value is PrefixedTroveId {
-  return typeof value === "string" && /^[0-9]:0x[0-9a-f]+$/.test(value);
+  return typeof value === "string" && /^(?:(?:r|n):)?(?:[0-9]|1[0-9]):0x[0-9a-f]+$/.test(value);
 }
 
 // Utility type to get type-safe entries of an object,
@@ -73,6 +74,7 @@ export type PositionLoanBase = {
 };
 
 export type PositionLoanCommitted = PositionLoanBase & {
+  id?: PrefixedTroveId;
   status: TroveStatus;
   troveId: TroveId;
   createdAt: number;

@@ -42,8 +42,8 @@ export const LoadingCard: FC<LoadingCardProps> = ({
           - 48 // bottom bar 1
           - 40,
         cardHeight: s === "error" || s === "not-found" ? 180 : 120,
-        cardBackground: token("colors.blue:50"),
-        cardColor: token("colors.blue:950"),
+        cardBackground: token("colors.position"),
+        cardColor: token("colors.white"),
       }))
       .otherwise(() => ({
         cardtransform: "scale3d(1, 1, 1)",

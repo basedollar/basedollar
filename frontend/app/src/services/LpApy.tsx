@@ -92,7 +92,7 @@ function findMatchingPool(
   pools: DefiLlamaPool[]
 ): DefiLlamaPool | null {
   const config = getCollateralConfig(collateralSymbol);
-  if (!config || !("token1" in config) || !("token2" in config)) {
+  if (!config || !("type" in config) || !("token1" in config) || !("token2" in config)) {
     return null;
   }
 

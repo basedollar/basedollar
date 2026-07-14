@@ -8,8 +8,20 @@ export function IconDashboard({
 }) {
   return (
     <svg fill="none" viewBox="0 0 24 24" width={size} height={size}>
-      <path fill="currentColor" d="M2.5 12a9.5 9.5 0 1 1 19 0h-19Z" />
-      <path fill="currentColor" d="M16.75 16.75a4.75 4.75 0 1 1-9.5 0 4.75 4.75 0 0 1 9.5 0Z" />
+      <path
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M2.7 12.4c0-3.6 4.2-5.9 8-5.4 1 .1 1.3 1.7 2.3 1.7 1.1 0 1.3-1.7 2.5-1.8 3.8-.3 6.8 2.2 6.8 5.7 0 3.8-4.3 6.2-9.8 6.2s-9.8-2.4-9.8-6.4Z"
+      />
+      <path
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth={1.5}
+        d="m7 11.2 1 .4M10.3 15.5l1-.4M15.6 10.8l-.9.6M17 15.2l1-.5"
+      />
+      <path stroke="currentColor" strokeLinecap="round" strokeWidth={1.4} d="M5.9 14c.6.7 1.4 1.1 2.4 1.4" />
     </svg>
   );
 }

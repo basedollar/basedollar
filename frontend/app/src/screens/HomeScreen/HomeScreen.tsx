@@ -44,6 +44,18 @@ import { YieldSourceTable } from "./YieldSourceTable";
 
 type ForkInfo = (typeof FORKS_INFO)[number];
 
+function getAerodromePoolLink(collateralConfig: unknown) {
+  if (
+    typeof collateralConfig !== "object"
+    || collateralConfig === null
+    || !("poolData" in collateralConfig)
+  ) {
+    return undefined;
+  }
+
+  return (collateralConfig as { poolData?: { aerodromePoolLink?: string } }).poolData?.aerodromePoolLink;
+}
+
 export function HomeScreen() {
   const account = useAccount();
 
@@ -329,7 +341,7 @@ function BorrowingRow({
 
   // Find the collateral config to check for aerodrome pool link
   const collateralConfig = WHITE_LABEL_CONFIG.tokens.collaterals.find(c => c.symbol === symbol);
-  const aerodromePoolLink = collateralConfig?.poolData?.aerodromePoolLink;
+  const aerodromePoolLink = getAerodromePoolLink(collateralConfig);
 
   // LP APY for LP token collaterals
   const isLp = isLpToken(symbol);
@@ -446,8 +458,8 @@ function EarnRewardsRow({
   
   // Find the collateral config to check for aerodrome pool link and token type
   const collateralConfig = WHITE_LABEL_CONFIG.tokens.collaterals.find(c => c.symbol === symbol);
-  const aerodromePoolLink = collateralConfig?.poolData?.aerodromePoolLink;
-  const isLPToken = collateralConfig?.type === "samm" || collateralConfig?.type === "vamm";
+  const aerodromePoolLink = getAerodromePoolLink(collateralConfig);
+  const isLPToken = isLpToken(symbol);
   
   return (
     <tr>

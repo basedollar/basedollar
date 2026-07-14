@@ -8,7 +8,7 @@ import { Value } from "@/src/comps/Value/Value";
 import { DNUM_0 } from "@/src/dnum-utils";
 import { fmtnum } from "@/src/formatting";
 import { getLoanDetails } from "@/src/liquity-math";
-import { getCollToken, useRedemptionRiskOfLoan } from "@/src/liquity-utils";
+import { getCollToken, getPrefixedTroveId, useRedemptionRiskOfLoan } from "@/src/liquity-utils";
 import { usePrice } from "@/src/services/Prices";
 import { roundToDecimal } from "@/src/utils";
 import { css } from "@/styled-system/css";
@@ -21,6 +21,7 @@ export function PositionCardLeverage({
   batchManager,
   borrowed,
   branchId,
+  id,
   deposit,
   interestRate,
   status,
@@ -38,6 +39,7 @@ export function PositionCardLeverage({
     | "batchManager"
     | "borrowed"
     | "branchId"
+    | "id"
     | "deposit"
     | "interestRate"
     | "isZombie"
@@ -54,6 +56,7 @@ export function PositionCardLeverage({
   if (!token) {
     throw new Error(`Collateral token not found for index ${branchId}`);
   }
+  const prefixedTroveId = id ?? getPrefixedTroveId(branchId, troveId);
 
   const collateralPriceUsd = usePrice(token.symbol);
   const redemptionRisk = useRedemptionRiskOfLoan({ branchId, troveId, interestRate, status, isZombie });
@@ -69,7 +72,7 @@ export function PositionCardLeverage({
   return (
     <PositionCard
       className="position-card position-card-loan position-card-leverage"
-      href={`/loan?id=${branchId}:${troveId}`}
+      href={`/loan?id=${prefixedTroveId}`}
       heading={[
         <div
           key="start"

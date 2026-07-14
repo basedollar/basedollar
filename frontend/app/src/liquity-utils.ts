@@ -2,6 +2,7 @@ import type { Contracts } from "@/src/contracts";
 import type {
   Branch,
   BranchId,
+  CollateralType,
   Delegate,
   Dnum,
   PositionEarn,
@@ -76,21 +77,33 @@ export function getTroveId(owner: Address, ownerIndex: bigint | number) {
 
 export function parsePrefixedTroveId(value: PrefixedTroveId): {
   branchId: BranchId;
+  collateralType: CollateralType | null;
   troveId: TroveId;
 } {
-  const [branchId_, troveId] = value.split(":");
+  const parts = value.split(":");
+  const [collateralType_, branchId_, troveId] = parts.length === 3
+    ? parts
+    : [null, parts[0], parts[1]];
+
   if (!branchId_ || !troveId) {
     throw new Error(`Invalid prefixed trove ID: ${value}`);
   }
+  const collateralType = collateralType_ === "r" || collateralType_ === "n"
+    ? collateralType_
+    : null;
   const branchId = parseInt(branchId_, 10);
-  if (!isBranchId(branchId) || !isTroveId(troveId)) {
+  if ((collateralType_ !== null && collateralType === null) || !isBranchId(branchId) || !isTroveId(troveId)) {
     throw new Error(`Invalid prefixed trove ID: ${value}`);
   }
-  return { branchId, troveId };
+  return { branchId, collateralType, troveId };
 }
 
-export function getPrefixedTroveId(branchId: BranchId, troveId: TroveId): PrefixedTroveId {
-  return `${branchId}:${troveId}`;
+export function getPrefixedTroveId(
+  branchId: BranchId,
+  troveId: TroveId,
+  collateralType: CollateralType = "r",
+): PrefixedTroveId {
+  return `${collateralType}:${branchId}:${troveId}`;
 }
 
 export function getCollToken(branchId: null): null;
@@ -230,7 +243,7 @@ export function useEarnPool(branchId: BranchId | null) {
         totalDeposited: dnum18(totalBoldDeposits),
       };
     },
-    enabled: stats.isSuccess,
+    enabled: branchId !== null,
   });
 }
 
@@ -276,7 +289,7 @@ export function useEarnPools(branchIds: (BranchId | null)[]) {
       
       return poolsMap;
     },
-    enabled: stats.isSuccess,
+    enabled: branchIds.some((branchId) => branchId !== null),
   });
 }
 
@@ -1081,6 +1094,7 @@ export async function fetchLoanById(
   ]);
 
   return !indexedTrove ? null : {
+    id: indexedTrove.id,
     type: indexedTrove.mightBeLeveraged ? "multiply" : "borrow",
     batchManager: isAddressEqual(batchManager, zeroAddress) ? null : batchManager,
     borrowed: dnum18(troveData.entireDebt),
