@@ -70,6 +70,8 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     uint256 public constant TOKEN_PRICE_DEVIATION_THRESHOLD = 2e16; // 2%
     uint256 public constant TWAP_GRANULARITY = 8; // 8 periods × 30 min = 4 hours
 
+    uint256 internal constant OBSERVATION_PERIOD = 30 minutes;
+
     bool internal immutable _deployed;
     
     constructor(
@@ -158,15 +160,14 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     function getExchangeRates(uint256 amountIn, uint256 granularity) public view returns (uint256, uint256) {
         uint256 amount0In = amountIn * 10 ** token0PoolDecimals;
         uint256 amount1In = amountIn * 10 ** token1PoolDecimals;
-        (uint256[] memory _prices0, uint256[] memory _prices1) = _sample(amount0In, amount1In, granularity);
+        SampleResults memory results = _sample(amount0In, amount1In, granularity);
         uint256 priceAverageCumulative0;
         uint256 priceAverageCumulative1;
-        uint256 _length = _prices0.length;
-        for (uint256 i = 0; i < _length; i++) {
-            priceAverageCumulative0 += _prices0[i];
-            priceAverageCumulative1 += _prices1[i];
+        for (uint256 i = 0; i < results.usedLength; i++) {
+            priceAverageCumulative0 += results.prices0[i] * results.timeElapsed[i];
+            priceAverageCumulative1 += results.prices1[i] * results.timeElapsed[i];
         }
-        return (priceAverageCumulative0 / granularity, priceAverageCumulative1 / granularity);
+        return (priceAverageCumulative0 / results.totalTimeElapsed, priceAverageCumulative1 / results.totalTimeElapsed);
     }
 
     ////////////////////////////////////////////////////////////////
@@ -177,40 +178,57 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     // and reduce some redundancies when fetching both reserves and prices.
     ////////////////////////////////////////////////////////////////
 
+    struct SampleResults {
+        uint256[] prices0; // Prices of token0
+        uint256[] prices1; // Prices of token1
+        uint256[] timeElapsed; // Time elapsed between each observation
+        uint256 totalTimeElapsed; // Total time elapsed in the sample
+        uint256 usedLength; // Total length of the sample used (may not equal array length)
+    }
+
     /// @notice Sample the pool reserves and calculate the prices
+    /// @dev The sample may not loop through all the points if the total time elapsed exceeds the minimum total observation period
     /// @param amount0In Amount of token0 in
     /// @param amount1In Amount of token1 in
     /// @param points Number of points to sample
-    /// @return _prices0 Prices of token0
-    /// @return _prices1 Prices of token1
+    /// @return results Sample results
     function _sample(
         uint256 amount0In,
         uint256 amount1In,
         uint256 points
-    ) internal view returns (uint256[] memory, uint256[] memory) {
-        uint256[] memory _prices0 = new uint256[](points);
-        uint256[] memory _prices1 = new uint256[](points);
+    ) internal view returns (SampleResults memory results) {
+        results.prices0 = new uint256[](points);
+        results.prices1 = new uint256[](points);
+        results.timeElapsed = new uint256[](points);
 
         uint256 length = pool.observationLength() - 1;
-        uint256 i = length - points;
         uint256 index = 0;
+        uint256 maxTimeElapsed = OBSERVATION_PERIOD * points;
 
-        for (; i < length; i += 1) {
-            IAeroPool.Observation memory nextObs = pool.observations(i + 1);
+        for (uint256 i = length; i > length - points; i -= 1) {
+            IAeroPool.Observation memory prevObs = pool.observations(i - 1);
             IAeroPool.Observation memory currentObs = pool.observations(i);
-            uint256 timeElapsed = nextObs.timestamp - currentObs.timestamp;
-            uint256 _reserve0 = (nextObs.reserve0Cumulative - currentObs.reserve0Cumulative) /
+            uint256 timeElapsed = currentObs.timestamp - prevObs.timestamp;
+            uint256 _reserve0 = (currentObs.reserve0Cumulative - prevObs.reserve0Cumulative) /
                 timeElapsed;
-            uint256 _reserve1 = (nextObs.reserve1Cumulative - currentObs.reserve1Cumulative) /
+            uint256 _reserve1 = (currentObs.reserve1Cumulative - prevObs.reserve1Cumulative) /
                 timeElapsed;
-            _prices0[index] = _getAmountOut(amount0In, pool.token0(), _reserve0, _reserve1);
-            _prices1[index] = _getAmountOut(amount1In, pool.token1(), _reserve0, _reserve1);
+            results.prices0[index] = _getAmountOut(amount0In, pool.token0(), _reserve0, _reserve1);
+            results.prices1[index] = _getAmountOut(amount1In, pool.token1(), _reserve0, _reserve1);
+            results.timeElapsed[index] = timeElapsed;
+            
             // index < length; length cannot overflow
             unchecked {
                 index = index + 1;
             }
+
+            results.totalTimeElapsed += timeElapsed;
+            if (results.totalTimeElapsed >= maxTimeElapsed) {
+                break;
+            }
         }
-        return (_prices0, _prices1);
+        results.usedLength = index;
+        return results;
     }
 
     function _getAmountOut(

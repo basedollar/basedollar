@@ -39,6 +39,8 @@ contract AeroPoolMock {
     uint256 internal _twapReserve0;
     uint256 internal _twapReserve1;
     bool internal _useTwapReserves;
+    Observation[] internal _customObservations;
+    bool internal _useCustomObservations;
 
     bool internal _shouldRevert;
     bool internal _isStable;
@@ -89,6 +91,14 @@ contract AeroPoolMock {
         _twapReserve0 = token0Unit;
         _twapReserve1 = token0ToToken1;
         _useTwapReserves = true;
+    }
+
+    function setObservations(Observation[] calldata newObservations) external {
+        delete _customObservations;
+        for (uint256 i = 0; i < newObservations.length; i++) {
+            _customObservations.push(newObservations[i]);
+        }
+        _useCustomObservations = true;
     }
 
     function setShouldRevert(bool v) external {
@@ -150,11 +160,13 @@ contract AeroPoolMock {
 
     function observationLength() external view returns (uint256) {
         if (_shouldRevert) revert("AeroPoolMock: revert");
+        if (_useCustomObservations) return _customObservations.length;
         return 9;
     }
 
     function observations(uint256 index) external view returns (Observation memory) {
         if (_shouldRevert) revert("AeroPoolMock: revert");
+        if (_useCustomObservations) return _customObservations[index];
         uint256 reserve0 = _useTwapReserves ? _twapReserve0 : _reserve0;
         uint256 reserve1 = _useTwapReserves ? _twapReserve1 : _reserve1;
         return Observation({
