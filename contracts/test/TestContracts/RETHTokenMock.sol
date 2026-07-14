@@ -15,4 +15,12 @@ contract RETHTokenMock is IRETHToken {
     function setExchangeRate(uint256 _ethPerReth) external {
         ethPerReth = _ethPerReth;
     }
+
+    function rate() external view returns (uint256) {
+        return ethPerReth;
+    }
+
+    function lastUpdated() external view returns (uint256) {
+        return block.timestamp;
+    }
 }
