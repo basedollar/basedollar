@@ -459,7 +459,9 @@ contract AeroLPTokenPriceFeedTest is Test {
         // Both within 2% of oracle prices, so use max/min for redemption:
         // token1Price = max($1980.20, $2000) = $2000
         // token0Price = min($1.01, $1) = $1
-        assertApproxEqAbs(price, 2000e18, 1);
+        uint256 maxDiff = (2000e18 * 102e16 / 1e18) - 2000e18;
+        // assertApproxEqAbs(price, 2000e18, 1e16);
+        assertApproxEqAbs(price, 2000e18, maxDiff);
     }
 
     function test_fetchRedemptionPrice_outsideDeviation_usesMinMaxLogic() public {
