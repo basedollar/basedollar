@@ -530,7 +530,7 @@ contract AeroLPFuzz is Test, TestAccounts {
         recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: netReward});
 
         vm.prank(governor);
-        am.distributeAero(address(gauge1), recipients);
+        am.distributeAero(address(gauge1), recipients, true);
 
         assertEq(am.currentEpochs(address(gauge1)), 1, "Epoch should increment");
         assertEq(am.claimableRewards(A), netReward, "User should have claimable rewards");
@@ -707,7 +707,7 @@ contract AeroLPFuzz is Test, TestAccounts {
         recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: claimed});
 
         vm.prank(governor);
-        am.distributeAero(address(gauge1), recipients);
+        am.distributeAero(address(gauge1), recipients, true);
 
         // Verify epoch incremented
         uint256 currentEpoch = am.currentEpochs(address(gauge1));

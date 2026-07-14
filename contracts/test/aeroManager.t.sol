@@ -231,7 +231,7 @@ contract AeroManagerTest is DevTestSetup {
         assertEq(aeroManagerImpl.claimedAeroPerEpoch(0, address(gauge)), rewardAmount);
     }
 
-    function test_distributeAero_incrementsEpoch_setsClaimable_and_userCanClaim() public {
+    function test_distributeAero_batchesAndFinalBatchAdvancesEpoch_setsClaimable_and_userCanClaim() public {
         uint256 amount = 10e18;
         _stakeThroughActivePool(amount);
 
@@ -247,17 +247,23 @@ contract AeroManagerTest is DevTestSetup {
         vm.prank(governor);
         aeroManagerImpl.closeCurrentEpoch(address(gauge));
 
-        // Allocate all epoch-0 rewards
-        AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](2);
+        // Allocate epoch-0 rewards in two batches
+        AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](1);
         uint256 aAmt = rewardEpoch0 / 3;
         uint256 bAmt = rewardEpoch0 - aAmt;
         recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: aAmt});
-        recipients[1] = AeroManager.AeroRecipient({borrower: B, amount: bAmt});
 
         vm.prank(governor);
-        aeroManagerImpl.distributeAero(address(gauge), recipients);
+        aeroManagerImpl.distributeAero(address(gauge), recipients, false);
 
-        // Epoch incremented
+        assertEq(aeroManagerImpl.currentEpochs(address(gauge)), epoch0);
+        assertEq(aeroManagerImpl.distributedAeroPerEpoch(epoch0, address(gauge)), aAmt);
+
+        recipients[0] = AeroManager.AeroRecipient({borrower: B, amount: bAmt});
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(gauge), recipients, true);
+
+        assertEq(aeroManagerImpl.distributedAeroPerEpoch(epoch0, address(gauge)), rewardEpoch0);
         assertEq(aeroManagerImpl.currentEpochs(address(gauge)), epoch0 + 1);
 
         // Allocations recorded
@@ -297,7 +303,7 @@ contract AeroManagerTest is DevTestSetup {
         recipients0[0] = AeroManager.AeroRecipient({borrower: A, amount: a0});
         recipients0[1] = AeroManager.AeroRecipient({borrower: B, amount: b0});
         vm.prank(governor);
-        aeroManagerImpl.distributeAero(address(gauge), recipients0);
+        aeroManagerImpl.distributeAero(address(gauge), recipients0, true);
         assertEq(aeroManagerImpl.currentEpochs(address(gauge)), 1);
 
         // ---- Epoch 1 ----
@@ -316,7 +322,7 @@ contract AeroManagerTest is DevTestSetup {
         recipients1[0] = AeroManager.AeroRecipient({borrower: A, amount: a1});
         recipients1[1] = AeroManager.AeroRecipient({borrower: B, amount: b1});
         vm.prank(governor);
-        aeroManagerImpl.distributeAero(address(gauge), recipients1);
+        aeroManagerImpl.distributeAero(address(gauge), recipients1, true);
         assertEq(aeroManagerImpl.currentEpochs(address(gauge)), 2);
 
         // Claimable should include both epochs (we didn't claim in-between)
@@ -412,7 +418,7 @@ contract AeroManagerTest is DevTestSetup {
         recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: 1});
         vm.prank(governor);
         vm.expectRevert("AeroManager: Current epoch is not closed yet to distribute rewards");
-        aeroManagerImpl.distributeAero(address(gauge), recipients);
+        aeroManagerImpl.distributeAero(address(gauge), recipients, false);
     }
 
     function test_distributeAero_revertsWhenNoRecipients() public {
@@ -420,7 +426,7 @@ contract AeroManagerTest is DevTestSetup {
         aeroManagerImpl.closeCurrentEpoch(address(gauge));
         vm.prank(governor);
         vm.expectRevert("AeroManager: No recipients");
-        aeroManagerImpl.distributeAero(address(gauge), new AeroManager.AeroRecipient[](0));
+        aeroManagerImpl.distributeAero(address(gauge), new AeroManager.AeroRecipient[](0), false);
     }
 
     function test_distributeAero_revertsWhenRecipientAmountExceedsReward() public {
@@ -433,10 +439,10 @@ contract AeroManagerTest is DevTestSetup {
         recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: reward + 1});
         vm.prank(governor);
         vm.expectRevert("AeroManager: Total amount exceeds reward amount");
-        aeroManagerImpl.distributeAero(address(gauge), recipients);
+        aeroManagerImpl.distributeAero(address(gauge), recipients, false);
     }
 
-    function test_distributeAero_revertsWhenRewardNotFullyDistributed() public {
+    function test_distributeAero_doesNotAdvanceWhenRewardNotFullyDistributed() public {
         _stakeThroughActivePool(10e18);
         aeroManagerImpl.claim(address(gauge));
         uint256 reward = aeroManagerImpl.claimedAeroPerEpoch(0, address(gauge));
@@ -445,8 +451,75 @@ contract AeroManagerTest is DevTestSetup {
         AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](1);
         recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: reward - 1});
         vm.prank(governor);
-        vm.expectRevert("AeroManager: Reward amount not fully distributed");
-        aeroManagerImpl.distributeAero(address(gauge), recipients);
+        aeroManagerImpl.distributeAero(address(gauge), recipients, false);
+
+        assertEq(aeroManagerImpl.currentEpochs(address(gauge)), 0);
+        assertEq(aeroManagerImpl.distributedAeroPerEpoch(0, address(gauge)), reward - 1);
+    }
+
+    function test_distributeAero_fullDistributionWithoutStartingNextEpoch_canStartSeparately() public {
+        _stakeThroughActivePool(10e18);
+        aeroManagerImpl.claim(address(gauge));
+        uint256 reward = aeroManagerImpl.claimedAeroPerEpoch(0, address(gauge));
+        vm.prank(governor);
+        aeroManagerImpl.closeCurrentEpoch(address(gauge));
+
+        AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](1);
+        recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: reward});
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(gauge), recipients, false);
+
+        assertEq(aeroManagerImpl.currentEpochs(address(gauge)), 0);
+        assertEq(aeroManagerImpl.distributedAeroPerEpoch(0, address(gauge)), reward);
+
+        vm.prank(governor);
+        aeroManagerImpl.startNextEpoch(address(gauge));
+
+        assertEq(aeroManagerImpl.currentEpochs(address(gauge)), 1);
+        assertFalse(aeroManagerImpl.epochClosed(address(gauge), 1));
+    }
+
+    function test_startNextEpoch_revertsBeforeAllRewardsAreDistributed() public {
+        _stakeThroughActivePool(10e18);
+        aeroManagerImpl.claim(address(gauge));
+        uint256 reward = aeroManagerImpl.claimedAeroPerEpoch(0, address(gauge));
+        vm.prank(governor);
+        aeroManagerImpl.closeCurrentEpoch(address(gauge));
+
+        AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](1);
+        recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: reward - 1});
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(gauge), recipients, false);
+
+        vm.prank(governor);
+        vm.expectRevert("AeroManager: Total rewards have not been distributed yet");
+        aeroManagerImpl.startNextEpoch(address(gauge));
+    }
+
+    function test_startNextEpoch_revertsIfNotGovernor() public {
+        vm.expectRevert("AeroManager: Caller is not the governor");
+        aeroManagerImpl.startNextEpoch(address(gauge));
+    }
+
+    function test_distributeAero_revertsWhenLaterBatchExceedsRemainingReward() public {
+        _stakeThroughActivePool(10e18);
+        aeroManagerImpl.claim(address(gauge));
+        uint256 reward = aeroManagerImpl.claimedAeroPerEpoch(0, address(gauge));
+        vm.prank(governor);
+        aeroManagerImpl.closeCurrentEpoch(address(gauge));
+
+        AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](1);
+        recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: reward - 1});
+        vm.prank(governor);
+        aeroManagerImpl.distributeAero(address(gauge), recipients, false);
+
+        recipients[0] = AeroManager.AeroRecipient({borrower: B, amount: 2});
+        vm.prank(governor);
+        vm.expectRevert("AeroManager: Total amount exceeds reward amount");
+        aeroManagerImpl.distributeAero(address(gauge), recipients, false);
+
+        assertEq(aeroManagerImpl.distributedAeroPerEpoch(0, address(gauge)), reward - 1);
+        assertEq(aeroManagerImpl.claimableRewards(B), 0);
     }
 
     function test_distributeAero_revertsIfNotGovernor() public {
@@ -458,7 +531,7 @@ contract AeroManagerTest is DevTestSetup {
         AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](1);
         recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: reward});
         vm.expectRevert("AeroManager: Caller is not the governor");
-        aeroManagerImpl.distributeAero(address(gauge), recipients);
+        aeroManagerImpl.distributeAero(address(gauge), recipients, false);
     }
 
     // --- claimRewards ---
@@ -479,7 +552,7 @@ contract AeroManagerTest is DevTestSetup {
         AeroManager.AeroRecipient[] memory recipients = new AeroManager.AeroRecipient[](1);
         recipients[0] = AeroManager.AeroRecipient({borrower: A, amount: oldRewardAmount});
         vm.prank(governor);
-        aeroManagerImpl.distributeAero(address(gauge), recipients);
+        aeroManagerImpl.distributeAero(address(gauge), recipients, true);
 
         MockAeroToken newTok = new MockAeroToken();
         vm.prank(governor);
@@ -590,7 +663,7 @@ contract AeroManagerTest is DevTestSetup {
         AeroManager.AeroRecipient[] memory recipients0 = new AeroManager.AeroRecipient[](1);
         recipients0[0] = AeroManager.AeroRecipient({borrower: A, amount: oldClaimed});
         vm.prank(governor);
-        aeroManagerImpl.distributeAero(address(gauge), recipients0);
+        aeroManagerImpl.distributeAero(address(gauge), recipients0, true);
 
         assertEq(aeroManagerImpl.claimedAero(), oldClaimed);
         assertEq(aeroManagerImpl.claimedAero(address(aeroToken)), oldClaimed);
@@ -620,7 +693,7 @@ contract AeroManagerTest is DevTestSetup {
         AeroManager.AeroRecipient[] memory recipients1 = new AeroManager.AeroRecipient[](1);
         recipients1[0] = AeroManager.AeroRecipient({borrower: B, amount: newClaimed});
         vm.prank(governor);
-        aeroManagerImpl.distributeAero(address(gauge), recipients1);
+        aeroManagerImpl.distributeAero(address(gauge), recipients1, true);
 
         assertEq(aeroManagerImpl.claimedAero(), newClaimed);
         assertEq(aeroManagerImpl.claimedAero(address(newTok)), newClaimed);
