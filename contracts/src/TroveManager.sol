@@ -426,6 +426,10 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
      * Attempt to liquidate a custom list of troves provided by the caller.
      */
     function batchLiquidateTroves(uint256[] memory _troveArray) public override {
+        batchLiquidateTroves(_troveArray, type(uint256).max);
+    }
+
+    function batchLiquidateTroves(uint256[] memory _troveArray, uint256 _maxIterations) public override {
         if (_troveArray.length == 0) {
             revert EmptyData();
         }
@@ -446,7 +450,7 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
         uint256 boldInSPForOffsets = totalBoldDeposits - boldToLeaveInSP;
 
         // Perform the appropriate liquidation sequence - tally values and obtain their totals.
-        _batchLiquidateTroves(defaultPoolCached, price, boldInSPForOffsets, _troveArray, totals, troveChange);
+        _batchLiquidateTroves(defaultPoolCached, price, boldInSPForOffsets, _troveArray, totals, troveChange, _maxIterations);
 
         if (troveChange.debtDecrease == 0) {
             revert NothingToLiquidate();
@@ -496,11 +500,14 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
         uint256 _boldInSPForOffsets,
         uint256[] memory _troveArray,
         LiquidationValues memory totals,
-        TroveChange memory troveChange
+        TroveChange memory troveChange,
+        uint256 _maxIterations
     ) internal {
         uint256 remainingBoldInSPForOffsets = _boldInSPForOffsets;
+        uint256 iterations;
 
         for (uint256 i = 0; i < _troveArray.length; i++) {
+            if (iterations >= _maxIterations) break;
             uint256 troveId = _troveArray[i];
 
             // Skip non-liquidatable troves
@@ -514,6 +521,7 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
 
                 _liquidate(_defaultPool, troveId, remainingBoldInSPForOffsets, _price, trove, singleLiquidation);
                 remainingBoldInSPForOffsets -= singleLiquidation.debtToOffset;
+                iterations++;
 
                 // Add liquidation values to their respective running totals
                 _addLiquidationValuesToTotals(trove, singleLiquidation, totals, troveChange);
@@ -973,20 +981,21 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
             return;
         }
 
-        uint256 stake = Troves[_troveId].stake;
+        Trove memory t = Troves[_troveId];
+        uint256 stake = t.stake;
         trove.redistBoldDebtGain = stake * (L_boldDebt - rewardSnapshots[_troveId].boldDebt) / DECIMAL_PRECISION;
         trove.redistCollGain = stake * (L_coll - rewardSnapshots[_troveId].coll) / DECIMAL_PRECISION;
 
-        trove.recordedDebt = Troves[_troveId].debt;
-        trove.annualInterestRate = Troves[_troveId].annualInterestRate;
+        trove.recordedDebt = t.debt;
+        trove.annualInterestRate = t.annualInterestRate;
         trove.weightedRecordedDebt = trove.recordedDebt * trove.annualInterestRate;
 
-        uint256 period = _getInterestPeriod(Troves[_troveId].lastDebtUpdateTime);
+        uint256 period = _getInterestPeriod(t.lastDebtUpdateTime);
         trove.accruedInterest = _calcInterest(trove.weightedRecordedDebt, period);
 
         trove.entireDebt = trove.recordedDebt + trove.redistBoldDebtGain + trove.accruedInterest;
-        trove.entireColl = Troves[_troveId].coll + trove.redistCollGain;
-        trove.lastInterestRateAdjTime = Troves[_troveId].lastInterestRateAdjTime;
+        trove.entireColl = t.coll + trove.redistCollGain;
+        trove.lastInterestRateAdjTime = t.lastInterestRateAdjTime;
     }
 
     function _getLatestTroveDataFromBatch(

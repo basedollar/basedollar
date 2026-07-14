@@ -58,6 +58,7 @@ interface ITroveManager is ILiquityBase {
     function lastZombieTroveId() external view returns (uint256);
 
     function batchLiquidateTroves(uint256[] calldata _troveArray) external;
+    function batchLiquidateTroves(uint256[] calldata _troveArray, uint256 _maxIterations) external;
 
     function redeemCollateral(
         address _sender,
