@@ -32,6 +32,10 @@ contract ToggleRethToken {
         if (fail) revert();
         return _rate;
     }
+
+    function lastUpdated() external view returns (uint256) {
+        return block.timestamp;
+    }
 }
 
 contract RETHPriceFeedTest is Test {

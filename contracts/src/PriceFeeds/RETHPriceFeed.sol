@@ -9,6 +9,8 @@ import "../Interfaces/IRETHPriceFeed.sol";
 // import "forge-std/console2.sol";
 
 contract RETHPriceFeed is CompositePriceFeed, IRETHPriceFeed {
+    bool private immutable _deployed = false;
+    
     constructor(
         address _ethUsdOracleAddress,
         address _rEthEthOracleAddress,
@@ -31,6 +33,7 @@ contract RETHPriceFeed is CompositePriceFeed, IRETHPriceFeed {
 
         // Check the oracle didn't already fail
         assert(priceSource == PriceSource.primary);
+        _deployed = true;
     }
 
     Oracle public rEthEthOracle;
@@ -93,6 +96,14 @@ contract RETHPriceFeed is CompositePriceFeed, IRETHPriceFeed {
     }
 
     function _getCanonicalRate() internal view override returns (uint256, bool) {
+        if (!_deployed) {
+            (uint256 ethPerReth, uint256 lastUpdated) = getCanonicalRate();
+            if (lastUpdated + canonicalRateStalenessThreshold <= block.timestamp) {
+                return (0, true);
+            }
+            return (ethPerReth, false);
+        }
+
         uint256 gasBefore = gasleft();
 
         try this.getCanonicalRate() returns (uint256 ethPerReth, uint256 lastUpdated) {
