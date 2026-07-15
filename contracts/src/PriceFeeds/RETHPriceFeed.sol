@@ -31,9 +31,10 @@ contract RETHPriceFeed is CompositePriceFeed, IRETHPriceFeed {
 
         _fetchPricePrimary(false);
 
+        _deployed = true;
+        
         // Check the oracle didn't already fail
         assert(priceSource == PriceSource.primary);
-        _deployed = true;
     }
 
     Oracle public rEthEthOracle;
