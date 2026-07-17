@@ -224,6 +224,10 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
 
             results.totalTimeElapsed += timeElapsed;
             if (results.totalTimeElapsed >= maxTimeElapsed) {
+                // Cut off any overage from max time elapsed from the last observation and total time elapsed
+                uint256 overage = results.totalTimeElapsed - maxTimeElapsed;
+                results.timeElapsed[index - 1] = timeElapsed - overage;
+                results.totalTimeElapsed = maxTimeElapsed;
                 break;
             }
         }
