@@ -168,13 +168,16 @@ contract AeroLPTokenPriceFeedTest is Test {
 
         (uint256 actualToken1PerToken0, uint256 actualToken0PerToken1) = feed.getExchangeRates(1, 3);
 
-        uint256 totalTimeElapsed = durations[0] + durations[1] + durations[2];
+        uint256 totalTimeElapsed = 30 minutes * 3;
+        uint256 oldestObservationTimeUsed = totalTimeElapsed - durations[1] - durations[2];
         uint256 expectedToken1PerToken0 =
-            (token1PerToken0[0] * durations[0] + token1PerToken0[1] * durations[1] + token1PerToken0[2] * durations[2])
+            (token1PerToken0[0] * oldestObservationTimeUsed
+                + token1PerToken0[1] * durations[1]
+                + token1PerToken0[2] * durations[2])
                 / totalTimeElapsed;
         uint256 expectedToken0PerToken1 =
             ((1e24 / token1PerToken0[0])
-                    * durations[0]
+                    * oldestObservationTimeUsed
                     + (1e24 / token1PerToken0[1])
                     * durations[1]
                     + (1e24 / token1PerToken0[2])
@@ -203,9 +206,96 @@ contract AeroLPTokenPriceFeedTest is Test {
         (uint256 actualToken1PerToken0, uint256 actualToken0PerToken1) = feed.getExchangeRates(1, 5);
 
         // The newest two 5,000-second intervals exceed the 9,000-second target.
-        // The older three intervals must not affect either returned exchange rate.
+        // Use all 5,000 seconds of the newest interval and only the newest 4,000
+        // seconds represented by the boundary interval. Ignore older intervals.
+        uint256 newestDuration = durations[4];
+        uint256 boundaryDuration = 30 minutes * 5 - newestDuration;
+        uint256 expectedToken1PerToken0 =
+            (token1PerToken0[4] * newestDuration + token1PerToken0[3] * boundaryDuration) / (30 minutes * 5);
+        uint256 expectedToken0PerToken1 =
+            ((1e24 / token1PerToken0[4]) * newestDuration
+                + (1e24 / token1PerToken0[3]) * boundaryDuration) / (30 minutes * 5);
+
+        assertEq(actualToken1PerToken0, expectedToken1PerToken0);
+        assertEq(actualToken0PerToken1, expectedToken0PerToken1);
+    }
+
+    function test_getExchangeRates_exactTargetKeepsEntireBoundaryInterval() public {
+        uint256[] memory durations = new uint256[](3);
+        durations[0] = 1801;
+        durations[1] = 2700;
+        durations[2] = 2700;
+
+        uint256[] memory token1PerToken0 = new uint256[](3);
+        token1PerToken0[0] = 900e18;
+        token1PerToken0[1] = 100e18;
+        token1PerToken0[2] = 200e18;
+        _setObservations(durations, token1PerToken0);
+
+        (uint256 actualToken1PerToken0, uint256 actualToken0PerToken1) = feed.getExchangeRates(1, 3);
+
         assertEq(actualToken1PerToken0, 150e18);
         assertEq(actualToken0PerToken1, 7500);
+    }
+
+    function testFuzz_getExchangeRates_matchesClippedElapsedTimeReference(
+        uint32[8] memory durationSeeds,
+        uint96[8] memory priceSeeds,
+        uint8 pointsSeed
+    ) public {
+        uint256 points = bound(uint256(pointsSeed), 1, 8);
+        uint256[] memory durations = new uint256[](8);
+        uint256[] memory token1PerToken0 = new uint256[](8);
+
+        for (uint256 i = 0; i < 8; i++) {
+            durations[i] = bound(uint256(durationSeeds[i]), 1801, 1 days);
+            token1PerToken0[i] = bound(uint256(priceSeeds[i]), 1, 1e24);
+        }
+        _setObservations(durations, token1PerToken0);
+
+        uint256 targetTimeElapsed = 30 minutes * points;
+        uint256 expectedWeightedToken1PerToken0;
+        uint256 expectedWeightedToken0PerToken1;
+        uint256 expectedTotalTimeElapsed;
+
+        for (uint256 offset = 0; offset < points && expectedTotalTimeElapsed < targetTimeElapsed; offset++) {
+            uint256 i = 7 - offset;
+            uint256 timeUsed = durations[i];
+            uint256 timeRemaining = targetTimeElapsed - expectedTotalTimeElapsed;
+            if (timeUsed > timeRemaining) timeUsed = timeRemaining;
+
+            expectedWeightedToken1PerToken0 += token1PerToken0[i] * timeUsed;
+            expectedWeightedToken0PerToken1 += (1e24 / token1PerToken0[i]) * timeUsed;
+            expectedTotalTimeElapsed += timeUsed;
+        }
+
+        (uint256 actualToken1PerToken0, uint256 actualToken0PerToken1) = feed.getExchangeRates(1, points);
+
+        assertEq(expectedTotalTimeElapsed, targetTimeElapsed);
+        assertEq(actualToken1PerToken0, expectedWeightedToken1PerToken0 / targetTimeElapsed);
+        assertEq(actualToken0PerToken1, expectedWeightedToken0PerToken1 / targetTimeElapsed);
+    }
+
+    function testFuzz_getExchangeRates_constantPriceUnaffectedByClipping(
+        uint32[8] memory durationSeeds,
+        uint96 priceSeed,
+        uint8 pointsSeed
+    ) public {
+        uint256 points = bound(uint256(pointsSeed), 1, 8);
+        uint256 price = bound(uint256(priceSeed), 1, 1e24);
+        uint256[] memory durations = new uint256[](8);
+        uint256[] memory token1PerToken0 = new uint256[](8);
+
+        for (uint256 i = 0; i < 8; i++) {
+            durations[i] = bound(uint256(durationSeeds[i]), 1801, 1 days);
+            token1PerToken0[i] = price;
+        }
+        _setObservations(durations, token1PerToken0);
+
+        (uint256 actualToken1PerToken0, uint256 actualToken0PerToken1) = feed.getExchangeRates(1, points);
+
+        assertEq(actualToken1PerToken0, price);
+        assertEq(actualToken0PerToken1, 1e24 / price);
     }
 
     function test_getTwapExchangeRate_stablePairCoversBothTokenDirections() public {
