@@ -9,28 +9,37 @@ import "../Interfaces/IRETHPriceFeed.sol";
 // import "forge-std/console2.sol";
 
 contract RETHPriceFeed is CompositePriceFeed, IRETHPriceFeed {
+    bool private immutable _deployed = false;
+    
     constructor(
         address _ethUsdOracleAddress,
         address _rEthEthOracleAddress,
-        address _rEthTokenAddress,
+        address _rEthRateProviderAddress,
         uint256 _ethUsdStalenessThreshold,
         uint256 _rEthEthStalenessThreshold,
         address _borrowerOperationsAddress
     )
-        CompositePriceFeed(_ethUsdOracleAddress, _rEthTokenAddress, _ethUsdStalenessThreshold, _borrowerOperationsAddress)
+        CompositePriceFeed(_ethUsdOracleAddress, _rEthRateProviderAddress, _ethUsdStalenessThreshold, _borrowerOperationsAddress)
     {
         // Store RETH-ETH oracle
         rEthEthOracle.aggregator = AggregatorV3Interface(_rEthEthOracleAddress);
         rEthEthOracle.stalenessThreshold = _rEthEthStalenessThreshold;
         rEthEthOracle.decimals = rEthEthOracle.aggregator.decimals();
 
+        // Use same staleness threshold for canonical rate as RETH-ETH
+        canonicalRateStalenessThreshold = _rEthEthStalenessThreshold;
+
         _fetchPricePrimary(false);
 
+        _deployed = true;
+        
         // Check the oracle didn't already fail
         assert(priceSource == PriceSource.primary);
     }
 
     Oracle public rEthEthOracle;
+
+    uint256 public canonicalRateStalenessThreshold;
 
     uint256 public constant RETH_ETH_DEVIATION_THRESHOLD = 2e16; // 2%
 
@@ -88,11 +97,23 @@ contract RETHPriceFeed is CompositePriceFeed, IRETHPriceFeed {
     }
 
     function _getCanonicalRate() internal view override returns (uint256, bool) {
+        if (!_deployed) {
+            (uint256 ethPerReth, uint256 lastUpdated) = getCanonicalRate();
+            if (lastUpdated + canonicalRateStalenessThreshold <= block.timestamp) {
+                return (0, true);
+            }
+            return (ethPerReth, false);
+        }
+
         uint256 gasBefore = gasleft();
 
-        try IRETHToken(rateProviderAddress).getExchangeRate() returns (uint256 ethPerReth) {
+        try this.getCanonicalRate() returns (uint256 ethPerReth, uint256 lastUpdated) {
             // If rate is 0, return true
             if (ethPerReth == 0) return (0, true);
+
+            if (lastUpdated + canonicalRateStalenessThreshold <= block.timestamp) {
+                return (0, true);
+            }
 
             return (ethPerReth, false);
         } catch {
@@ -104,5 +125,9 @@ contract RETHPriceFeed is CompositePriceFeed, IRETHPriceFeed {
             // If call to exchange rate reverts, return true
             return (0, true);
         }
+    }
+
+    function getCanonicalRate() public view returns (uint256 rate, uint256 lastUpdated) {
+        return (IRETHToken(rateProviderAddress).rate(), IRETHToken(rateProviderAddress).lastUpdated());
     }
 }

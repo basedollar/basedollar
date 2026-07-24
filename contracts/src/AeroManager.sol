@@ -49,6 +49,8 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     mapping(address gauge => uint256 epoch) public currentEpochs;
     mapping(address gauge => mapping(uint256 epoch => bool isClosed)) public epochClosed;
     mapping(uint256 epoch => mapping(address gauge => uint256 amount)) public claimedAeroPerEpoch;
+    /// @notice AERO allocated so far for each gauge epoch across all distribution batches
+    mapping(uint256 epoch => mapping(address gauge => uint256 amount)) public distributedAeroPerEpoch;
 
     mapping(address user => mapping(address rewardToken => uint256 amount)) internal _claimableRewards;
 
@@ -71,7 +73,8 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event Withdrawn(address indexed gauge, address token, uint256 amountSent, uint256 amountUnstaked);
     event ActivePoolAdded(address indexed activePool);
     event Claimed(address indexed gauge, uint256 total, uint256 claimFee, uint256 indexed epoch);
-    event AeroDistributed(address indexed gauge, uint256 recipients, uint256 totalRewardAmount, uint256 indexed epoch);
+    event AeroDistributed(address indexed gauge, uint256 recipients, uint256 rewardAmount, uint256 indexed epoch);
+    event AeroDistributionFinalized(address indexed gauge, uint256 totalRewardAmount, uint256 indexed epoch);
     event RewardsClaimed(address indexed user, address indexed rewardToken, uint256 amount);
     event CollateralRegistryAdded(address collateralRegistry);
     event ClaimFeeUpdated(uint256 oldFee, uint256 newFee);
@@ -81,6 +84,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event AeroTokenAddressUpdatePending(address oldAeroTokenAddress, address newAeroTokenAddress, uint256 timestamp, uint256 delayPeriod);
     event TreasuryAddressUpdated(address oldTreasuryAddress, address newTreasuryAddress);
     event EpochClosed(address indexed gauge, uint256 indexed epoch);
+    event EpochStarted(address indexed gauge, uint256 indexed epoch);
     event GovernorProposed(address indexed pendingGovernor, uint256 activateAtTimestamp);
     event GovernorUpdated(address oldGovernor, address newGovernor);
     event GovernorProposalCancelled(address indexed cancelledGovernor);
@@ -338,26 +342,47 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         emit EpochClosed(gauge, currentEpoch);
     }
 
-    /// @notice Split a closed epoch's AERO for `gauge` across borrowers; advances the gauge epoch when the bucket is fully allocated
-    /// @dev Sum of `recipients[i].amount` must equal `claimedAeroPerEpoch[currentEpoch][gauge]` for that gauge/epoch
+    /// @notice Start the next epoch for a gauge
+    /// @param gauge Gauge address to start the next epoch for
+    function startNextEpoch(address gauge) external onlyGovernor {
+        uint256 currentEpoch = currentEpochs[gauge];
+        require(epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is not closed yet to start next epoch");
+        uint256 total = claimedAeroPerEpoch[currentEpoch][gauge];
+        uint256 allocated = distributedAeroPerEpoch[currentEpoch][gauge];
+        require(total == allocated, "AeroManager: Total rewards have not been distributed yet");
+        currentEpochs[gauge]++;
+        emit EpochStarted(gauge, currentEpoch + 1);
+    }
+
+    /// @notice Allocate a batch of a closed epoch's AERO for `gauge` across borrowers
+    /// @dev Batches may not allocate more than `claimedAeroPerEpoch[currentEpoch][gauge]` in total
     /// @param gauge Gauge whose closed epoch is being paid out
-    /// @param recipients Borrower addresses and AERO amounts; must exhaust the epoch balance exactly
-    function distributeAero(address gauge, AeroRecipient[] memory recipients) external onlyGovernor {
+    /// @param recipients Borrower addresses and AERO amounts for this batch
+    /// @param _startNextEpoch Whether to start the next epoch immediately if all rewards have been distributed
+    function distributeAero(address gauge, AeroRecipient[] calldata recipients, bool _startNextEpoch) external onlyGovernor {
         uint256 currentEpoch = currentEpochs[gauge];
         require(epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is not closed yet to distribute rewards");
         require(recipients.length > 0, "AeroManager: No recipients");
-        
-        uint256 rewardAmount = claimedAeroPerEpoch[currentEpoch][gauge];
-        uint256 remainingRewardAmount = rewardAmount;
+
+        uint256 total = claimedAeroPerEpoch[currentEpoch][gauge];
+        uint256 allocated = distributedAeroPerEpoch[currentEpoch][gauge];
+        require(allocated < total, "AeroManager: All rewards have already been distributed");
+        uint256 remaining = total - allocated;
         for (uint256 i; i < recipients.length; i++) {
-            require(recipients[i].amount <= remainingRewardAmount, "AeroManager: Total amount exceeds reward amount");
-            remainingRewardAmount -= recipients[i].amount;
+            require(recipients[i].amount <= remaining, "AeroManager: Total amount exceeds reward amount");
+            remaining -= recipients[i].amount;
             _claimableRewards[recipients[i].borrower][aeroTokenAddress] += recipients[i].amount;
         }
-        require(remainingRewardAmount == 0, "AeroManager: Reward amount not fully distributed");
-        emit AeroDistributed(gauge, recipients.length, rewardAmount, currentEpoch);
-        currentEpoch++;
-        currentEpochs[gauge] = currentEpoch;
+        uint256 batchAmount = total - allocated - remaining;
+        distributedAeroPerEpoch[currentEpoch][gauge] += batchAmount;
+        emit AeroDistributed(gauge, recipients.length, batchAmount, currentEpoch);
+        if (remaining == 0) {
+            emit AeroDistributionFinalized(gauge, total, currentEpoch);
+            if (_startNextEpoch) {
+                currentEpochs[gauge]++;
+                emit EpochStarted(gauge, currentEpoch + 1);
+            }
+        }
     }
 
     /// @notice Withdraw previously allocated AERO for `user` (via `distributeAero`) to the user wallet

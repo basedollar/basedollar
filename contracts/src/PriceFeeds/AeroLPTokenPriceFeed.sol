@@ -116,13 +116,13 @@ contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
         
         if (_isRedemption && withinThreshold) {
             // For redemptions within threshold: maximize LP value to prevent value leakage
-            // max token1 price, min token0 price -> higher LP value
+            // max token1 price, max token0 price -> higher LP value
             token1Price = LiquityMath._max(token1MarketPrice, token1OraclePrice);
-            token0Price = LiquityMath._min(token0MarketPrice, token0OraclePrice);
+            token0Price = LiquityMath._max(token0MarketPrice, token0OraclePrice);
         } else {
-            // For borrows (or redemptions outside threshold): minimize LP value
+            // For borrows (or redemptions outside threshold): constant LP value
             // Protects against upward manipulation
-            // min token1 price, max token0 price -> lower LP value
+            // min token1 price, max token0 price -> constant or slightly lower LP value
             token1Price = LiquityMath._min(token1MarketPrice, token1OraclePrice);
             token0Price = LiquityMath._max(token0MarketPrice, token0OraclePrice);
         }

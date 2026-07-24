@@ -41,10 +41,13 @@ import "test/TestContracts/PriceFeedTestnet.sol";
 import "test/TestContracts/MetadataDeployment.sol";
 import "test/Utils/Logging.sol";
 import "test/Utils/StringEquality.sol";
+import {WrappedToken} from "src/ERC20Wrappers/WrappedToken.sol";
+import {IWrappedToken} from "src/Interfaces/IWrappedToken.sol";
 import "src/Zappers/WETHZapper.sol";
 import "src/Zappers/GasCompZapper.sol";
 import "src/Zappers/LeverageLSTZapper.sol";
 import "src/Zappers/LeverageWETHZapper.sol";
+import "src/Zappers/WrappedTokenZapper.sol";
 import "src/Zappers/Modules/Exchanges/HybridCurveUniV3ExchangeHelpers.sol";
 import "src/Zappers/Modules/Exchanges/HybridCurveUniV3ExchangeHelpersV2.sol";
 import {BalancerFlashLoan} from "src/Zappers/Modules/FlashLoans/BalancerFlashLoan.sol";
@@ -88,6 +91,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     IWETH WETH;
     IERC20Metadata USDC;
 
+    IERC20Metadata WRAPPED_CBBTC;
+
     // Collateral token addresses (Base Mainnet)
     address WSTETH_ADDRESS = 0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452;
     address RETH_ADDRESS = 0xB6fe221Fe9EeF5aBa221c348bA20A1Bf5e73624c;
@@ -110,6 +115,9 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     address CBBTC_USD_ORACLE_ADDRESS = 0xa4183Cbf2eE868dDFccd325531C4f53F737FFF68;
     address CBETH_ETH_ORACLE_ADDRESS = address(0); // TODO: Not activated yet
     address AERO_USD_ORACLE_ADDRESS = 0x201bC62f44f018B70E0c5eC8fF524fB26261959c;
+
+    // Canonical Rocket OVM Price Oracle
+    address RETH_RATE_PROVIDER_ADDRESS = 0x658843BB859B7b85cEAb5cF77167e3F0a78dFE7f;
 
     // Staleness thresholds
     uint256 ETH_USD_STALENESS_THRESHOLD = 24 hours;
@@ -203,6 +211,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         WETHZapper wethZapper;
         GasCompZapper gasCompZapper;
         ILeverageZapper leverageZapper;
+        WrappedTokenZapper wrappedTokenZapper;
     }
 
     struct LiquityContractAddresses {
@@ -710,7 +719,9 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             vars.collaterals[2] = IERC20Metadata(RETH_ADDRESS);
 
             // cbBTC
-            vars.collaterals[3] = IERC20Metadata(CBBTC_ADDRESS);
+            // vars.collaterals[3] = IERC20Metadata(CBBTC_ADDRESS);
+            WRAPPED_CBBTC = new WrappedToken(IERC20Metadata(CBBTC_ADDRESS));
+            vars.collaterals[3] = WRAPPED_CBBTC;
 
             // cbETH
             vars.collaterals[4] = IERC20Metadata(CBETH_ADDRESS);
@@ -925,7 +936,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         );
 
         // deploy zappers
-        (contracts.gasCompZapper, contracts.wethZapper, contracts.leverageZapper) =
+        (contracts.gasCompZapper, contracts.wethZapper, contracts.leverageZapper, contracts.wrappedTokenZapper) =
             _deployZappers(contracts.addressesRegistry, contracts.collToken, _boldToken, _usdcCurvePool);
     }
 
@@ -957,14 +968,14 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 return new RETHPriceFeed(
                     ETH_USD_ORACLE_ADDRESS,
                     RETH_ETH_ORACLE_ADDRESS,
-                    RETH_ADDRESS,
+                    RETH_RATE_PROVIDER_ADDRESS,
                     ETH_USD_STALENESS_THRESHOLD,
                     RETH_ETH_STALENESS_THRESHOLD,
                     _borrowerOperationsAddress
                 );
             }
             // cbBTC
-            if (_collTokenAddress == CBBTC_ADDRESS) {
+            if (_collTokenAddress == address(WRAPPED_CBBTC)) {
                 return new cbBTCPriceFeed(
                     _borrowerOperationsAddress,
                     CBBTC_USD_ORACLE_ADDRESS,
@@ -1004,7 +1015,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         IERC20 _collToken,
         IBoldToken _boldToken,
         ICurveStableswapNGPool _usdcCurvePool
-    ) internal returns (GasCompZapper gasCompZapper, WETHZapper wethZapper, ILeverageZapper leverageZapper) {
+    ) internal returns (GasCompZapper gasCompZapper, WETHZapper wethZapper, ILeverageZapper leverageZapper, WrappedTokenZapper wrappedTokenZapper) {
         // IFlashLoanProvider flashLoanProvider = new BalancerFlashLoan();
 
         // IExchange hybridExchange = new HybridCurveUniV3Exchange(
@@ -1023,7 +1034,9 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         IExchange hybridExchange = IExchange(address(0));
 
         bool lst = _collToken != WETH;
-        if (lst) {
+        if (_collToken == WRAPPED_CBBTC) {
+            wrappedTokenZapper = new WrappedTokenZapper(IWrappedToken(address(_collToken)), _addressesRegistry, flashLoanProvider, hybridExchange);
+        } else if (lst) {
             gasCompZapper = new GasCompZapper(_addressesRegistry, flashLoanProvider, hybridExchange);
         } else {
             wethZapper = new WETHZapper(_addressesRegistry, flashLoanProvider, hybridExchange);

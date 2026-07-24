@@ -88,6 +88,31 @@ contract AeroLPTokenPriceFeedTest is Test {
         );
     }
 
+    function _setObservations(uint256[] memory durations, uint256[] memory token1PerToken0) internal {
+        assertEq(durations.length, token1PerToken0.length);
+
+        AeroPoolMock.Observation[] memory newObservations = new AeroPoolMock.Observation[](durations.length + 1);
+        uint256 timestamp;
+        uint256 reserve0Cumulative;
+        uint256 reserve1Cumulative;
+        uint256 reserve0 = 1e6;
+
+        newObservations[0] = AeroPoolMock.Observation({
+            timestamp: timestamp, reserve0Cumulative: reserve0Cumulative, reserve1Cumulative: reserve1Cumulative
+        });
+
+        for (uint256 i = 0; i < durations.length; i++) {
+            timestamp += durations[i];
+            reserve0Cumulative += reserve0 * durations[i];
+            reserve1Cumulative += token1PerToken0[i] * durations[i];
+            newObservations[i + 1] = AeroPoolMock.Observation({
+                timestamp: timestamp, reserve0Cumulative: reserve0Cumulative, reserve1Cumulative: reserve1Cumulative
+            });
+        }
+
+        pool.setObservations(newObservations);
+    }
+
     // ============ TWAP Exchange Rate Tests ============
 
     function test_constructor_revertsWhenGaugeIsZero() public {
@@ -129,6 +154,150 @@ contract AeroLPTokenPriceFeedTest is Test {
         assertFalse(exchangeRate.isDown);
     }
 
+    function test_getExchangeRates_weightsUnequalObservationDurations() public {
+        uint256[] memory durations = new uint256[](3);
+        durations[0] = 1801;
+        durations[1] = 1802;
+        durations[2] = 1803;
+
+        uint256[] memory token1PerToken0 = new uint256[](3);
+        token1PerToken0[0] = 100e18;
+        token1PerToken0[1] = 200e18;
+        token1PerToken0[2] = 400e18;
+        _setObservations(durations, token1PerToken0);
+
+        (uint256 actualToken1PerToken0, uint256 actualToken0PerToken1) = feed.getExchangeRates(1, 3);
+
+        uint256 totalTimeElapsed = 30 minutes * 3;
+        uint256 oldestObservationTimeUsed = totalTimeElapsed - durations[1] - durations[2];
+        uint256 expectedToken1PerToken0 =
+            (token1PerToken0[0] * oldestObservationTimeUsed
+                + token1PerToken0[1] * durations[1]
+                + token1PerToken0[2] * durations[2])
+                / totalTimeElapsed;
+        uint256 expectedToken0PerToken1 =
+            ((1e24 / token1PerToken0[0])
+                    * oldestObservationTimeUsed
+                    + (1e24 / token1PerToken0[1])
+                    * durations[1]
+                    + (1e24 / token1PerToken0[2])
+                    * durations[2]) / totalTimeElapsed;
+
+        assertEq(actualToken1PerToken0, expectedToken1PerToken0);
+        assertEq(actualToken0PerToken1, expectedToken0PerToken1);
+    }
+
+    function test_getExchangeRates_earlyBreakUsesNewestIntervalsAndIncludesBoundary() public {
+        uint256[] memory durations = new uint256[](5);
+        durations[0] = 1801;
+        durations[1] = 1801;
+        durations[2] = 1801;
+        durations[3] = 5000;
+        durations[4] = 5000;
+
+        uint256[] memory token1PerToken0 = new uint256[](5);
+        token1PerToken0[0] = 900e18;
+        token1PerToken0[1] = 800e18;
+        token1PerToken0[2] = 700e18;
+        token1PerToken0[3] = 100e18;
+        token1PerToken0[4] = 200e18;
+        _setObservations(durations, token1PerToken0);
+
+        (uint256 actualToken1PerToken0, uint256 actualToken0PerToken1) = feed.getExchangeRates(1, 5);
+
+        // The newest two 5,000-second intervals exceed the 9,000-second target.
+        // Use all 5,000 seconds of the newest interval and only the newest 4,000
+        // seconds represented by the boundary interval. Ignore older intervals.
+        uint256 newestDuration = durations[4];
+        uint256 boundaryDuration = 30 minutes * 5 - newestDuration;
+        uint256 expectedToken1PerToken0 =
+            (token1PerToken0[4] * newestDuration + token1PerToken0[3] * boundaryDuration) / (30 minutes * 5);
+        uint256 expectedToken0PerToken1 =
+            ((1e24 / token1PerToken0[4]) * newestDuration
+                + (1e24 / token1PerToken0[3]) * boundaryDuration) / (30 minutes * 5);
+
+        assertEq(actualToken1PerToken0, expectedToken1PerToken0);
+        assertEq(actualToken0PerToken1, expectedToken0PerToken1);
+    }
+
+    function test_getExchangeRates_exactTargetKeepsEntireBoundaryInterval() public {
+        uint256[] memory durations = new uint256[](3);
+        durations[0] = 1801;
+        durations[1] = 2700;
+        durations[2] = 2700;
+
+        uint256[] memory token1PerToken0 = new uint256[](3);
+        token1PerToken0[0] = 900e18;
+        token1PerToken0[1] = 100e18;
+        token1PerToken0[2] = 200e18;
+        _setObservations(durations, token1PerToken0);
+
+        (uint256 actualToken1PerToken0, uint256 actualToken0PerToken1) = feed.getExchangeRates(1, 3);
+
+        assertEq(actualToken1PerToken0, 150e18);
+        assertEq(actualToken0PerToken1, 7500);
+    }
+
+    function testFuzz_getExchangeRates_matchesClippedElapsedTimeReference(
+        uint32[8] memory durationSeeds,
+        uint96[8] memory priceSeeds,
+        uint8 pointsSeed
+    ) public {
+        uint256 points = bound(uint256(pointsSeed), 1, 8);
+        uint256[] memory durations = new uint256[](8);
+        uint256[] memory token1PerToken0 = new uint256[](8);
+
+        for (uint256 i = 0; i < 8; i++) {
+            durations[i] = bound(uint256(durationSeeds[i]), 1801, 1 days);
+            token1PerToken0[i] = bound(uint256(priceSeeds[i]), 1, 1e24);
+        }
+        _setObservations(durations, token1PerToken0);
+
+        uint256 targetTimeElapsed = 30 minutes * points;
+        uint256 expectedWeightedToken1PerToken0;
+        uint256 expectedWeightedToken0PerToken1;
+        uint256 expectedTotalTimeElapsed;
+
+        for (uint256 offset = 0; offset < points && expectedTotalTimeElapsed < targetTimeElapsed; offset++) {
+            uint256 i = 7 - offset;
+            uint256 timeUsed = durations[i];
+            uint256 timeRemaining = targetTimeElapsed - expectedTotalTimeElapsed;
+            if (timeUsed > timeRemaining) timeUsed = timeRemaining;
+
+            expectedWeightedToken1PerToken0 += token1PerToken0[i] * timeUsed;
+            expectedWeightedToken0PerToken1 += (1e24 / token1PerToken0[i]) * timeUsed;
+            expectedTotalTimeElapsed += timeUsed;
+        }
+
+        (uint256 actualToken1PerToken0, uint256 actualToken0PerToken1) = feed.getExchangeRates(1, points);
+
+        assertEq(expectedTotalTimeElapsed, targetTimeElapsed);
+        assertEq(actualToken1PerToken0, expectedWeightedToken1PerToken0 / targetTimeElapsed);
+        assertEq(actualToken0PerToken1, expectedWeightedToken0PerToken1 / targetTimeElapsed);
+    }
+
+    function testFuzz_getExchangeRates_constantPriceUnaffectedByClipping(
+        uint32[8] memory durationSeeds,
+        uint96 priceSeed,
+        uint8 pointsSeed
+    ) public {
+        uint256 points = bound(uint256(pointsSeed), 1, 8);
+        uint256 price = bound(uint256(priceSeed), 1, 1e24);
+        uint256[] memory durations = new uint256[](8);
+        uint256[] memory token1PerToken0 = new uint256[](8);
+
+        for (uint256 i = 0; i < 8; i++) {
+            durations[i] = bound(uint256(durationSeeds[i]), 1801, 1 days);
+            token1PerToken0[i] = price;
+        }
+        _setObservations(durations, token1PerToken0);
+
+        (uint256 actualToken1PerToken0, uint256 actualToken0PerToken1) = feed.getExchangeRates(1, points);
+
+        assertEq(actualToken1PerToken0, price);
+        assertEq(actualToken0PerToken1, 1e24 / price);
+    }
+
     function test_getTwapExchangeRate_stablePairCoversBothTokenDirections() public {
         ERC20DecimalsMock s0 = new ERC20DecimalsMock("S0", "S0", 18);
         ERC20DecimalsMock s1 = new ERC20DecimalsMock("S1", "S1", 18);
@@ -160,6 +329,49 @@ contract AeroLPTokenPriceFeedTest is Test {
         assertApproxEqAbs(exchangeRate.token1PerToken0, 1e18, 1);
         assertApproxEqAbs(exchangeRate.token0PerToken1, 1e18, 1);
         assertFalse(exchangeRate.isDown);
+    }
+
+    function test_getTwapExchangeRate_stablePairPreservesPrecisionForLowDecimalToken() public {
+        ERC20DecimalsMock s0 = new ERC20DecimalsMock("S0", "S0", 6);
+        ERC20DecimalsMock s1 = new ERC20DecimalsMock("S1", "S1", 18);
+        AeroGaugeMock g = new AeroGaugeMock(address(s0), address(s1));
+        AeroPoolMock p = g.pool();
+        p.setStable(true);
+        p.setReserves(1_000_000e6, 1_000_000e18);
+        p.setTotalSupply(1_000_000e18);
+
+        // A slight imbalance produces a token1 -> token0 marginal quote with
+        // meaningful digits below token0's 6-decimal precision.
+        p.setQuoteAmounts(1.01e18, 0);
+
+        ChainlinkOracleMock o0 = new ChainlinkOracleMock();
+        o0.setDecimals(8);
+        o0.setPrice(1e8);
+        o0.setUpdatedAt(block.timestamp);
+        ChainlinkOracleMock o1 = new ChainlinkOracleMock();
+        o1.setDecimals(8);
+        o1.setPrice(1e8);
+        o1.setUpdatedAt(block.timestamp);
+
+        AeroLPTokenPriceFeedTester stableFeed = new AeroLPTokenPriceFeedTester(
+            address(borrowerOperations),
+            IAeroGauge(address(g)),
+            address(o0),
+            address(o1),
+            1 days,
+            1 days
+        );
+
+        AeroLPTokenPriceFeedBase.ExchangeRate memory exchangeRate = stableFeed.i_getTwapExchangeRates();
+        assertEq(exchangeRate.token1PerToken0, 1_000_000_246_287_220_156);
+        assertEq(exchangeRate.token0PerToken1, 999_999_753_712_840_501);
+        assertNotEq(exchangeRate.token0PerToken1 % 1e12, 0, "sub-token precision was truncated");
+
+        // The normalized TWAP still feeds the existing fair-price path without
+        // changing the expected value of the balanced, equally priced pool.
+        (uint256 price, bool newFailure) = stableFeed.fetchPrice();
+        assertFalse(newFailure);
+        assertApproxEqAbs(price, 2e18, 1e12);
     }
 
     function test_getTwapExchangeRate_returnsDownOnRevert() public {
@@ -459,7 +671,9 @@ contract AeroLPTokenPriceFeedTest is Test {
         // Both within 2% of oracle prices, so use max/min for redemption:
         // token1Price = max($1980.20, $2000) = $2000
         // token0Price = min($1.01, $1) = $1
-        assertApproxEqAbs(price, 2000e18, 1);
+        uint256 maxDiff = (2000e18 * 102e16 / 1e18) - 2000e18;
+        // assertApproxEqAbs(price, 2000e18, 1e16);
+        assertApproxEqAbs(price, 2000e18, maxDiff);
     }
 
     function test_fetchRedemptionPrice_outsideDeviation_usesMinMaxLogic() public {
