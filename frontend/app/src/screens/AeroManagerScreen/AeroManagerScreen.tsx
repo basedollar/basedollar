@@ -13,6 +13,7 @@ import { erc20Abi, type Address } from "viem";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useMemo } from "react";
+import { CHAIN_ID } from "@/src/env";
 
 // AeroManager ABI - read and write functions
 const AeroManagerAbi = [
@@ -118,7 +119,7 @@ function getLpCollateralsWithGauges(): LpCollateral[] {
     // Check if it's an LP type (samm or vamm)
     if ('type' in collateral && (collateral.type === 'samm' || collateral.type === 'vamm')) {
       const deployments = collateral.deployments as Record<number, { gauge?: string }>;
-      const deployment = deployments[84532]; // Base Sepolia
+      const deployment = deployments[CHAIN_ID];
       if (deployment?.gauge && deployment.gauge !== "0x0000000000000000000000000000000000000000") {
         lpCollaterals.push({
           symbol: collateral.symbol,

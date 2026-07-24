@@ -48,16 +48,16 @@ export const WHITE_LABEL_CONFIG = {
       icon: "main-token",
       // Core protocol contracts
       deployments: {
-        84532: { // Base Sepolia
-          token: "0x06a350096397728c8158baf5e80841b2aacb6eb1",
-          collateralRegistry: "0x05744ab76ef4433ebb7a94a4d15245d71dce1f94",
-          governance: "0xf4158Af18b1Fe05d3FC80E136a571de39D98be38",
-          hintHelpers: "0x566715f497c00a8aac128c904eecc951e4c61505",
-          multiTroveGetter: "0xf140bd519c20a5ec9b9a6b1efbde7ec957a64f6d",
-          debtInFrontHelper: "0xa9445aabbb77595f9c7ac12f8145fe2aa4c9606f",
-          exchangeHelpers: "0x87bd3597a043077e76017b4f0bf5fb77d1aa5c0d",
-          exchangeHelpersV2: "0x377dc66d2638117884dc79bda44cbf1bda40a6df",
-          redemptionHelper: "0xc229d7cd95a3185f7dbf573593117516346ee682",
+        8453: { // Base
+          token: "0xb834d1f020de11ddb59bbd50a75419c67f8d43ef",
+          collateralRegistry: "0x69ec880c7bdcff731ed7c956670276dc5a48a6cb",
+          governance: "0x0000000000000000000000000000000000000000",
+          hintHelpers: "0x1b41cf64cdba527278d49ea135cdbc2071133f2e",
+          multiTroveGetter: "0xda9ea44f563f02e172c99939964f53b208606310",
+          debtInFrontHelper: "0x697dc5e9be3d509820d0a0c7d459210e5c717d4e",
+          exchangeHelpers: "0x0000000000000000000000000000000000000000",
+          exchangeHelpersV2: "0x0000000000000000000000000000000000000000",
+          redemptionHelper: "0xd1acb6ef0decc035089d034496a54dfcadab2eea",
         },
       },
     },
@@ -69,7 +69,7 @@ export const WHITE_LABEL_CONFIG = {
       ticker: "BASED",
       icon: "governance-token",
       deployments: {
-        84532: {
+        8453: {
           token: "0x0000000000000000000000000000000000000000",
           staking: "0x0000000000000000000000000000000000000000"
         },
@@ -78,7 +78,7 @@ export const WHITE_LABEL_CONFIG = {
 
     // Collateral tokens (for borrowing) - Multi-chain support
     collaterals: [
-      // === Base Sepolia Collaterals ===
+      // === Base Collaterals ===
       {
         symbol: "ETH" as const,
         name: "ETH",
@@ -87,19 +87,19 @@ export const WHITE_LABEL_CONFIG = {
         maxDeposit: "100000000",
         maxLTV: 0.9091,
         deployments: {
-          84532: {
-            collToken: "0xdec8b447b76afa012a001d2e3df4ebeb12f0b520",
-            addressesRegistry: "0xd7dd54fce2158fe456eb3f2c64aa016ab8b3b018",
-            borrowerOperations: "0x6682d437fc5ba5449a2cae9bcf04e6959fc14a7d",
-            troveManager: "0x6452820e26c3552f87774d077bef9e52bc6b7f15",
-            troveNFT: "0xf286a47af017786c89b93065670040852fa258ff",
-            stabilityPool: "0x11728c3c1237a70b62124eaef7724b46ec656666",
-            priceFeed: "0x537dc7e038cef15ff9cfef049f27468672e43e6d",
-            activePool: "0x0abf926e363bb5193ea6fe55cb9138d3df1c53c8",
-            defaultPool: "0xe5131925eec092636149c751efde3278f24eb840",
-            collSurplusPool: "0xc84a5d63417614d28c003c2475d21c15dad594e0",
-            sortedTroves: "0xfcc14bd3cc53260394e7f6d223ce0a0ecbe2c1b8",
-            leverageZapper: "0x2038e9af01760cdc4d90b1aa5dc0865cb8af57ce",
+          8453: {
+            collToken: "0x4200000000000000000000000000000000000006",
+            addressesRegistry: "0xe64b58c1a411fa7786f43067444b91c921ab947f",
+            borrowerOperations: "0xa297b2576ab4171e31f0a2472cd3029e12f6e9dc",
+            troveManager: "0x8d1ed1ebda8a25da3d4bdbf830068d3327f45b96",
+            troveNFT: "0xac04d4c39ba59ee14fca47f534d77b9316cc0b14",
+            stabilityPool: "0x99c13ea3fd8a3c0864d3598214370b698fd5bea1",
+            priceFeed: "0x4b76c7287192f049896c887b2faa3c7d6321d4c8",
+            activePool: "0x0e2b89800104c29547115455a280977dde4640f5",
+            defaultPool: "0x7381385a3bae7b358357b2586bbdaaf18b11fa18",
+            collSurplusPool: "0xd661f911bca496b6a06e9093f027572a12b3fb2f",
+            sortedTroves: "0x7eb02f4ca85d0e8555a0b2ad89ddbbf6074aaf6e",
+            leverageZapper: "0xcbd99c0b03e8803061855c1390f04ade83cdd85a",
           },
         },
       },
@@ -111,19 +111,19 @@ export const WHITE_LABEL_CONFIG = {
         maxDeposit: "25000000",
         maxLTV: 0.8333,
         deployments: {
-          84532: {
-            collToken: "0x31e032cc438b9862a238c758288f89445fc30305",
-            addressesRegistry: "0xfd8b4a6c7b6210dbb3d160475ffe6dfa3c83c187",
-            borrowerOperations: "0x5b96b57efe0967dfc7fe7da1c8c3b194264a5daa",
-            troveManager: "0xb408b0ae4e6db87df14c56622cd35f3c70c46ee3",
-            troveNFT: "0x43b60109328788fb317e9a7d3244118ff5779bab",
-            stabilityPool: "0xa4e5f177195e442a63549f8524117533c03158c5",
-            priceFeed: "0x7582d692bbe3a34c60a111ddf85b723701001b39",
-            activePool: "0x0035ff5c9705c77d5bbadddb6bc541b8f1e4b3f8",
-            defaultPool: "0x8f17ce399ab143c672eab5d0508d348858fec650",
-            collSurplusPool: "0x04e6a0a5d1fc18e617f8256fd748d262352cf736",
-            sortedTroves: "0x6e6276de7b6d1905a6921c5db629d107ea30067a",
-            leverageZapper: "0x0f766797a7d9809bd8841d3136b900aa3712d4bc",
+          8453: {
+            collToken: "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452",
+            addressesRegistry: "0xba3e382865fc5e68bd70aeccd08578957eee5e89",
+            borrowerOperations: "0x04a926166d1d6a01c98fff471757d930e9077a21",
+            troveManager: "0x9961f7c49a731f8538d107870c5644ca0cee36e0",
+            troveNFT: "0x2d36ce8df1f2ce390f124fb9c375d6decde2aafc",
+            stabilityPool: "0x61abac63d00ab235f21b9f4308decbcd4e49a97e",
+            priceFeed: "0xf8ad8bd84ef5d0df2794eaaa65f1a02585997b0c",
+            activePool: "0x457cbbc8596b10d7d99fa18cb3f013b73eaa6a23",
+            defaultPool: "0xa493386ed6fa7d6df565e713906d37437a99d601",
+            collSurplusPool: "0x1a47ca055aaf977f5bee8f7c86864cde3922ef62",
+            sortedTroves: "0x2d6f527f14d71ac074a4214faa5baf795e39a49f",
+            leverageZapper: "0xdcdb208c55924d6aedabc0a4549caffd3d6283cd",
           },
         },
       },
@@ -135,19 +135,19 @@ export const WHITE_LABEL_CONFIG = {
         maxDeposit: "25000000",
         maxLTV: 0.8333,
         deployments: {
-          84532: {
-            collToken: "0x1dd41ddf10dec4ab11da6fa4a0810a754769cd2d",
-            addressesRegistry: "0xad58679c0ce74b50fc84a16617d42b60377820f3",
-            borrowerOperations: "0x6f0e844ae66bcbd4ab497af9eecade041fe4d2d9",
-            troveManager: "0x662dda19706bb11f6d67f1a254b440afe46a3dba",
-            troveNFT: "0xdbe6b5c059ea8c136843f98578ed85ba0299310f",
-            stabilityPool: "0xf816938c31680508e9c674bab8f5398959a60aba",
-            priceFeed: "0xdc550e6817cca09a1073d24961a805a6e20c28f3",
-            activePool: "0x349112c78c0b2508b0d6fc4cd3b8641988f93761",
-            defaultPool: "0x188c4b0d41ba2ebbbfb8877f5a197e50e2c8614d",
-            collSurplusPool: "0x8bdd206a617f9f3feaf50fdce45090a1d4933d1a",
-            sortedTroves: "0x63b77426caaf6b5f8245f95cccdad6ffdb512301",
-            leverageZapper: "0xc6101f6f636e2b4a5d4f1b5feb03ff3fc50f0205",
+          8453: {
+            collToken: "0xb6fe221fe9eef5aba221c348ba20a1bf5e73624c",
+            addressesRegistry: "0xaed1fc5d07c8f95288cf4d0e5c99f6205ca7c867",
+            borrowerOperations: "0x41d6b5429f62482321fc58665d95fc20e643ed3f",
+            troveManager: "0xdd80be56f027a48a1324d6e309209f24bb2dea44",
+            troveNFT: "0xe2cf906b84db5adc7687bdf837aeb80c367a9f8c",
+            stabilityPool: "0x5bf2882637c00a36c19da52fe1398d7c6f6e6e84",
+            priceFeed: "0x64165e7f8af7fcec0710e7e633a6d83239396649",
+            activePool: "0x4f535325318bbb4f71da7709d57097bd45fa4f7e",
+            defaultPool: "0x96be2b9190ab747d80bc24212374319d3416375e",
+            collSurplusPool: "0xd9026f18d6305db6f4b689f4910705e526a8cadd",
+            sortedTroves: "0xb4099f7213caa6eb27a4106b7e2169d72b4ae7f3",
+            leverageZapper: "0x9284f23467b07ae623a48f7dc89551851631dfa5",
           },
         },
       },
@@ -159,19 +159,19 @@ export const WHITE_LABEL_CONFIG = {
         maxDeposit: "10000000",
         maxLTV: 0.9091,
         deployments: {
-          84532: {
-            collToken: "0x86db8e58f51e2a4df35fbf65359de76112674002",
-            addressesRegistry: "0xda02de6ff5d3779a20370aa142cd665fae51e3a0",
-            borrowerOperations: "0x1dc5f1839a9a1bd1373106899b718b74d80c81ce",
-            troveManager: "0x41d5e1b59900fcb7c16e1b10ba899d4d4950832d",
-            troveNFT: "0x8dbdb3396da081187e39baf860ce5310ed308149",
-            stabilityPool: "0xa03c9c4c892c35ac7da877e8e024b65d4db38e15",
-            priceFeed: "0xbe582f14fb9538d41c6274fd9f83f9de276cb5ba",
-            activePool: "0x275308a6220e73cf3466ba0e31130f69af2a5903",
-            defaultPool: "0x1c58f5067d09df74b333001ff721109c827ccbc1",
-            collSurplusPool: "0x0951bdbff4a5a045778c287828ada4261d5265a2",
-            sortedTroves: "0xa3465a5e29079a4e16495675b08256e0b918dccc",
-            leverageZapper: "0xfe6c6d08ad82cc5f496260304edb39f5ba6346f6",
+          8453: {
+            collToken: "0xc23f03d12b9c3571b4f2dde6b000db19b08aa049",
+            addressesRegistry: "0x1c034a531b1a6235dc3e749f9f2d0d4d23bb6cf5",
+            borrowerOperations: "0x582717466003d523b309e2cdf450c9cd59a8675d",
+            troveManager: "0x3fb3431465dcf03f74707ca6f93082d2a6551490",
+            troveNFT: "0x57b3b04e9ac28b82add6f4aa801c2bca62cd13a4",
+            stabilityPool: "0xb2667fbec60fced42b547bc47acdcd244509808d",
+            priceFeed: "0x97f51dd909d9f5e1a7edc23dd54bb0a8a50c1771",
+            activePool: "0xa720fc22315fd743f847ef38fc51afdb722fe5f2",
+            defaultPool: "0x309266aeed2f4f20769219398a5aed892b67a7e0",
+            collSurplusPool: "0x7d335b1229795a830cd004b9552f238df5088d2a",
+            sortedTroves: "0xce73c4ad0a48fb799a8fac2040c2aa5f7d8e2654",
+            leverageZapper: "0xca20ba8b169724afd7330b8bec4aacba1b6d04d6",
           },
         },
       },
@@ -183,19 +183,19 @@ export const WHITE_LABEL_CONFIG = {
         maxDeposit: "10000000",
         maxLTV: 0.8333,
         deployments: {
-          84532: {
-            collToken: "0x235ec9e8ade578a101b53018777a4adfd122fbb3",
-            addressesRegistry: "0x001f0bf95f8607b62c50384896ddac79e71547ee",
-            borrowerOperations: "0x3141b4bc8a61ec5375387f71847ce9f0ceb91979",
-            troveManager: "0xef2496bf3e91495dcc5f0bd4ddf2bc8ffa9cc0c5",
-            troveNFT: "0x2160716225a0a03f27684eb318d850d2552e0e6d",
-            stabilityPool: "0x8d2e7da3fe52f0d4a64068046cb48cccb02854b0",
-            priceFeed: "0xeacb78cdbdced8462f1a0d1b8b0769305ee5f1dd",
-            activePool: "0x34ca84bda24aeedfca8e181e9cca8651279ec873",
-            defaultPool: "0x4be51cd21c5c9d9428bc304b2829aec8e1d2ab57",
-            collSurplusPool: "0x8fc8f026d5c07b8c3f25039428ed3c959207b1bf",
-            sortedTroves: "0xbfc3a9ca7ffe3b24d5f61186eead59b894ef5257",
-            leverageZapper: "0xaccc270c834356850939b684798e9bd0415d4587",
+          8453: {
+            collToken: "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22",
+            addressesRegistry: "0x39dbbb5c2eb2a37b7f11bdc9fbe1e641606d9b52",
+            borrowerOperations: "0xf82b8a1aa55873b3d1addf71d56ccfee0c118b42",
+            troveManager: "0xc8fb6477edea65d3e9971196c5510d67f8200a35",
+            troveNFT: "0x343d81b4b68ac04c1b13834658e3b81268a7974f",
+            stabilityPool: "0xc2f813332dd9291d39c02cc4113bb263f8373396",
+            priceFeed: "0xbe9b05c6722211ad41ff0e1fa1b7902e94bab41d",
+            activePool: "0xbfba0c04deec373df73c4dc01608b71b9ecc9fa8",
+            defaultPool: "0x08b4faec64109b523b991e7607b90d29464a77b9",
+            collSurplusPool: "0x3a5b872e6240d60e77312938da02f97731dd5874",
+            sortedTroves: "0xa3b2450212eccc6de577f6e780418d313f905643",
+            leverageZapper: "0x6465f1e5e132f6fa924b9000e45206ea472fff4d",
           },
         },
       },
@@ -207,19 +207,19 @@ export const WHITE_LABEL_CONFIG = {
         maxDeposit: "5000000",
         maxLTV: 0.6667,
         deployments: {
-          84532: {
-            collToken: "0x1e8428fd593c3c340a3980f204465b1e7d36671d",
-            addressesRegistry: "0xc9aa713bb25475c04f595261801e48e301eab327",
-            borrowerOperations: "0x57db06d95bb668f011ca746f3e01d943dde8e022",
-            troveManager: "0x8078b2ba6852c7cead01b918ac7224ad0f768f11",
-            troveNFT: "0xdcecdf8d5f5b3c035c5e5ee1ce20b9176ead2085",
-            stabilityPool: "0xc14317847e9a4708400350e4c40354e066878f28",
-            priceFeed: "0xa2e2e2967a215af0ec953ca6569d324f6afac080",
-            activePool: "0xb109fca3a2c20ac11aac9ff1ea41d1220d780d2b",
-            defaultPool: "0xfbd946f72c73e0f39574c0fd51de6d1cb6afacac",
-            collSurplusPool: "0xfc3fd6a2e9ef3f095985e0eb8fb7e5e1b4cd3b4e",
-            sortedTroves: "0x150c2810f8065e34faef6ef6d8c46c637e48ffd3",
-            leverageZapper: "0x9f369e5399343f435aec5cb79884b975e8725ec0",
+          8453: {
+            collToken: "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+            addressesRegistry: "0x0faf9282df48c638be1f59e2ffdbe45b38df5d83",
+            borrowerOperations: "0x33f2df184e1a2883cf3675348b546801778d12d6",
+            troveManager: "0x12d8ddf234a0d472e895fffc1ade9734c6a0b55d",
+            troveNFT: "0x9bf1907e3d88cf471051b3d0c0fa8ab0ec1e6db4",
+            stabilityPool: "0x79481b230d30f26e5150a6c7a82022db62a631f1",
+            priceFeed: "0xaf5365083c7c44afbfd3f599f9187084afb44ec9",
+            activePool: "0x990c8f653d37b5db542531fe77efc373f353ae7b",
+            defaultPool: "0x130f79e287e25192f948605a778d659cd515b534",
+            collSurplusPool: "0xe78f9092ca1a81c6ee8163abd8a4d8b31619894c",
+            sortedTroves: "0xe3119187e8c474f8bec14323baad29f902ea9882",
+            leverageZapper: "0x7b07ebe91c22c79bb0db8c1b3e5368f92e09f416",
           },
         },
       },
@@ -393,14 +393,14 @@ export const WHITE_LABEL_CONFIG = {
     // Governance configuration
     governance: {
       // Governor address (will be Aragon DAO later)
-      governorAddress: "0xf4158Af18b1Fe05d3FC80E136a571de39D98be38",
+      governorAddress: "0x0e906eecab4506438714db59557d72b8d3a534cd",
     },
 
     // AeroManager contract - manages AERO rewards from LP collateral
     aeroManager: {
-      address: "0x2b3c031b8829f75b1610ecf49b51e9a91cf26580" as `0x${string}`,
-      // AERO token address on Base Sepolia
-      aeroTokenAddress: "0x1e8428fd593c3c340a3980f204465b1e7d36671d" as `0x${string}`,
+      address: "0xab1778ea04b4532ac8aa80a73eabc0b2d2247180" as `0x${string}`,
+      // AERO token address on Base
+      aeroTokenAddress: "0x940181a94a35a4569e4529a3cdfb74e38fd98631" as `0x${string}`,
     },
     
     // AERO synergy configuration

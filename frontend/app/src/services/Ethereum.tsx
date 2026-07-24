@@ -44,7 +44,10 @@ export const wagmiConfig = createConfig(
     enableFamily: false,
     ssr: true,
     transports: { [CHAIN_ID]: http(CHAIN_RPC_URL) },
-    walletConnectProjectId: WALLET_CONNECT_PROJECT_ID,
+    // WalletConnect initializes IndexedDB, which is unavailable during SSR.
+    walletConnectProjectId: typeof window === "undefined"
+      ? ""
+      : WALLET_CONNECT_PROJECT_ID,
   }),
 );
 
