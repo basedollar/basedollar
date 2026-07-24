@@ -36,9 +36,9 @@ contract MetadataNFT is IMetadataNFT {
     function uri(TroveData memory _troveData) public view returns (string memory) {
         string memory attr = attributes(_troveData);
         return json.formattedMetadata(
-            string.concat("Base Dollar - ", IERC20Metadata(_troveData._collToken).name()),
+            string.concat("Test Base Dollar - ", IERC20Metadata(_troveData._collToken).name()),
             string.concat(
-                "Base Dollar is a collateralized debt platform. Users can lock up ",
+                "Test Base Dollar is a collateralized debt platform. Users can lock up ",
                 IERC20Metadata(_troveData._collToken).symbol(),
                 " to issue stablecoin tokens (BD) to their own Ethereum address. The individual collateralized debt positions are called Troves, and are represented as NFTs."
             ),

@@ -17,8 +17,8 @@ import "./Interfaces/IBoldToken.sol";
  */
 
 contract BoldToken is Ownable, IBoldToken, ERC20Permit {
-    string internal constant _NAME = "Base Dollar";
-    string internal constant _SYMBOL ="BD";
+    string internal constant _NAME = "Test Base Dollar";
+    string internal constant _SYMBOL ="TBD";
 
     // --- Addresses ---
 
