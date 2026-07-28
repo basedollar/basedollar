@@ -104,7 +104,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     address AERO_LP_GAUGE_ADDRESS = address(0); // TODO: Set this to the actual gauge address
 
     // AeroManager treasury address (receives fee from AERO claims)
-    address TREASURY_ADDRESS = vm.envAddress("TREASURY_ADDRESS"); // TODO: Set this to the actual treasury address
+    address TREASURY_ADDRESS = 0x519CA17DAE2E2A23396eBEC12DA1f645AccEC196;
 
     // Oracle addresses (Base Mainnet - API3)
     address ETH_USD_ORACLE_ADDRESS = 0x5b0cf2b36a65a6BB085D501B971e4c102B9Cd473;
@@ -139,7 +139,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     address internal stakingV1;
     address internal lusd;
 
-    address public GOVERNOR_ADDRESS = vm.envAddress("GOVERNOR_ADDRESS");
+    address public GOVERNOR_ADDRESS = 0x519CA17DAE2E2A23396eBEC12DA1f645AccEC196;
 
     // Curve
     ICurveStableswapNGFactory curveStableswapFactory;
