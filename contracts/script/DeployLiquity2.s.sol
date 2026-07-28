@@ -80,7 +80,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     string constant DEPLOYMENT_MODE_BOLD_ONLY = "bold-only";
     string constant DEPLOYMENT_MODE_USE_EXISTING_BOLD = "use-existing-bold";
 
-    uint256 constant NUM_BRANCHES = 6;
+    uint256 constant NUM_BRANCHES = 5;
 
     // Base Mainnet addresses
     address WETH_ADDRESS = 0x4200000000000000000000000000000000000006;
@@ -104,17 +104,17 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     address AERO_LP_GAUGE_ADDRESS = address(0); // TODO: Set this to the actual gauge address
 
     // AeroManager treasury address (receives fee from AERO claims)
-    address TREASURY_ADDRESS = vm.envAddress("TREASURY_ADDRESS"); // TODO: Set this to the actual treasury address
+    address TREASURY_ADDRESS = 0x519CA17DAE2E2A23396eBEC12DA1f645AccEC196;
 
     // Oracle addresses (Base Mainnet - API3)
-    address ETH_USD_ORACLE_ADDRESS = 0x5b0cf2b36a65a6BB085D501B971e4c102B9Cd473;
-    address STETH_USD_ORACLE_ADDRESS = 0xAD806B3BD9cb89C5021CB4f2102258e3DfbB3BD4;
-    address WSTETH_STETH_ORACLE_ADDRESS = 0xa7C64E79eeee1A4c9B6Ea2976Fa37c276BB1A6cD;
-    address RETH_ETH_ORACLE_ADDRESS = 0x3Ce8154d55426e8c71F1F0EffDDc6183a92bE45f;
-    address BTC_USD_ORACLE_ADDRESS = 0xCAc4d304032a46C8D0947396B7cBb07986826A36;
-    address CBBTC_USD_ORACLE_ADDRESS = 0xa4183Cbf2eE868dDFccd325531C4f53F737FFF68;
-    address CBETH_ETH_ORACLE_ADDRESS = 0xe653cca9f7dF2E31ce00e2393916DC662885a289;
-    address AERO_USD_ORACLE_ADDRESS = 0x201bC62f44f018B70E0c5eC8fF524fB26261959c;
+    address ETH_USD_ORACLE_ADDRESS = 0x77003c51B6febe7b88d1215004b91D4d3493Fa30;
+    address STETH_USD_ORACLE_ADDRESS = 0x3Df401c6CE98d6976ACb7395460E32d99Eb79d05;
+    address WSTETH_STETH_ORACLE_ADDRESS = 0x00cAeDA3cB375a17A084b1BdCE7136bB01BBd13D;
+    address RETH_ETH_ORACLE_ADDRESS = 0xD75F2752DEd6995106B163dA472B96186CCF0441;
+    address BTC_USD_ORACLE_ADDRESS = 0xB15FB0FE60b20689390F8306dEdEbc608AE1ff3d;
+    address CBBTC_USD_ORACLE_ADDRESS = 0x021d31211F81BC37ED7c9D535380CfAdDD62C111;
+    address CBETH_ETH_ORACLE_ADDRESS = 0xBE3EfB4209ee6962c309E3ce8650d54B326D9CD3;
+    address AERO_USD_ORACLE_ADDRESS = 0x6C655693f733FB26EA28e7757DD4a5Ad59061e75;
 
     // Canonical Rocket OVM Price Oracle
     address RETH_RATE_PROVIDER_ADDRESS = 0x658843BB859B7b85cEAb5cF77167e3F0a78dFE7f;
@@ -122,8 +122,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     // Staleness thresholds
     uint256 ETH_USD_STALENESS_THRESHOLD = 25 hours;
     uint256 STETH_USD_STALENESS_THRESHOLD = 25 hours;
-    uint256 WSTETH_STETH_STALENESS_THRESHOLD = 48 hours;
-    uint256 RETH_ETH_STALENESS_THRESHOLD = 48 hours;
+    uint256 WSTETH_STETH_STALENESS_THRESHOLD = 25 hours;
+    uint256 RETH_ETH_STALENESS_THRESHOLD = 25 hours;
     uint256 CBBTC_USD_STALENESS_THRESHOLD = 25 hours;
     uint256 BTC_USD_STALENESS_THRESHOLD = 25 hours;
     uint256 CBETH_ETH_STALENESS_THRESHOLD = 25 hours;
@@ -139,7 +139,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     address internal stakingV1;
     address internal lusd;
 
-    address public GOVERNOR_ADDRESS = vm.envAddress("GOVERNOR_ADDRESS");
+    address public GOVERNOR_ADDRESS = 0x519CA17DAE2E2A23396eBEC12DA1f645AccEC196;
 
     // Curve
     ICurveStableswapNGFactory curveStableswapFactory;
@@ -435,17 +435,17 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         });
 
         // AERO
-        troveManagerParamsArray[5] = TroveManagerParams({
-            isAeroLPCollateral: false,
-            aeroGauge: address(0),
-            CCR: CCR_AERO,
-            MCR: MCR_AERO,
-            SCR: SCR_AERO,
-            BCR: BCR_ALL,
-            debtLimit: DEBT_LIMIT_AERO,
-            LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_AERO,
-            LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_AERO
-        });
+        // troveManagerParamsArray[5] = TroveManagerParams({
+        //     isAeroLPCollateral: false,
+        //     aeroGauge: address(0),
+        //     CCR: CCR_AERO,
+        //     MCR: MCR_AERO,
+        //     SCR: SCR_AERO,
+        //     BCR: BCR_ALL,
+        //     debtLimit: DEBT_LIMIT_AERO,
+        //     LIQUIDATION_PENALTY_SP: LIQUIDATION_PENALTY_SP_AERO,
+        //     LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_AERO
+        // });
 
         string[] memory collNames = new string[](5);
         string[] memory collSymbols = new string[](5);
@@ -457,8 +457,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         collSymbols[2] = "cbBTC";
         collNames[3] = "Coinbase Staked ETH";
         collSymbols[3] = "cbETH";
-        collNames[4] = "Aerodrome";
-        collSymbols[4] = "AERO";
+        // collNames[4] = "Aerodrome";
+        // collSymbols[4] = "AERO";
 
         // DeployGovernanceParams memory deployGovernanceParams = DeployGovernanceParams({
         //     epochStart: epochStart,
@@ -727,7 +727,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             vars.collaterals[4] = IERC20Metadata(CBETH_ADDRESS);
 
             // AERO
-            vars.collaterals[5] = IERC20Metadata(AERO_ADDRESS);
+            // vars.collaterals[5] = IERC20Metadata(AERO_ADDRESS);
         } else {
             // Sepolia or local
             // Use WETH as collateral for the first branch
@@ -995,14 +995,14 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
                 );
             }
             // AERO
-            if (_collTokenAddress == AERO_ADDRESS) {
-                AEROPriceFeed priceFeed = new AEROPriceFeed(
-                    _borrowerOperationsAddress,
-                    AERO_USD_ORACLE_ADDRESS,
-                    AERO_USD_STALENESS_THRESHOLD
-                );
-                return priceFeed;
-            }
+            // if (_collTokenAddress == AERO_ADDRESS) {
+            //     AEROPriceFeed priceFeed = new AEROPriceFeed(
+            //         _borrowerOperationsAddress,
+            //         AERO_USD_ORACLE_ADDRESS,
+            //         AERO_USD_STALENESS_THRESHOLD
+            //     );
+            //     return priceFeed;
+            // }
             revert("Unknown collateral token");
         }
 
