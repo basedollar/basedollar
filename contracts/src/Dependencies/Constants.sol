@@ -27,8 +27,8 @@ uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_WETH = 10 * _1pct;
 
 // SETH (wstETH, rETH, cbETH)
 uint256 constant CCR_SETH = 160 * _1pct;
-uint256 constant MCR_SETH = 120 * _1pct;
-uint256 constant SCR_SETH = 120 * _1pct;
+uint256 constant MCR_SETH = 110 * _1pct;
+uint256 constant SCR_SETH = 110 * _1pct;
 uint256 constant DEBT_LIMIT_SETH = 25_000_000e18;
 uint256 constant LIQUIDATION_PENALTY_SP_SETH = 5 * _1pct;
 uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_SETH = 20 * _1pct;
@@ -43,17 +43,17 @@ uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_CBBTC = 10 * _1pct;
 
 // cbETH (Coinbase staked ETH) parameters
 uint256 constant CCR_CBETH = 160 * _1pct;
-uint256 constant MCR_CBETH = 120 * _1pct;
-uint256 constant SCR_CBETH = 120 * _1pct;
+uint256 constant MCR_CBETH = 110 * _1pct;
+uint256 constant SCR_CBETH = 110 * _1pct;
 uint256 constant DEBT_LIMIT_CBETH = 10_000_000e18;
 uint256 constant LIQUIDATION_PENALTY_SP_CBETH = 5 * _1pct;
 uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_CBETH = 20 * _1pct;
 
 // AERO (Aerodrome token) parameters
 uint256 constant CCR_AERO = 200 * _1pct;
-uint256 constant MCR_AERO = 150 * _1pct;
-uint256 constant SCR_AERO = 150 * _1pct;
-uint256 constant DEBT_LIMIT_AERO = 5_000_000e18;
+uint256 constant MCR_AERO = 165 * _1pct;
+uint256 constant SCR_AERO = 165 * _1pct;
+uint256 constant DEBT_LIMIT_AERO = 1_000_000e18;
 uint256 constant LIQUIDATION_PENALTY_SP_AERO = 5 * _1pct;
 uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_AERO = 20 * _1pct;
 
@@ -71,7 +71,7 @@ uint256 constant BCR_ALL = 10 * _1pct;
 
 // Fraction of collateral awarded to liquidator
 uint256 constant COLL_GAS_COMPENSATION_DIVISOR = 200; // dividing by 200 yields 0.5%
-uint256 constant COLL_GAS_COMPENSATION_CAP = 2e16; // Max coll gas compensation capped at 0.02 ETH
+uint256 constant COLL_GAS_COMPENSATION_CAP = 1e16; // Max coll gas compensation capped at 0.01 ETH
 
 // Minimum amount of net Bold debt a trove must have
 uint256 constant MIN_DEBT = 200e18;
