@@ -447,8 +447,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         //     LIQUIDATION_PENALTY_REDISTRIBUTION: LIQUIDATION_PENALTY_REDISTRIBUTION_AERO
         // });
 
-        string[] memory collNames = new string[](5);
-        string[] memory collSymbols = new string[](5);
+        string[] memory collNames = new string[](4);
+        string[] memory collSymbols = new string[](4);
         collNames[0] = "Wrapped liquid staked Ether 2.0";
         collSymbols[0] = "wstETH";
         collNames[1] = "Rocket Pool ETH";
