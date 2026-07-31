@@ -107,9 +107,9 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "WSTETH" as const,
         name: "wstETH",
         icon: "wsteth",
-        collateralRatio: 1.2, // 120% MCR
+        collateralRatio: 1.1, // 110% MCR
         maxDeposit: "25000000",
-        maxLTV: 0.8333,
+        maxLTV: 0.9091,
         deployments: {
           8453: {
             collToken: "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452",
@@ -131,9 +131,9 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "RETH" as const,
         name: "rETH",
         icon: "reth",
-        collateralRatio: 1.2, // 120% MCR
+        collateralRatio: 1.1, // 110% MCR
         maxDeposit: "25000000",
-        maxLTV: 0.8333,
+        maxLTV: 0.9091,
         deployments: {
           8453: {
             collToken: "0xb6fe221fe9eef5aba221c348ba20a1bf5e73624c",
@@ -179,9 +179,9 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "CBETH" as const,
         name: "cbETH",
         icon: "cbeth",
-        collateralRatio: 1.2, // 120% MCR
+        collateralRatio: 1.1, // 110% MCR
         maxDeposit: "10000000",
-        maxLTV: 0.8333,
+        maxLTV: 0.9091,
         deployments: {
           8453: {
             collToken: "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22",

@@ -107,7 +107,7 @@ export const DEFAULT_LEGACY_CHECKS = new Map<
   ChainId,
   Exclude<v.InferOutput<ReturnType<typeof vEnvLegacyCheck>>, boolean>
 >([
-  // Base Sepolia
+  // Base
   [8453, {
     ...getDeploymentInfo(8453),
     INITIATIVES_SNAPSHOT_URL: "/initiatives-snapshot-8453.json",
