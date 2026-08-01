@@ -19,8 +19,8 @@
   },
   "base": {
     "BoldToken": {
-        "address": "0xd93361b18f07ab25cc32b4cb5005c564a5446eeb",
-        "startBlock": 49249813
+        "address": "0x252d36f435582ecb01686448d21e8c9ea0b2ca65",
+        "startBlock": 49406520
     }
   },
   "base-sepolia": {
