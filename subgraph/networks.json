@@ -17,6 +17,12 @@
       "startBlock": 22496547
     }
   },
+  "base": {
+    "BoldToken": {
+        "address": "0xd93361b18f07ab25cc32b4cb5005c564a5446eeb",
+        "startBlock": 49249813
+    }
+  },
   "base-sepolia": {
     "BoldToken": {
       "address": "0x06a350096397728c8158baf5e80841b2aacb6eb1",

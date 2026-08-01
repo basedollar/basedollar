@@ -6,8 +6,8 @@ dataSources:
     name: BoldToken
     source:
       abi: BoldToken
-      address: "0x06a350096397728c8158baf5e80841b2aacb6eb1"
-      startBlock: 42636202
+      address: "0xd93361b18f07ab25cc32b4cb5005c564a5446eeb"
+      startBlock: 49249813
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -35,11 +35,11 @@ dataSources:
         - event: CollateralRegistryAddressChanged(address)
           handler: handleCollateralRegistryAddressChanged
       file: ./src/BoldToken.mapping.ts
-    network: base-sepolia
+    network: base
 templates:
   - name: TroveManager
     kind: ethereum/contract
-    network: base-sepolia
+    network: base
     source:
       abi: TroveManager
     mapping:
@@ -77,7 +77,7 @@ templates:
           handler: handleBatchUpdated
   - name: TroveNFT
     kind: ethereum/contract
-    network: base-sepolia
+    network: base
     source:
       abi: TroveNFT
     mapping:
@@ -96,7 +96,7 @@ templates:
           handler: handleTransfer
   - name: AeroManager
     kind: ethereum/contract
-    network: base-sepolia
+    network: base
     source:
       abi: AeroManager
     mapping:
@@ -122,7 +122,7 @@ templates:
           handler: handleAeroDistributed
   - name: CollateralRegistry
     kind: ethereum/contract
-    network: base-sepolia
+    network: base
     source:
       abi: CollateralRegistry
     mapping:
@@ -150,7 +150,7 @@ templates:
           handler: handleCollateralBranchAdded
   - name: CollSurplusPool
     kind: ethereum/contract
-    network: base-sepolia
+    network: base
     source:
       abi: CollSurplusPool
     mapping:
