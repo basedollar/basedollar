@@ -299,15 +299,21 @@ export const WHITE_LABEL_CONFIG = {
       github: "https://github.com/basedollar/basedollar",
       x: "https://x.com/basedollar",
       friendlyForkProgram: "https://basedollar.org/ecosystem",
+      aeroLaunchArticle: "https://aero.xyz/"
     },
     
     // Feature flags and descriptions
     features: {
       showV1Legacy: false, // No V1 legacy content
       friendlyFork: {
-        enabled: true,
+        enabled: false,
         title: "Learn more about the Friendly Fork Program",
         description: "A program for collaborative protocol development",
+      },
+      aeroLaunch: {
+        enabled: true,
+        title: "Learn more about the upcoming Aero launch",
+        description: "The successor of Aerodrome and Velodrome",
       },
     },
     

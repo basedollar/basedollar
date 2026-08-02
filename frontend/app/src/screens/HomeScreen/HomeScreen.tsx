@@ -7,7 +7,7 @@ import { useBreakpoint } from "@/src/breakpoints";
 import { Amount } from "@/src/comps/Amount/Amount";
 import { LinkTextButton } from "@/src/comps/LinkTextButton/LinkTextButton";
 import { Positions } from "@/src/comps/Positions/Positions";
-import { FORKS_INFO } from "@/src/constants";
+// import { FORKS_INFO } from "@/src/constants";
 import content from "@/src/content";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { DNUM_1 } from "@/src/dnum-utils";
@@ -40,9 +40,9 @@ import { useMemo, useState } from "react";
 import { HomeTable } from "./HomeTable";
 import { Tip } from "@/src/comps/Tip/Tip";
 
-import { YieldSourceTable } from "./YieldSourceTable";
+// import { YieldSourceTable } from "./YieldSourceTable";
 
-type ForkInfo = (typeof FORKS_INFO)[number];
+// type ForkInfo = (typeof FORKS_INFO)[number];
 
 function getAerodromePoolLink(collateralConfig: unknown) {
   if (
@@ -102,7 +102,7 @@ export function HomeScreen() {
       >
         <BorrowTable compact={compact} />
         <EarnTable compact={compact} />
-        <YieldSourceTable compact={compact} />
+        {/* <YieldSourceTable compact={compact} /> */}
       </div>
     </div>
   );
@@ -129,23 +129,38 @@ function BorrowTable({
 
   return (
     <div className={css({ gridArea: "borrow" })}>
-      <HomeTable
-        title={`Borrow ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} against ETH and assets`}
-        subtitle="You can adjust your loans, including your interest rate, at any time"
-        icon={<IconBorrow />}
-        columns={columns}
-        rows={groupedCollaterals.flatMap((group, groupIndex) => [
-          <CollateralSectionHeader
-            key={`section-${group.title}`}
-            title={group.title}
-            isFirst={groupIndex === 0}
-            colSpan={compact ? 5 : 6}
-          />,
-          ...group.collaterals.map(({ symbol }) => (
-            <BorrowingRow key={symbol} compact={compact} symbol={symbol} />
-          ))
-        ])}
-      />
+      <div
+        className={css({
+          position: "relative",
+          zIndex: 2,
+        })}
+      >
+        <HomeTable
+          title={`Borrow ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} against ETH and assets`}
+          subtitle="You can adjust your loans, including your interest rate, at any time"
+          icon={<IconBorrow />}
+          columns={columns}
+          rows={groupedCollaterals.flatMap((group, groupIndex) => [
+            <CollateralSectionHeader
+              key={`section-${group.title}`}
+              title={group.title}
+              isFirst={groupIndex === 0}
+              colSpan={compact ? 5 : 6}
+            />,
+            ...group.collaterals.map(({ symbol }) => (
+              <BorrowingRow key={symbol} compact={compact} symbol={symbol} />
+            ))
+          ])}
+        />
+      </div>
+      <div
+        className={css({
+          position: "relative",
+          zIndex: 1,
+        })}
+      >
+        <AeroLaunchInfoDrawer />
+      </div>
     </div>
   );
 }
@@ -184,12 +199,12 @@ function EarnTable({
         gridArea: "earn",
       })}
     >
-      <div
+      {/* <div
         className={css({
           position: "relative",
           zIndex: 2,
         })}
-      >
+      > */}
         <HomeTable
           title={content.home.earnTable.title}
           subtitle={content.home.earnTable.subtitle}
@@ -210,21 +225,135 @@ function EarnTable({
             ))
           ])}
         />
-      </div>
-      <div
+      {/* </div> */}
+      {/* <div
         className={css({
           position: "relative",
           zIndex: 1,
         })}
       >
         <ForksInfoDrawer />
-      </div>
+      </div> */}
     </div>
   );
 }
 
-function ForksInfoDrawer() {
-  const pickedForkIcons = useMemo(() => pickRandomForks(2), []);
+// function ForksInfoDrawer() {
+//   const pickedForkIcons = useMemo(() => pickRandomForks(2), []);
+//   return (
+//     <div
+//       className={css({
+//         width: "100%",
+//         display: "flex",
+//         justifyContent: "space-between",
+//         alignItems: "center",
+//         gap: 16,
+//         marginTop: -20,
+//         height: 44 + 20,
+//         padding: "20px 16px 0",
+//         whiteSpace: "nowrap",
+//         background: "#F7F7FF",
+//         borderRadius: 8,
+//         userSelect: "none",
+//       })}
+//     >
+//       <div
+//         className={css({
+//           display: "flex",
+//           gap: 12,
+//         })}
+//       >
+//         <div
+//           className={css({
+//             flexShrink: 0,
+//             display: "flex",
+//             justifyContent: "center",
+//             alignItems: "center",
+//             gap: 0,
+//           })}
+//         >
+//           {pickedForkIcons.map(([name, icon], index) => (
+//             <div
+//               key={name}
+//               className={css({
+//                 display: "grid",
+//                 placeItems: "center",
+//                 background: "white",
+//                 borderRadius: "50%",
+//                 width: 18,
+//                 height: 18,
+//               })}
+//               style={{
+//                 marginLeft: index > 0 ? -4 : 0,
+//               }}
+//             >
+//               <Image
+//                 loading="eager"
+//                 unoptimized
+//                 alt={name}
+//                 title={name}
+//                 height={18}
+//                 src={icon}
+//                 width={18}
+//               />
+//             </div>
+//           ))}
+//         </div>
+//         <div
+//           className={css({
+//             display: "grid",
+//             fontSize: 14,
+//           })}
+//         >
+//           <span
+//             title={content.home.earnTable.forksInfo.titleAttr}
+//             className={css({
+//               overflow: "hidden",
+//               textOverflow: "ellipsis",
+//             })}
+//           >
+//             {content.home.earnTable.forksInfo.text}
+//           </span>
+//         </div>
+//       </div>
+//       <div
+//         className={css({
+//           display: "flex",
+//           alignItems: "center",
+//         })}
+//       >
+//         <LinkTextButton
+//           external
+//           href={content.home.earnTable.forksInfo.learnMore.url}
+//           label={content.home.earnTable.forksInfo.learnMore.label}
+//           title={content.home.earnTable.forksInfo.learnMore.title}
+//           className={css({
+//             fontSize: 14,
+//           })}
+//         >
+//           Learn more
+//         </LinkTextButton>
+//       </div>
+//     </div>
+//   );
+// }
+
+function AeroLaunchInfoDrawer() {
+  const name = "Aero"
+  const icon = "/images/ecosystem/aerodrome.png"
+  const aeroInfo = {
+    text: (
+      <>
+        AERO and Aero <abbr title="Liquidity Provider">LP</abbr> tokens will be supported soon.
+      </>
+    ),
+    titleAttr: "AERO and Aero LP tokens will be supported soon.",
+    learnMore: {
+      url: WHITE_LABEL_CONFIG.branding.links.aeroLaunchArticle,
+      label: "Learn more",
+      title: WHITE_LABEL_CONFIG.branding.features.aeroLaunch.title,
+    },
+  }
   return (
     <div
       className={css({
@@ -257,32 +386,27 @@ function ForksInfoDrawer() {
             gap: 0,
           })}
         >
-          {pickedForkIcons.map(([name, icon], index) => (
-            <div
-              key={name}
-              className={css({
-                display: "grid",
-                placeItems: "center",
-                background: "white",
-                borderRadius: "50%",
-                width: 18,
-                height: 18,
-              })}
-              style={{
-                marginLeft: index > 0 ? -4 : 0,
-              }}
-            >
-              <Image
-                loading="eager"
-                unoptimized
-                alt={name}
-                title={name}
-                height={18}
-                src={icon}
-                width={18}
-              />
-            </div>
-          ))}
+          <div
+            key={name}
+            className={css({
+              display: "grid",
+              placeItems: "center",
+              background: "white",
+              borderRadius: "50%",
+              width: 18,
+              height: 18,
+            })}
+          >
+            <Image
+              loading="eager"
+              unoptimized
+              alt={name!}
+              title={name}
+              height={18}
+              src={icon!}
+              width={18}
+            />
+          </div>
         </div>
         <div
           className={css({
@@ -291,13 +415,13 @@ function ForksInfoDrawer() {
           })}
         >
           <span
-            title={content.home.earnTable.forksInfo.titleAttr}
+            title={aeroInfo.titleAttr}
             className={css({
               overflow: "hidden",
               textOverflow: "ellipsis",
             })}
           >
-            {content.home.earnTable.forksInfo.text}
+            {aeroInfo.text}
           </span>
         </div>
       </div>
@@ -309,9 +433,9 @@ function ForksInfoDrawer() {
       >
         <LinkTextButton
           external
-          href={content.home.earnTable.forksInfo.learnMore.url}
-          label={content.home.earnTable.forksInfo.learnMore.label}
-          title={content.home.earnTable.forksInfo.learnMore.title}
+          href={aeroInfo.learnMore.url}
+          label={aeroInfo.learnMore.label}
+          title={aeroInfo.learnMore.title}
           className={css({
             fontSize: 14,
           })}
@@ -585,18 +709,18 @@ function EarnRewardsRow({
   );
 }
 
-function pickRandomForks(count: number): ForkInfo[] {
-  const forks = [...FORKS_INFO];
-  if (forks.length < count) {
-    return forks;
-  }
-  const picked: ForkInfo[] = [];
-  for (let i = 0; i < count; i++) {
-    const [info] = forks.splice(
-      Math.floor(Math.random() * forks.length),
-      1,
-    );
-    if (info) picked.push(info);
-  }
-  return picked;
-}
+// function pickRandomForks(count: number): ForkInfo[] {
+//   const forks = [...FORKS_INFO];
+//   if (forks.length < count) {
+//     return forks;
+//   }
+//   const picked: ForkInfo[] = [];
+//   for (let i = 0; i < count; i++) {
+//     const [info] = forks.splice(
+//       Math.floor(Math.random() * forks.length),
+//       1,
+//     );
+//     if (info) picked.push(info);
+//   }
+//   return picked;
+// }
