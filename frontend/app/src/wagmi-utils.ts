@@ -40,7 +40,10 @@ export function useBalances(
           if (!symbol || !isCollateralSymbol(symbol) || symbol === "ETH") {
             return null;
           }
-          return getBranch(symbol).contracts.CollToken.address;
+          const branch = getBranch(symbol);
+          return branch.symbol === "CBBTC"
+            ? branch.contracts.UnderlyingToken.address
+            : branch.contracts.CollToken.address;
         },
       )
       .with("LUSD", () => CONTRACT_LUSD_TOKEN)

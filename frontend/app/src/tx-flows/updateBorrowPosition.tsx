@@ -198,9 +198,12 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
         const Controller = branch.decimals < 18
           ? branch.contracts.LeverageWrappedTokenZapper
           : branch.contracts.LeverageLSTZapper;
+        const WalletToken = branch.symbol === "CBBTC"
+          ? branch.contracts.UnderlyingToken
+          : branch.contracts.CollToken;
 
         return ctx.writeContract({
-          ...branch.contracts.CollToken,
+          ...WalletToken,
           functionName: "approve",
           args: [
             Controller.address,
@@ -541,9 +544,12 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
     );
 
     // Collateral token needs to be approved if collChange > 0 and collToken != "ETH" (no LeverageWETHZapper)
+    const WalletToken = branch.symbol === "CBBTC"
+      ? branch.contracts.UnderlyingToken
+      : branch.contracts.CollToken;
     const isCollApproved = branch.symbol === "ETH" || !dn.gt(collChange, 0) || !dn.gt(collChange, [
       (await ctx.readContract({
-        ...branch.contracts.CollToken,
+        ...WalletToken,
         functionName: "allowance",
         args: [ctx.account, Controller.address],
       })) ?? 0n,

@@ -259,9 +259,12 @@ export const updateLeveragePosition: FlowDeclaration<UpdateLeveragePositionReque
         const Zapper = branch.decimals < 18
           ? branch.contracts.LeverageWrappedTokenZapper
           : branch.contracts.LeverageLSTZapper;
+        const WalletToken = branch.symbol === "CBBTC"
+          ? branch.contracts.UnderlyingToken
+          : branch.contracts.CollToken;
 
         return ctx.writeContract({
-          ...branch.contracts.CollToken,
+          ...WalletToken,
           functionName: "approve",
           args: [
             Zapper.address,
@@ -437,9 +440,12 @@ export const updateLeveragePosition: FlowDeclaration<UpdateLeveragePositionReque
       const Zapper = branch.decimals < 18
         ? branch.contracts.LeverageWrappedTokenZapper
         : branch.contracts.LeverageLSTZapper;
+      const WalletToken = branch.symbol === "CBBTC"
+        ? branch.contracts.UnderlyingToken
+        : branch.contracts.CollToken;
       const allowance = dn.from(
         await ctx.readContract({
-          ...branch.contracts.CollToken,
+          ...WalletToken,
           functionName: "allowance",
           args: [ctx.account ?? ADDRESS_ZERO, Zapper.address],
         }),

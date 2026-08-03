@@ -92,6 +92,7 @@ const collateralAbis = {
   StabilityPool,
   TroveManager,
   TroveNFT,
+  UnderlyingToken: erc20Abi,
 } as const;
 
 const abis = {
@@ -196,6 +197,7 @@ export const CONTRACTS: Contracts = {
       },
       TroveManager: { address: contracts.TROVE_MANAGER, abi: abis.TroveManager },
       TroveNFT: { address: contracts.TROVE_NFT, abi: abis.TroveNFT },
+      UnderlyingToken: { address: contracts.UNDERLYING_TOKEN, abi: abis.UnderlyingToken },
     },
   })),
 };

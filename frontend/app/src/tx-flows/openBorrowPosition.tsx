@@ -245,11 +245,12 @@ export const openBorrowPosition: FlowDeclaration<OpenBorrowPositionRequest> = {
       ),
       async commit(ctx) {
         const branch = getBranch(ctx.request.branchId);
-        const { LeverageLSTZapper, LeverageWrappedTokenZapper, CollToken } = branch.contracts;
+        const { LeverageLSTZapper, LeverageWrappedTokenZapper, CollToken, UnderlyingToken } = branch.contracts;
         const Zapper = branch.decimals < 18 ? LeverageWrappedTokenZapper : LeverageLSTZapper;
+        const WalletToken = branch.symbol === "CBBTC" ? UnderlyingToken : CollToken;
 
         return ctx.writeContract({
-          ...CollToken,
+          ...WalletToken,
           functionName: "approve",
           args: [
             Zapper.address,
@@ -393,8 +394,11 @@ export const openBorrowPosition: FlowDeclaration<OpenBorrowPositionRequest> = {
       ? branch.contracts.LeverageWrappedTokenZapper
       : branch.contracts.LeverageLSTZapper;
     const collateralAmount = convert18ToDecimals(ctx.request.collAmount[0], branch.decimals);
+    const WalletToken = branch.symbol === "CBBTC"
+      ? branch.contracts.UnderlyingToken
+      : branch.contracts.CollToken;
     const allowance = await readContract(ctx.wagmiConfig, {
-      ...branch.contracts.CollToken,
+      ...WalletToken,
       functionName: "allowance",
       args: [ctx.account, Zapper.address],
     });
