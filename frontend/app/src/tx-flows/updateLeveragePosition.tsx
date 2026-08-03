@@ -3,7 +3,7 @@ import type { FlowDeclaration } from "@/src/services/TransactionFlow";
 
 import { Amount } from "@/src/comps/Amount/Amount";
 import { MAX_UPFRONT_FEE } from "@/src/constants";
-import { dnum18, DNUM_0 } from "@/src/dnum-utils";
+import { DNUM_0 } from "@/src/dnum-utils";
 import { fmtnum } from "@/src/formatting";
 import { useSlippageRefund } from "@/src/liquity-leverage";
 import { getBranch, getCollToken, usePredictAdjustTroveUpfrontFee } from "@/src/liquity-utils";
@@ -21,6 +21,7 @@ import { maxUint256 } from "viem";
 import type { BranchId, TroveId } from "../types";
 import { createRequestSchema, verifyTransaction } from "./shared";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
+import { convert18ToDecimals } from "./openBorrowPosition";
 
 const RequestSchema = createRequestSchema(
   "updateLeveragePosition",
@@ -255,16 +256,21 @@ export const updateLeveragePosition: FlowDeclaration<UpdateLeveragePositionReque
         }
 
         const branch = getBranch(ctx.request.loan.branchId);
-        const Zapper = branch.contracts.LeverageLSTZapper;
+        const Zapper = branch.decimals < 18
+          ? branch.contracts.LeverageWrappedTokenZapper
+          : branch.contracts.LeverageLSTZapper;
+        const WalletToken = branch.symbol === "CBBTC"
+          ? branch.contracts.UnderlyingToken
+          : branch.contracts.CollToken;
 
         return ctx.writeContract({
-          ...branch.contracts.CollToken,
+          ...WalletToken,
           functionName: "approve",
           args: [
             Zapper.address,
             ctx.preferredApproveMethod === "approve-infinite"
               ? maxUint256 // infinite approval
-              : ctx.request.depositChange[0], // exact amount
+              : convert18ToDecimals(ctx.request.depositChange[0], branch.decimals), // exact amount
           ],
         });
       },
@@ -431,13 +437,19 @@ export const updateLeveragePosition: FlowDeclaration<UpdateLeveragePositionReque
 
     // only check approval for non-ETH collaterals
     if (branch.symbol !== "ETH" && depositChange && dn.gt(depositChange, 0)) {
-      const { LeverageLSTZapper, CollToken } = branch.contracts;
-      const allowance = dnum18(
+      const Zapper = branch.decimals < 18
+        ? branch.contracts.LeverageWrappedTokenZapper
+        : branch.contracts.LeverageLSTZapper;
+      const WalletToken = branch.symbol === "CBBTC"
+        ? branch.contracts.UnderlyingToken
+        : branch.contracts.CollToken;
+      const allowance = dn.from(
         await ctx.readContract({
-          ...CollToken,
+          ...WalletToken,
           functionName: "allowance",
-          args: [ctx.account ?? ADDRESS_ZERO, LeverageLSTZapper.address],
+          args: [ctx.account ?? ADDRESS_ZERO, Zapper.address],
         }),
+        branch.decimals,
       );
 
       if (dn.lt(allowance, depositChange)) {

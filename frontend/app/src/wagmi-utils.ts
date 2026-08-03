@@ -2,6 +2,7 @@ import type { Dnum, Token } from "@/src/types";
 import type { Address } from "@liquity2/uikit";
 
 import { dnum18 } from "@/src/dnum-utils";
+import * as dn from "dnum";
 import { CONTRACT_MAIN_TOKEN, CONTRACT_LQTY_TOKEN, CONTRACT_LUSD_TOKEN } from "@/src/env";
 import { getBranch } from "@/src/liquity-utils";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
@@ -39,7 +40,10 @@ export function useBalances(
           if (!symbol || !isCollateralSymbol(symbol) || symbol === "ETH") {
             return null;
           }
-          return getBranch(symbol).contracts.CollToken.address;
+          const branch = getBranch(symbol);
+          return branch.symbol === "CBBTC"
+            ? branch.contracts.UnderlyingToken.address
+            : branch.contracts.CollToken.address;
         },
       )
       .with("LUSD", () => CONTRACT_LUSD_TOKEN)
@@ -50,6 +54,7 @@ export function useBalances(
     return {
       token,
       tokenAddress,
+      decimals: isCollateralSymbol(token) ? getBranch(token).decimals : 18,
       isEth: token === "ETH",
     };
   });
@@ -87,8 +92,9 @@ export function useBalances(
       const erc20Index = erc20Tokens.findIndex((config) => config.token === token);
       if (erc20Index !== -1) {
         const balance = erc20Balances.data?.[erc20Index];
+        const config = erc20Tokens[erc20Index];
         result[token] = {
-          data: balance?.result !== undefined ? dnum18(balance.result) : undefined,
+          data: balance?.result !== undefined ? dn.from(balance.result, config!.decimals) : undefined,
           isLoading: erc20Balances.isLoading,
         };
       }

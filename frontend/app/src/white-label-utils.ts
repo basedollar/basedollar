@@ -19,6 +19,7 @@ type GovernanceTokenDeployment = {
 
 type CollateralDeployment = {
   collToken: string;
+  underlyingToken?: string;
   leverageZapper: string;
   stabilityPool: string;
   troveManager: string;
@@ -57,7 +58,9 @@ export function getDeploymentInfo(chainId: number) {
         branchId: index,
         symbol: collateral.symbol,
         name: collateral.name,
+        decimals: collateral.decimals,
         COLL_TOKEN: deployment.collToken as Address,
+        UNDERLYING_TOKEN: (deployment.underlyingToken ?? deployment.collToken) as Address,
         LEVERAGE_ZAPPER: deployment.leverageZapper as Address,
         STABILITY_POOL: deployment.stabilityPool as Address,
         TROVE_MANAGER: deployment.troveManager as Address,
@@ -97,6 +100,7 @@ export function getCollateralLimits() {
         maxDeposit: c.maxDeposit,
         maxLTV: c.maxLTV,
         collateralRatio: c.collateralRatio,
+        decimals: c.decimals,
       },
     ])
   );

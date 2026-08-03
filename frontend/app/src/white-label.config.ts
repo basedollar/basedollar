@@ -83,6 +83,7 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "ETH" as const,
         name: "ETH",
         icon: "eth",
+        decimals: 18,
         collateralRatio: 1.1, // 110% MCR
         maxDeposit: "100000000",
         maxLTV: 0.9091,
@@ -107,6 +108,7 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "WSTETH" as const,
         name: "wstETH",
         icon: "wsteth",
+        decimals: 18,
         collateralRatio: 1.1, // 110% MCR
         maxDeposit: "25000000",
         maxLTV: 0.9091,
@@ -131,6 +133,7 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "RETH" as const,
         name: "rETH",
         icon: "reth",
+        decimals: 18,
         collateralRatio: 1.1, // 110% MCR
         maxDeposit: "25000000",
         maxLTV: 0.9091,
@@ -155,12 +158,14 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "CBBTC" as const,
         name: "cbBTC",
         icon: "cbbtc",
+        decimals: 6,
         collateralRatio: 1.1, // 110% MCR
         maxDeposit: "10000000",
         maxLTV: 0.9091,
         deployments: {
           8453: {
             collToken: "0x92a7aee8afaa71ba0a9cc04a3dbe1f34237c33e0",
+            underlyingToken: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
             borrowerOperations: "0xb9a3c82486d0b6d72dec55fcc9192af09aaa393b",
             troveManager: "0x835b04eefbb0e32d8f75cfe96acb527a42f1a0d9",
             troveNFT: "0x9bac1f53bb7d309df424f16ee8a0bbb5803b9776",
@@ -179,6 +184,7 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "CBETH" as const,
         name: "cbETH",
         icon: "cbeth",
+        decimals: 18,
         collateralRatio: 1.1, // 110% MCR
         maxDeposit: "10000000",
         maxLTV: 0.9091,

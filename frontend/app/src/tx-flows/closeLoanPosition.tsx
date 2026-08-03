@@ -150,6 +150,8 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
 
         const Zapper = branch.symbol === "ETH"
           ? branch.contracts.LeverageWETHZapper
+          : branch.decimals < 18
+          ? branch.contracts.LeverageWrappedTokenZapper
           : branch.contracts.LeverageLSTZapper;
 
         return ctx.writeContract({
@@ -187,6 +189,14 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
           });
         }
 
+        if (!repayWithCollateral && branch.decimals < 18) {
+          return ctx.writeContract({
+            ...branch.contracts.LeverageWrappedTokenZapper,
+            functionName: "closeTroveToRawETH",
+            args: [BigInt(loan.troveId)],
+          });
+        }
+
         // repay with ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} => get LST
         if (!repayWithCollateral) {
           return ctx.writeContract({
@@ -204,6 +214,14 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
         if (branch.symbol === "ETH") {
           return ctx.writeContract({
             ...branch.contracts.LeverageWETHZapper,
+            functionName: "closeTroveFromCollateral",
+            args: [BigInt(loan.troveId), closeFlashLoanAmount, deposit - closeFlashLoanAmount],
+          });
+        }
+
+        if (branch.decimals < 18) {
+          return ctx.writeContract({
+            ...branch.contracts.LeverageWrappedTokenZapper,
             functionName: "closeTroveFromCollateral",
             args: [BigInt(loan.troveId), closeFlashLoanAmount, deposit - closeFlashLoanAmount],
           });
@@ -241,6 +259,8 @@ export const closeLoanPosition: FlowDeclaration<CloseLoanPositionRequest> = {
 
     const Zapper = branch.symbol === "ETH"
       ? branch.contracts.LeverageWETHZapper
+      : branch.decimals < 18
+      ? branch.contracts.LeverageWrappedTokenZapper
       : branch.contracts.LeverageLSTZapper;
 
     const [{ entireDebt }, boldAllowance] = await readContracts(ctx.wagmiConfig, {

@@ -37,6 +37,7 @@ const contractsEnvNames = [
   "STABILITY_POOL",
   "TROVE_MANAGER",
   "TROVE_NFT",
+  "UNDERLYING_TOKEN",
 ] as const;
 
 type ContractEnvName = typeof contractsEnvNames[number];
@@ -217,6 +218,8 @@ export const EnvSchema = v.pipe(
         STABILITY_POOL: deployment.stabilityPool || "0x0000000000000000000000000000000000000000",
         TROVE_MANAGER: deployment.troveManager || "0x0000000000000000000000000000000000000000",
         TROVE_NFT: deployment.troveNFT || "0x0000000000000000000000000000000000000000",
+        UNDERLYING_TOKEN: ("underlyingToken" in deployment ? deployment.underlyingToken : undefined)
+          || "0x0000000000000000000000000000000000000000",
       };
 
       const defaultIcStrategies = defaultIcStrategiesForChain?.find(
@@ -226,6 +229,7 @@ export const EnvSchema = v.pipe(
       envBranches[index] = {
         id: index,
         branchId: index,
+        decimals: collateral.decimals,
         contracts,
         strategies: defaultIcStrategies ?? [],
         symbol: collateral.symbol,

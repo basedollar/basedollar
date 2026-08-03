@@ -140,6 +140,7 @@ export function getBranches(): Branch[] {
     return {
       id: branch.id,
       branchId: branch.id,
+      decimals: branch.decimals,
       contracts: contracts.contracts,
       symbol: branch.symbol,
       strategies: branch.strategies,
