@@ -2,7 +2,6 @@ import type { Dnum, Token } from "@/src/types";
 import type { Address } from "@liquity2/uikit";
 
 import { dnum18 } from "@/src/dnum-utils";
-import * as dn from "dnum";
 import { CONTRACT_MAIN_TOKEN, CONTRACT_LQTY_TOKEN, CONTRACT_LUSD_TOKEN } from "@/src/env";
 import { getBranch } from "@/src/liquity-utils";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
@@ -94,7 +93,7 @@ export function useBalances(
         const balance = erc20Balances.data?.[erc20Index];
         const config = erc20Tokens[erc20Index];
         result[token] = {
-          data: balance?.result !== undefined ? dn.from(balance.result, config!.decimals) : undefined,
+          data: balance?.result !== undefined ? [balance.result, config!.decimals] : undefined,
           isLoading: erc20Balances.isLoading,
         };
       }
