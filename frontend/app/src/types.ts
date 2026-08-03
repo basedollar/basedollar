@@ -17,6 +17,7 @@ export type PrefixedTroveId = `${CollateralType}:${BranchId}:${TroveId}` | `${Br
 
 export type Branch = {
   id: BranchId;
+  decimals: number;
   contracts: BranchContracts;
   branchId: BranchId; // to be removed, use `id` instead
   symbol: CollateralSymbol;

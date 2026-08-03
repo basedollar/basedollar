@@ -83,6 +83,7 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "ETH" as const,
         name: "ETH",
         icon: "eth",
+        decimals: 18,
         collateralRatio: 1.1, // 110% MCR
         maxDeposit: "100000000",
         maxLTV: 0.9091,
@@ -107,6 +108,7 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "WSTETH" as const,
         name: "wstETH",
         icon: "wsteth",
+        decimals: 18,
         collateralRatio: 1.1, // 110% MCR
         maxDeposit: "25000000",
         maxLTV: 0.9091,
@@ -131,6 +133,7 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "RETH" as const,
         name: "rETH",
         icon: "reth",
+        decimals: 18,
         collateralRatio: 1.1, // 110% MCR
         maxDeposit: "25000000",
         maxLTV: 0.9091,
@@ -155,6 +158,7 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "CBBTC" as const,
         name: "cbBTC",
         icon: "cbbtc",
+        decimals: 6,
         collateralRatio: 1.1, // 110% MCR
         maxDeposit: "10000000",
         maxLTV: 0.9091,
@@ -179,6 +183,7 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "CBETH" as const,
         name: "cbETH",
         icon: "cbeth",
+        decimals: 18,
         collateralRatio: 1.1, // 110% MCR
         maxDeposit: "10000000",
         maxLTV: 0.9091,

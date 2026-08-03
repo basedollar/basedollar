@@ -12,6 +12,7 @@ import { Governance } from "@/src/abi/Governance";
 import { HintHelpers } from "@/src/abi/HintHelpers";
 import { IExchangeHelpersV2 } from "@/src/abi/IExchangeHelpersV2";
 import { LeverageLSTZapper } from "@/src/abi/LeverageLSTZapper";
+import { LeverageWrappedTokenZapper } from "@/src/abi/LeverageWrappedTokenZapper";
 import { LeverageWETHZapper } from "@/src/abi/LeverageWETHZapper";
 import { LqtyStaking } from "@/src/abi/LqtyStaking";
 import { LqtyToken } from "@/src/abi/LqtyToken";
@@ -77,6 +78,10 @@ const collateralAbis = {
     ...LeverageWETHZapper,
     ...BorrowerOperationsErrorsAbi,
   ],
+  LeverageWrappedTokenZapper: [
+    ...LeverageWrappedTokenZapper,
+    ...BorrowerOperationsErrorsAbi,
+  ],
   PriceFeed: PriceFeed.map((f) => (
     f.name !== "fetchPrice" ? f : {
       ...f,
@@ -120,6 +125,7 @@ export type Contracts = ProtocolContractMap & {
     branchId: BranchId;
     contracts: BranchContracts;
     symbol: CollateralSymbol;
+    decimals: number;
   }>;
 };
 
@@ -153,10 +159,11 @@ export const CONTRACTS: Contracts = {
   },
   V1StabilityPool: { abi: abis.V1StabilityPool, address: CONTRACT_V1_STABILITY_POOL },
   WETH: { abi: abis.WETH, address: CONTRACT_WETH },
-  branches: ENV_BRANCHES.map(({ branchId, symbol, contracts }) => ({
+  branches: ENV_BRANCHES.map(({ branchId, symbol, decimals, contracts }) => ({
     id: branchId,
     branchId,
     symbol,
+    decimals,
     contracts: {
       ActivePool: { address: contracts.ACTIVE_POOL, abi: abis.ActivePool },
       BorrowerOperations: {
@@ -176,6 +183,10 @@ export const CONTRACTS: Contracts = {
       LeverageWETHZapper: {
         address: symbol === "ETH" ? contracts.LEVERAGE_ZAPPER : zeroAddress,
         abi: abis.LeverageWETHZapper,
+      },
+      LeverageWrappedTokenZapper: {
+        address: decimals < 18 ? contracts.LEVERAGE_ZAPPER : zeroAddress,
+        abi: abis.LeverageWrappedTokenZapper,
       },
       PriceFeed: { address: contracts.PRICE_FEED, abi: abis.PriceFeed },
       SortedTroves: { address: contracts.SORTED_TROVES, abi: abis.SortedTroves },

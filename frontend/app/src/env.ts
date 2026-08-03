@@ -226,6 +226,7 @@ export const EnvSchema = v.pipe(
       envBranches[index] = {
         id: index,
         branchId: index,
+        decimals: collateral.decimals,
         contracts,
         strategies: defaultIcStrategies ?? [],
         symbol: collateral.symbol,

@@ -17,6 +17,7 @@ import * as v from "valibot";
 import { maxUint256 } from "viem";
 import { createRequestSchema, verifyTransaction } from "./shared";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
+import { convert18ToDecimals } from "./openBorrowPosition";
 
 const RequestSchema = createRequestSchema(
   "updateBorrowPosition",
@@ -158,6 +159,8 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
 
         const Controller = branch.symbol === "ETH"
           ? branch.contracts.LeverageWETHZapper
+          : branch.decimals < 18
+          ? branch.contracts.LeverageWrappedTokenZapper
           : branch.contracts.LeverageLSTZapper;
 
         return ctx.writeContract({
@@ -192,7 +195,9 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
 
         const branch = getBranch(ctx.request.loan.branchId);
 
-        const Controller = branch.contracts.LeverageLSTZapper;
+        const Controller = branch.decimals < 18
+          ? branch.contracts.LeverageWrappedTokenZapper
+          : branch.contracts.LeverageLSTZapper;
 
         return ctx.writeContract({
           ...branch.contracts.CollToken,
@@ -201,7 +206,7 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
             Controller.address,
             ctx.preferredApproveMethod === "approve-infinite"
               ? maxUint256 // infinite approval
-              : dn.abs(collChange)[0], // exact amount
+              : convert18ToDecimals(dn.abs(collChange)[0], branch.decimals), // exact amount
           ],
         });
       },
@@ -235,6 +240,21 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
               maxUpfrontFee[0],
             ],
             value: dn.gt(collChange, 0n) ? collChange[0] : 0n,
+          });
+        }
+
+        if (branch.decimals < 18) {
+          return ctx.writeContract({
+            ...branch.contracts.LeverageWrappedTokenZapper,
+            functionName: "adjustTroveWithRawETH",
+            args: [
+              BigInt(loan.troveId),
+              convert18ToDecimals(dn.abs(collChange)[0], branch.decimals),
+              dn.gt(collChange, 0n),
+              dn.abs(debtChange)[0],
+              dn.gt(debtChange, 0n),
+              maxUpfrontFee[0],
+            ],
           });
         }
 
@@ -306,6 +326,23 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
           });
         }
 
+        if (branch.decimals < 18) {
+          return ctx.writeContract({
+            ...branch.contracts.LeverageWrappedTokenZapper,
+            functionName: "adjustZombieTroveWithRawETH",
+            args: [
+              BigInt(loan.troveId),
+              convert18ToDecimals(dn.abs(collChange)[0], branch.decimals),
+              dn.gt(collChange, 0n),
+              dn.abs(debtChange)[0],
+              dn.gt(debtChange, 0n),
+              upperHint,
+              lowerHint,
+              maxUpfrontFee[0],
+            ],
+          });
+        }
+
         return ctx.writeContract({
           ...branch.contracts.LeverageLSTZapper,
           functionName: "adjustZombieTrove",
@@ -345,6 +382,14 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
           });
         }
 
+        if (branch.decimals < 18) {
+          return ctx.writeContract({
+            ...branch.contracts.LeverageWrappedTokenZapper,
+            functionName: "repayBold",
+            args: [BigInt(loan.troveId), dn.abs(debtChange)[0]],
+          });
+        }
+
         return ctx.writeContract({
           ...branch.contracts.LeverageLSTZapper,
           functionName: "repayBold",
@@ -376,6 +421,14 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
           });
         }
 
+        if (branch.decimals < 18) {
+          return ctx.writeContract({
+            ...branch.contracts.LeverageWrappedTokenZapper,
+            functionName: "addCollWithRawETH",
+            args: [BigInt(loan.troveId), convert18ToDecimals(dn.abs(collChange)[0], branch.decimals)],
+          });
+        }
+
         return ctx.writeContract({
           ...branch.contracts.LeverageLSTZapper,
           functionName: "addColl",
@@ -400,6 +453,14 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
         if (branch.symbol === "ETH") {
           return ctx.writeContract({
             ...branch.contracts.LeverageWETHZapper,
+            functionName: "withdrawBold",
+            args: [BigInt(loan.troveId), dn.abs(debtChange)[0], maxUpfrontFee[0]],
+          });
+        }
+
+        if (branch.decimals < 18) {
+          return ctx.writeContract({
+            ...branch.contracts.LeverageWrappedTokenZapper,
             functionName: "withdrawBold",
             args: [BigInt(loan.troveId), dn.abs(debtChange)[0], maxUpfrontFee[0]],
           });
@@ -434,6 +495,14 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
           });
         }
 
+        if (branch.decimals < 18) {
+          return ctx.writeContract({
+            ...branch.contracts.LeverageWrappedTokenZapper,
+            functionName: "withdrawCollToRawETH",
+            args: [BigInt(loan.troveId), convert18ToDecimals(dn.abs(collChange)[0], branch.decimals)],
+          });
+        }
+
         return ctx.writeContract({
           ...branch.contracts.LeverageLSTZapper,
           functionName: "withdrawColl",
@@ -455,6 +524,8 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
 
     const Controller = branch.symbol === "ETH"
       ? branch.contracts.LeverageWETHZapper
+      : branch.decimals < 18
+      ? branch.contracts.LeverageWrappedTokenZapper
       : branch.contracts.LeverageLSTZapper;
 
     const isBoldApproved = !dn.lt(debtChange, 0) || !dn.gt(
@@ -476,7 +547,7 @@ export const updateBorrowPosition: FlowDeclaration<UpdateBorrowPositionRequest> 
         functionName: "allowance",
         args: [ctx.account, Controller.address],
       })) ?? 0n,
-      18,
+      branch.decimals,
     ]);
 
     const steps: string[] = [];
