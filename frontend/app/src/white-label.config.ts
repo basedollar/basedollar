@@ -158,7 +158,7 @@ export const WHITE_LABEL_CONFIG = {
         symbol: "CBBTC" as const,
         name: "cbBTC",
         icon: "cbbtc",
-        decimals: 6,
+        decimals: 8,
         collateralRatio: 1.1, // 110% MCR
         maxDeposit: "10000000",
         maxLTV: 0.9091,
