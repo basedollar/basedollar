@@ -19,7 +19,10 @@ import {
   useBranchDebt,
   useEarnPool,
 } from "@/src/liquity-utils";
-import { useLpApy, isLpToken } from "@/src/services/LpApy";
+import {
+  // useLpApy, 
+  isLpToken
+} from "@/src/services/LpApy";
 import { getAvailableEarnPools } from "@/src/white-label.config";
 import { infoTooltipProps } from "@/src/uikit-utils";
 import { useAccount } from "@/src/wagmi-utils";
@@ -31,7 +34,7 @@ import {
   InfoTooltip,
   TokenIcon,
   CollateralIcon,
-  CollateralSectionHeader,
+  // CollateralSectionHeader,
   groupCollaterals
 } from "@liquity2/uikit";
 import * as dn from "dnum";
@@ -117,7 +120,7 @@ function BorrowTable({
     <Tip key="collateral" tip="Collateral asset">Collateral</Tip>,
     <Tip key="rate" tip="Average interest rate p.a.">Rate</Tip>,
     <Tip key="maxLtv" tip="Maximum Loan-to-Value ratio">Max LTV</Tip>,
-    <Tip key="lpApy" tip="LP APY from AERO emissions + fees">LP APY</Tip>,
+    // <Tip key="lpApy" tip="LP APY from AERO emissions + fees">LP APY</Tip>,
     <Tip key="debt" tip="Total debt in this branch">Debt</Tip>,
   ];
 
@@ -140,17 +143,17 @@ function BorrowTable({
           subtitle="You can adjust your loans, including your interest rate, at any time"
           icon={<IconBorrow />}
           columns={columns}
-          rows={groupedCollaterals.flatMap((group, groupIndex) => [
-            <CollateralSectionHeader
-              key={`section-${group.title}`}
-              title={group.title}
-              isFirst={groupIndex === 0}
-              colSpan={compact ? 5 : 6}
-            />,
-            ...group.collaterals.map(({ symbol }) => (
+          rows={groupedCollaterals.flatMap((group /*, groupIndex */) => /* [ */
+            // <CollateralSectionHeader
+            //   key={`section-${group.title}`}
+            //   title={group.title}
+            //   isFirst={groupIndex === 0}
+            //   colSpan={compact ? 5 : 6}
+            // />,
+            group.collaterals.map(({ symbol }) => (
               <BorrowingRow key={symbol} compact={compact} symbol={symbol} />
             ))
-          ])}
+          /* ] */)}
         />
       </div>
       <div
@@ -210,20 +213,20 @@ function EarnTable({
           subtitle={content.home.earnTable.subtitle}
           icon={<IconEarn />}
           columns={columns}
-          rows={earnGroupedCollaterals.flatMap((group, groupIndex) => [
-            <CollateralSectionHeader 
-              key={`earn-section-${group.title}`} 
-              title={group.title} 
-              isFirst={groupIndex === 0}
-              colSpan={compact ? 4 : 5}
-            />,
-            ...group.collaterals.map(({ symbol }) => (
+          rows={earnGroupedCollaterals.flatMap((group /*, groupIndex */) => /* [ */
+            // <CollateralSectionHeader 
+            //   key={`earn-section-${group.title}`} 
+            //   title={group.title} 
+            //   isFirst={groupIndex === 0}
+            //   colSpan={compact ? 4 : 5}
+            // />,
+            group.collaterals.map(({ symbol }) => (
               <EarnRewardsRow
                 key={symbol}
                 symbol={symbol}
               />
             ))
-          ])}
+          /* ] */)}
         />
       {/* </div> */}
       {/* <div
@@ -468,8 +471,8 @@ function BorrowingRow({
   const aerodromePoolLink = getAerodromePoolLink(collateralConfig);
 
   // LP APY for LP token collaterals
-  const isLp = isLpToken(symbol);
-  const lpApy = useLpApy(isLp ? symbol : null);
+  // const isLp = isLpToken(symbol);
+  // const lpApy = useLpApy(isLp ? symbol : null);
 
   return (
     <tr>
@@ -515,6 +518,7 @@ function BorrowingRow({
           percentage
         />
       </td>
+      {/* LP APY is temporarily hidden.
       <td>
         {isLp ? (
           <span
@@ -530,6 +534,7 @@ function BorrowingRow({
           <span className={css({ color: "contentAlt" })}>…</span>
         )}
       </td>
+      */}
       <td>
         <Amount
           format="compact"
