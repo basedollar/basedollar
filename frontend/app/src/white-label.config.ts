@@ -301,9 +301,9 @@ export const WHITE_LABEL_CONFIG = {
         aeroManager: "https://docs.basedollar.org/docs/technical-documentation/aero-manager",
       },
       dune: "https://dune.com/basedollar",
-      discord: "https://discord.gg/basedollar",
+      discord: "https://discord.gg/5h3avBYxcn",
       github: "https://github.com/basedollar/basedollar",
-      x: "https://x.com/basedollar",
+      x: "https://x.com/BaseDollarOrg",
       friendlyForkProgram: "https://basedollar.org/ecosystem",
       aeroLaunchArticle: "https://aero.xyz/"
     },

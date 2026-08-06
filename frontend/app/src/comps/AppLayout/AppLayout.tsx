@@ -52,7 +52,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               children={
                 <div>
                   <p>Some actions in the app may be degraded or unavailable in the meantime. Thank you for your patience as we resolve the issue.</p>
-                  <p>If you have any questions, please contact us on <a className={css({ color: "primary", textDecoration: "underline" })} target="_blank" href="https://discord.gg/5h3avBYxcn">Discord</a> or <a className={css({ color: "primary", textDecoration: "underline" })} target="_blank" href="https://x.com/neriteorg">X</a>.</p>
+                  <p>If you have any questions, please contact us on <a className={css({ color: "primary", textDecoration: "underline" })} target="_blank" href="https://discord.gg/5h3avBYxcn">Discord</a> or <a className={css({ color: "primary", textDecoration: "underline" })} target="_blank" href="https://x.com/BaseDollarOrg">X</a>.</p>
                 </div>
               }
             />

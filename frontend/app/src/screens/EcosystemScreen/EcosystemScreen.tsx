@@ -65,7 +65,7 @@ export function EcosystemScreen() {
         gap: 8,
       })}>
         <p>
-          Want to partner with us? Reach out in our #partnerships channel on <LinkTextButton href="https://discord.gg/basedollar" target="_blank" rel="noopener noreferrer" label="Discord" />.
+          Want to partner with us? Reach out in our #partnerships channel on <LinkTextButton href="https://discord.gg/5h3avBYxcn" target="_blank" rel="noopener noreferrer" label="Discord" />.
         </p>
       </div>
     </Screen>
