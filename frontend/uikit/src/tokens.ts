@@ -11,6 +11,7 @@ import tokenWsteth from "./token-icons/wsteth.svg";
 import tokenOseth from "./token-icons/oseth.svg";
 import tokenSuperoethb from "./token-icons/superoethb.svg";
 import tokenCbbtc from "./token-icons/cbbtc.svg";
+import tokenCbeth from "./token-icons/cbeth.svg";
 
 // Import icons for AMM pair tokens - now we have them!
 import tokenAero from "./token-icons/aero.svg";
@@ -35,7 +36,7 @@ const tokenIconMap: Record<string, string> = {
   "oseth": tokenOseth,
   "superoethb": tokenSuperoethb,
   "cbbtc": tokenCbbtc,
-  "cbeth": tokenEth,
+  "cbeth": tokenCbeth,
   "aero": tokenAero,
   "usdc": tokenUsdc,
   "mseth": tokenMseth,

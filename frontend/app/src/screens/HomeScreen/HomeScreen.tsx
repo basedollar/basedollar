@@ -150,9 +150,11 @@ function BorrowTable({
             //   isFirst={groupIndex === 0}
             //   colSpan={compact ? 5 : 6}
             // />,
-            group.collaterals.map(({ symbol }) => (
-              <BorrowingRow key={symbol} compact={compact} symbol={symbol} />
-            ))
+            group.collaterals
+              .sort((a, b) => getBranch(a.symbol).id - getBranch(b.symbol).id)
+              .map(({ symbol }) => (
+                <BorrowingRow key={symbol} compact={compact} symbol={symbol} />
+              ))
           /* ] */)}
         />
       </div>
@@ -192,7 +194,9 @@ function EarnTable({
     const allGroups = groupCollaterals();
     return allGroups.map(group => ({
       ...group,
-      collaterals: group.collaterals.filter(c => earnCollaterals.includes(c.symbol))
+      collaterals: group.collaterals
+        .filter(c => earnCollaterals.includes(c.symbol))
+        .sort((a, b) => getBranch(a.symbol).id - getBranch(b.symbol).id)
     })).filter(group => group.collaterals.length > 0);
   }, []);
 
