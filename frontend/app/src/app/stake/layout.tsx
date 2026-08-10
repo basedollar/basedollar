@@ -1,5 +1,6 @@
-import { StakeScreen } from "@/src/screens/StakeScreen/StakeScreen";
+// import { StakeScreen } from "@/src/screens/StakeScreen/StakeScreen";
 
 export default function Layout() {
-  return <StakeScreen />;
+  return null;
+  // return <StakeScreen />;
 }
