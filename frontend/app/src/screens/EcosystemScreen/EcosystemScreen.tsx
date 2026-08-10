@@ -10,6 +10,7 @@ import {
   EcosystemPartnerSummary, 
   type EcosystemPartnerId 
 } from "@/src/comps/EcosystemPartnerSummary/EcosystemPartnerSummary";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 export function EcosystemScreen() {
   const bpName = useBreakpointName();
@@ -65,7 +66,7 @@ export function EcosystemScreen() {
         gap: 8,
       })}>
         <p>
-          Want to partner with us? Reach out in our #partnerships channel on <LinkTextButton href="https://discord.gg/5h3avBYxcn" target="_blank" rel="noopener noreferrer" label="Discord" />.
+          Want to partner with us? Reach out on <LinkTextButton href={WHITE_LABEL_CONFIG.branding.links.x} target="_blank" rel="noopener noreferrer" label="X" />.
         </p>
       </div>
     </Screen>

@@ -12,7 +12,6 @@ import { useAccount } from "@/src/wagmi-utils";
 import { css } from "@/styled-system/css";
 import {
   HFlex,
-  IconDiscord,
   IconExternal,
   IconX,
   shortenAddress,
@@ -78,24 +77,7 @@ export function ProtocolStats() {
             <Price key={symbol} symbol={symbol} />
           ))}
           <LinkTextButton
-            href='https://discord.gg/5h3avBYxcn'
-            external
-            label={<IconDiscord size={16} />}
-            className={css({
-              display: "flex",
-              alignItems: "center",
-              color: "content",
-              _hover: { opacity: 0.8 },
-              _focusVisible: {
-                outline: "2px solid token(colors.focused)",
-              },
-              _active: {
-                translate: "0 1px",
-              },
-            })}
-          />
-          <LinkTextButton
-            href='https://x.com/BaseDollarOrg'
+            href={WHITE_LABEL_CONFIG.branding.links.x}
             external
             label={<IconX size={16} />}
             className={css({

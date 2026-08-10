@@ -11,6 +11,7 @@ import { TopBar } from "./TopBar";
 import { css } from "@/styled-system/css";
 import { useSubgraphStatus } from "@/src/services/SubgraphStatus";
 import { ErrorBanner } from "@/src/comps/ErrorBanner/ErrorBanner";
+import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 export const LAYOUT_WIDTH = 1092;
 export const MIN_WIDTH = 960;
@@ -52,7 +53,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               children={
                 <div>
                   <p>Some actions in the app may be degraded or unavailable in the meantime. Thank you for your patience as we resolve the issue.</p>
-                  <p>If you have any questions, please contact us on <a className={css({ color: "primary", textDecoration: "underline" })} target="_blank" href="https://discord.gg/5h3avBYxcn">Discord</a> or <a className={css({ color: "primary", textDecoration: "underline" })} target="_blank" href="https://x.com/BaseDollarOrg">X</a>.</p>
+                  <p>If you have any questions, please contact us on <a className={css({ color: "primary", textDecoration: "underline" })} target="_blank" href={WHITE_LABEL_CONFIG.branding.links.x}>X</a>.</p>
                 </div>
               }
             />
