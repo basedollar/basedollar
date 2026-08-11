@@ -32,24 +32,27 @@ const actions = {
   // },
   earn: {
     colors: {
-      background: token("colors.brandBlue"),
-      foreground: token("colors.brandBlueContent"),
-      foregroundAlt: token("colors.brandBlueContentAlt"),
+      // background: token("colors.brandBlue"),
+      // foreground: token("colors.brandBlueContent"),
+      // foregroundAlt: token("colors.brandBlueContentAlt"),
+      background: token("colors.brandGolden"),
+      foreground: token("colors.brandGoldenContent"),
+      foregroundAlt: token("colors.brandGoldenContentAlt"),
     },
     description: contentActions.earn.description,
     path: "/earn",
     title: "Earn",
   },
-  vote: {
-    colors: {
-      background: token("colors.brandGolden"),
-      foreground: token("colors.brandGoldenContent"),
-      foregroundAlt: token("colors.brandGoldenContentAlt"),
-    },
-    description: "Vote for BaseDollar on Aerodrome.",
-    path: "https://aerodrome.finance/vote?query=basedollar",
-    title: "Vote",
-  },
+  // vote: {
+  //   colors: {
+  //     background: token("colors.brandGolden"),
+  //     foreground: token("colors.brandGoldenContent"),
+  //     foregroundAlt: token("colors.brandGoldenContentAlt"),
+  //   },
+  //   description: "Vote for BaseDollar on Aerodrome.",
+  //   path: "https://aerodrome.finance/vote?query=basedollar",
+  //   title: "Vote",
+  // },
 } as const;
 
 const actionsEntries = Object.entries(actions);
