@@ -24,7 +24,7 @@ export function TopBar() {
     ...(headerConfig.navigation.showEarn ? [[headerConfig.navigation.items.earn, "/earn", IconEarn] as MenuItem] : []),
     ...(headerConfig.navigation.showStake ? [[headerConfig.navigation.items.stake, "/stake", IconStake] as MenuItem] : []),
     // External link to Aerodrome voting
-    ["Vote", "https://aerodrome.finance/vote?query=basedollar", IconExternal],
+    ...(headerConfig.navigation.showVote ? [[headerConfig.navigation.items.vote, "https://aerodrome.finance/vote?query=basedollar", IconExternal] as MenuItem] : []),
   ];
 
   return (

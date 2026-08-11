@@ -328,6 +328,7 @@ export const WHITE_LABEL_CONFIG = {
       showMultiply: false,
       showEarn: true,
       showStake: false,
+      showVote: false,
     },
     
     // Menu labels (can be customized per deployment)
@@ -336,7 +337,8 @@ export const WHITE_LABEL_CONFIG = {
       borrow: "Borrow",
       multiply: "Multiply", 
       earn: "Earn",
-      stake: "Stake"
+      stake: "Stake",
+      vote: "Vote"
     },
     
     // Common UI text
