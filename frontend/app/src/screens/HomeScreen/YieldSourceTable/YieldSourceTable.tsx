@@ -4,9 +4,9 @@ import { FC, ReactNode, useMemo } from "react";
 import { css } from "@/styled-system/css";
 import { HomeTable } from "@/src/screens/HomeScreen/HomeTable.tsx";
 import content from "@/src/content";
-import { useBoldYieldSources } from "@/src/liquity-utils.ts";
+import { useBaseDollarYieldSources } from "@/src/liquity-utils.ts";
 import { YieldSourceRow } from "./components/YieldSourceRow";
-import { Hint } from "@/src/screens/HomeScreen/YieldSourceTable/components/Hint";
+// import { Hint } from "@/src/screens/HomeScreen/YieldSourceTable/components/Hint";
 import { Spinner } from "@/src/comps/Spinner/Spinner";
 
 interface YieldSourceTableProps {
@@ -14,7 +14,7 @@ interface YieldSourceTableProps {
 }
 
 export const YieldSourceTable: FC<YieldSourceTableProps> = ({ compact }) => {
-  const { data, isLoading } = useBoldYieldSources();
+  const { data, isLoading } = useBaseDollarYieldSources();
 
   const columns: ReactNode[] = [
     "Source",
@@ -34,7 +34,7 @@ export const YieldSourceTable: FC<YieldSourceTableProps> = ({ compact }) => {
         />
       );
     });
-  }, [data]);
+  }, [compact, data]);
 
   if (!compact) {
     columns.push(null);
@@ -59,7 +59,7 @@ export const YieldSourceTable: FC<YieldSourceTableProps> = ({ compact }) => {
           rows={rows}
         />
       </div>
-      <Hint />
+      {/* <Hint /> */}
     </div>
   );
 };

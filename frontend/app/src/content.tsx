@@ -192,6 +192,10 @@ export default {
         title: `Earn with ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol}`,
         description: `Deposit ${WHITE_LABEL_CONFIG.tokens.mainToken.symbol} to earn protocol revenues and liquidation proceeds`,
       },
+      vote: {
+        title: "Vote",
+        description: "Vote for Base Dollar on Aerodrome.",
+      },
       stake: {
         title: `Stake ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol}`,
         description: `Direct protocol incentives with ${WHITE_LABEL_CONFIG.tokens.governanceToken.symbol} while earning from ${WHITE_LABEL_CONFIG.branding.brandName} V1`,
@@ -215,7 +219,7 @@ export default {
       },
     },
     yieldTable: {
-      title: "Top 3 external yield opportunities",
+      title: "External yield opportunities",
       hint: {
         title: "All yield sources on Dune",
         url: "https://dune.com/liquity/liquity-v2-yields",

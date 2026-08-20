@@ -1,5 +1,6 @@
 import { ActionIcon } from "@/src/comps/ActionCard/ActionIcon";
 import content from "@/src/content";
+import { AERODROME_VOTE_URL } from "@/src/white-label.config";
 import { css } from "@/styled-system/css";
 import { token } from "@/styled-system/tokens";
 import { lerp } from "@liquity2/uikit";
@@ -32,27 +33,24 @@ const actions = {
   // },
   earn: {
     colors: {
-      // background: token("colors.brandBlue"),
-      // foreground: token("colors.brandBlueContent"),
-      // foregroundAlt: token("colors.brandBlueContentAlt"),
-      background: token("colors.brandGolden"),
-      foreground: token("colors.brandGoldenContent"),
-      foregroundAlt: token("colors.brandGoldenContentAlt"),
+      background: token("colors.brandBlue"),
+      foreground: token("colors.brandBlueContent"),
+      foregroundAlt: token("colors.brandBlueContentAlt"),
     },
     description: contentActions.earn.description,
     path: "/earn",
     title: "Earn",
   },
-  // vote: {
-  //   colors: {
-  //     background: token("colors.brandGolden"),
-  //     foreground: token("colors.brandGoldenContent"),
-  //     foregroundAlt: token("colors.brandGoldenContentAlt"),
-  //   },
-  //   description: "Vote for BaseDollar on Aerodrome.",
-  //   path: "https://aerodrome.finance/vote?query=basedollar",
-  //   title: "Vote",
-  // },
+  vote: {
+    colors: {
+      background: token("colors.brandGolden"),
+      foreground: token("colors.brandGoldenContent"),
+      foregroundAlt: token("colors.brandGoldenContentAlt"),
+    },
+    description: contentActions.vote.description,
+    path: AERODROME_VOTE_URL,
+    title: contentActions.vote.title,
+  },
 } as const;
 
 const actionsEntries = Object.entries(actions);
@@ -239,6 +237,8 @@ export function NewPositionCard() {
             <Link
               key={path}
               href={path}
+              target={type === "vote" ? "_blank" : undefined}
+              rel={type === "vote" ? "noopener noreferrer" : undefined}
               onMouseEnter={() => setHovered(index)}
               onMouseLeave={() => setHovered(-1, RESET_DELAY)}
               onFocus={() => setHovered(index)}

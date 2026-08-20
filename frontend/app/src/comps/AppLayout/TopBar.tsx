@@ -6,6 +6,7 @@ import { Logo } from "@/src/comps/Logo/Logo";
 import { Tag } from "@/src/comps/Tag/Tag";
 import { DEPLOYMENT_FLAVOR } from "@/src/env";
 import { useWhiteLabelHeader } from "@/src/hooks/useWhiteLabel";
+import { AERODROME_VOTE_URL } from "@/src/white-label.config";
 import { css } from "@/styled-system/css";
 import { IconBorrow, IconDashboard, IconEarn, IconLeverage, IconStake, IconExternal } from "@liquity2/uikit";
 import Link from "next/link";
@@ -24,7 +25,7 @@ export function TopBar() {
     ...(headerConfig.navigation.showEarn ? [[headerConfig.navigation.items.earn, "/earn", IconEarn] as MenuItem] : []),
     ...(headerConfig.navigation.showStake ? [[headerConfig.navigation.items.stake, "/stake", IconStake] as MenuItem] : []),
     // External link to Aerodrome voting
-    ...(headerConfig.navigation.showVote ? [[headerConfig.navigation.items.vote, "https://aerodrome.finance/vote?query=basedollar", IconExternal] as MenuItem] : []),
+    ...(headerConfig.navigation.showVote ? [[headerConfig.navigation.items.vote, AERODROME_VOTE_URL, IconExternal] as MenuItem] : []),
   ];
 
   return (

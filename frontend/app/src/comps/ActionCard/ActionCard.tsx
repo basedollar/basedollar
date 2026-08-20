@@ -1,5 +1,5 @@
 import content from "@/src/content";
-import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
+import { AERODROME_VOTE_URL, WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 import { css, cx } from "@/styled-system/css";
 import { token } from "@/styled-system/tokens";
 import { a, useSpring } from "@react-spring/web";
@@ -11,7 +11,7 @@ import { ActionIcon } from "./ActionIcon";
 export function ActionCard({
   type,
 }: {
-  type: "borrow" | "multiply" | "earn" | "stake";
+  type: "borrow" | "multiply" | "earn" | "stake" | "vote";
 }) {
   const [hint, setHint] = useState(false);
   const [active, setActive] = useState(false);
@@ -65,6 +65,16 @@ export function ActionCard({
       path: "/earn",
       title: ac.earn.title,
     }))
+    .with("vote", () => ({
+      colors: {
+        background: token("colors.brandGolden"),
+        foreground: token("colors.brandGoldenContent"),
+        foregroundAlt: token("colors.brandGoldenContentAlt"),
+      },
+      description: ac.vote.description,
+      path: AERODROME_VOTE_URL,
+      title: ac.vote.title,
+    }))
     .with("stake", () => ({
       colors: {
         background: token(`colors.${WHITE_LABEL_CONFIG.brandColors.secondary}`),
@@ -81,6 +91,8 @@ export function ActionCard({
     <Link
       key={path}
       href={path}
+      target={type === "vote" ? "_blank" : undefined}
+      rel={type === "vote" ? "noopener noreferrer" : undefined}
       onMouseEnter={() => setHint(true)}
       onMouseLeave={() => setHint(false)}
       onMouseDown={() => setActive(true)}

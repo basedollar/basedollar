@@ -205,6 +205,57 @@ export function useBoldYieldSources() {
   };
 }
 
+export type BaseDollarYield = {
+  asset: string;
+  weeklyApr: Dnum | null;
+  tvl: Dnum | null;
+  link: string;
+  protocol: string;
+};
+
+const BaseDollarYieldHistoryItemSchema = v.object({
+  time: v.string(),
+  yield_name: v.string(),
+  apr: v.nullable(v.number()),
+  daily_apr: v.nullable(v.number()),
+  weekly_apr: v.nullable(v.number()),
+  _30d_apr: v.nullable(v.number()),
+  _90d_apr: v.nullable(v.number()),
+  tvl: v.nullable(v.number()),
+});
+
+export function useBaseDollarYieldSources() {
+  return useQuery({
+    queryKey: ["base-dollar-yield-sources", LIQUITY_STATS_URL],
+    queryFn: async (): Promise<BaseDollarYield[]> => {
+      if (!LIQUITY_STATS_URL) {
+        throw new Error("LIQUITY_STATS_URL is not defined");
+      }
+
+      const yieldUrl = new URL("./bd-usdc-aerodrome-yield.json", LIQUITY_STATS_URL);
+      const response = await fetch(yieldUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch yield opportunities: ${response.status}`);
+      }
+
+      const history = v.parse(v.array(BaseDollarYieldHistoryItemSchema), await response.json());
+      const latest = history[0];
+      if (!latest) return [];
+
+      return [{
+        asset: "BD/USDC",
+        weeklyApr: latest.weekly_apr === null
+          ? null
+          : dnumOrNull(latest.weekly_apr / 100, 18),
+        tvl: dnumOrNull(latest.tvl, 18),
+        link: "https://aerodrome.finance/deposit?token0=0x252d36f435582ecb01686448d21e8c9ea0b2ca65&token1=0x833589fcd6edb6e08f4c7c32d4f71b54bda02913&type=0&chain0=8453&chain1=8453&factory=0x420DD381b31aEf6683db6B902084cB0FFECe40Da",
+        protocol: "Aerodrome",
+      }];
+    },
+    enabled: Boolean(LIQUITY_STATS_URL),
+  });
+}
+
 type EarnPool = {
   apr: Dnum | null;
   apr7d: Dnum | null;

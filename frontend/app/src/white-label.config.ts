@@ -5,6 +5,8 @@
  * When creating a new fork, update all values in this file according to the client's requirements.
  */
 
+export const AERODROME_VOTE_URL = "https://aerodrome.finance/vote?sort=vapr%3Adesc&filters=all&query=0x252d36f435582ecb01686448d21e8c9ea0b2ca65";
+
 export const WHITE_LABEL_CONFIG = {
   brandColors: {
     primary: "black:700" as const,
@@ -328,7 +330,7 @@ export const WHITE_LABEL_CONFIG = {
       showMultiply: false,
       showEarn: true,
       showStake: false,
-      showVote: false,
+      showVote: true,
     },
     
     // Menu labels (can be customized per deployment)

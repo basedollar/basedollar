@@ -52,6 +52,7 @@ export function Positions({
     ...(headerConfig.navigation.showBorrow ? ["borrow" as const] : []),
     ...(headerConfig.navigation.showEarn ? ["earn" as const] : []),
     ...(headerConfig.navigation.showStake ? ["stake" as const] : []),
+    ...(headerConfig.navigation.showVote ? ["vote" as const] : []),
   ];
   
   const loans = useLoansByAccount(address);
@@ -254,7 +255,7 @@ function PositionsGroup({
   positions: Exclude<Position, PositionLoanUncommitted>[];
   title: (mode: Mode) => ReactNode;
   showNewPositionCard: boolean;
-  actionCards: readonly ("borrow" | "earn" | "stake" | "multiply")[];
+  actionCards: readonly ("borrow" | "earn" | "stake" | "multiply" | "vote")[];
   sortBy: SortField;
   setSortBy: (sortBy: SortField) => void;
   collSurplusMap: Map<BranchId, Dnum> | null;
