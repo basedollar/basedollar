@@ -337,6 +337,14 @@ export default {
         <>Total {WHITE_LABEL_CONFIG.tokens.mainToken.symbol} covering {collateral}-backed position liquidations</>,
       ],
     },
+    strategySection: {
+      title: "Strategies",
+      subtitle: (
+        <>
+          Earn additional yield through third-party protocols using {WHITE_LABEL_CONFIG.tokens.mainToken.symbol}.
+        </>
+      ),
+    },
   },
 
   // Earn screen

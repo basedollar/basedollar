@@ -76,6 +76,7 @@ export type TokenSymbol =
   | typeof WHITE_LABEL_CONFIG.tokens.otherTokens.sbold.symbol
   | typeof WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol
   | typeof WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.symbol
+  | typeof WHITE_LABEL_CONFIG.tokens.otherTokens.aero.symbol
   | typeof WHITE_LABEL_CONFIG.tokens.otherTokens.usdc.symbol
   | typeof WHITE_LABEL_CONFIG.tokens.otherTokens.weth.symbol
   | typeof WHITE_LABEL_CONFIG.tokens.otherTokens.mseth.symbol
@@ -96,6 +97,7 @@ export function isTokenSymbol(symbolOrUrl: string): symbolOrUrl is TokenSymbol {
     || symbolOrUrl === WHITE_LABEL_CONFIG.tokens.otherTokens.sbold.symbol
     || symbolOrUrl === WHITE_LABEL_CONFIG.tokens.otherTokens.staked.symbol
     || symbolOrUrl === WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.symbol
+    || symbolOrUrl === WHITE_LABEL_CONFIG.tokens.otherTokens.aero.symbol
     || symbolOrUrl === WHITE_LABEL_CONFIG.tokens.otherTokens.usdc.symbol
     || symbolOrUrl === WHITE_LABEL_CONFIG.tokens.otherTokens.weth.symbol
     || symbolOrUrl === WHITE_LABEL_CONFIG.tokens.otherTokens.mseth.symbol
@@ -150,6 +152,12 @@ const LUSD_TOKEN: Token = {
 } as const;
 
 // Additional tokens for AMM pairs
+const AERO_TOKEN: Token = {
+  icon: tokenIconMap[WHITE_LABEL_CONFIG.tokens.otherTokens.aero.icon],
+  name: WHITE_LABEL_CONFIG.tokens.otherTokens.aero.name,
+  symbol: WHITE_LABEL_CONFIG.tokens.otherTokens.aero.symbol,
+} as const;
+
 const USDC_TOKEN: Token = {
   icon: tokenIconMap[WHITE_LABEL_CONFIG.tokens.otherTokens.usdc.icon],
   name: WHITE_LABEL_CONFIG.tokens.otherTokens.usdc.name,
@@ -220,6 +228,7 @@ const tokensMap: Record<string, Token | CollateralToken> = {
   [WHITE_LABEL_CONFIG.tokens.otherTokens.eth.symbol]: ETH_TOKEN,
   [WHITE_LABEL_CONFIG.tokens.otherTokens.sbold.symbol]: SBOLD_TOKEN,
   [WHITE_LABEL_CONFIG.tokens.otherTokens.lusd.symbol]: LUSD_TOKEN,
+  [WHITE_LABEL_CONFIG.tokens.otherTokens.aero.symbol]: AERO_TOKEN,
   [WHITE_LABEL_CONFIG.tokens.otherTokens.usdc.symbol]: USDC_TOKEN,
   [WHITE_LABEL_CONFIG.tokens.otherTokens.weth.symbol]: WETH_TOKEN,
   [WHITE_LABEL_CONFIG.tokens.otherTokens.mseth.symbol]: MSETH_TOKEN,
