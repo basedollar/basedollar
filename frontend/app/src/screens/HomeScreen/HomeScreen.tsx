@@ -43,7 +43,7 @@ import { useMemo, useState } from "react";
 import { HomeTable } from "./HomeTable";
 import { Tip } from "@/src/comps/Tip/Tip";
 
-// import { YieldSourceTable } from "./YieldSourceTable";
+import { YieldSourceTable } from "./YieldSourceTable";
 
 // type ForkInfo = (typeof FORKS_INFO)[number];
 
@@ -105,7 +105,7 @@ export function HomeScreen() {
       >
         <BorrowTable compact={compact} />
         <EarnTable compact={compact} />
-        {/* <YieldSourceTable compact={compact} /> */}
+        <YieldSourceTable compact={compact} />
       </div>
     </div>
   );

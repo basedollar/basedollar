@@ -1,12 +1,12 @@
 "use client";
 
 import type { FC } from "react";
-import { BoldYield } from "@/src/liquity-utils.ts";
+import { BaseDollarYield } from "@/src/liquity-utils.ts";
 import { css } from "@/styled-system/css";
 import { Amount } from "@/src/comps/Amount/Amount.tsx";
 import { LinkTextButton } from "@/src/comps/LinkTextButton/LinkTextButton.tsx";
 
-interface YieldSourceRowProps extends BoldYield {
+interface YieldSourceRowProps extends BaseDollarYield {
   compact: boolean;
 }
 
@@ -39,7 +39,7 @@ export const YieldSourceRow: FC<YieldSourceRowProps> = ({
       </td>
       {!compact && (
         <td>
-          <LinkTextButton href={link} label="Link" title="Link" />
+          <LinkTextButton external href={link} label="Link" title="Link" />
         </td>
       )}
     </tr>
