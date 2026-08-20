@@ -2,6 +2,7 @@
 
 import type { BranchId } from "@/src/types";
 
+import { AerodromePoolSummary } from "@/src/comps/EarnPositionSummary/AerodromePoolSummary";
 import { EarnPositionSummary } from "@/src/comps/EarnPositionSummary/EarnPositionSummary";
 import { SboldPositionSummary } from "@/src/comps/EarnPositionSummary/SboldPositionSummary";
 import { YboldPositionSummary } from "@/src/comps/EarnPositionSummary/YboldPositionSummary";
@@ -86,18 +87,57 @@ export function EarnPoolsListScreen() {
       <div
         className={css({
           display: "grid",
-          gap: 16,
+          gap: 48,
         })}
       >
-        {poolsTransition((style, poolId) => (
-          <a.div style={style}>
-            {poolId === "sbold"
-              ? <SboldPool />
-              : poolId === "ybold"
-              ? <YboldPositionSummary />
-              : <EarnPool branchId={poolId} />}
-          </a.div>
-        ))}
+        <div
+          className={css({
+            display: "grid",
+            gap: 16,
+          })}
+        >
+          {poolsTransition((style, poolId) => (
+            <a.div style={style}>
+              {poolId === "sbold"
+                ? <SboldPool />
+                : poolId === "ybold"
+                ? <YboldPositionSummary />
+                : <EarnPool branchId={poolId} />}
+            </a.div>
+          ))}
+        </div>
+        <section
+          className={css({
+            display: "grid",
+            gap: 24,
+          })}
+        >
+          <header
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 8,
+              textAlign: "center",
+            })}
+          >
+            <h2
+              className={css({
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 28,
+              })}
+            >
+              {content.earnHome.strategySection.title}
+              <TokenIcon symbol="AERO" />
+            </h2>
+            <div className={css({ color: "contentAlt" })}>
+              {content.earnHome.strategySection.subtitle}
+            </div>
+          </header>
+          <AerodromePoolSummary />
+        </section>
       </div>
     </Screen>
   );

@@ -236,6 +236,11 @@ export const WHITE_LABEL_CONFIG = {
       },
       
       // Additional tokens needed for AMM pairs
+      aero: {
+        symbol: "AERO" as const,
+        name: "Aerodrome",
+        icon: "aero",
+      },
       usdc: {
         symbol: "USDC" as const,
         name: "USDC",

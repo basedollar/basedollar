@@ -8,6 +8,7 @@ import Link from "next/link";
 export function EarnPositionSummaryBase({
   action,
   active,
+  icon,
   infoItems = [],
   poolInfo,
   poolToken,
@@ -21,6 +22,7 @@ export function EarnPositionSummaryBase({
     external?: boolean;
   };
   active: boolean;
+  icon?: ReactNode;
   infoItems?: Array<{
     content: ReactNode;
     label: ReactNode;
@@ -85,10 +87,12 @@ export function EarnPositionSummaryBase({
             display: "flex",
           })}
         >
-          <TokenIcon
-            symbol={token.symbol}
-            size={34}
-          />
+          {icon ?? (
+            <TokenIcon
+              symbol={token.symbol}
+              size={34}
+            />
+          )}
         </div>
         <div
           className={css({
