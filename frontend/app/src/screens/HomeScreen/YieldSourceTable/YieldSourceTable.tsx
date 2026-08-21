@@ -18,7 +18,7 @@ export const YieldSourceTable: FC<YieldSourceTableProps> = ({ compact }) => {
 
   const columns: ReactNode[] = [
     "Source",
-    <abbr key="apr1d" title="Annual Percentage Rate over the last 7 days">
+    <abbr key="apr1d" title="Annual Percentage Rate">
       APR
     </abbr>,
     "TVL",

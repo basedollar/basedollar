@@ -67,12 +67,12 @@ export function AerodromePoolSummary() {
             fallback="-%"
             format="1z"
             percentage
-            value={pool?.weeklyApr}
+            value={pool?.apr}
           />
           <InfoTooltip
             content={{
               heading: "Current APR",
-              body: "The annualized percentage rate earned by the Aerodrome BD/USDC pool over the past 7 days.",
+              body: "The annualized percentage rate earned by the Aerodrome BD/USDC pool.",
             }}
           />
         </div>
