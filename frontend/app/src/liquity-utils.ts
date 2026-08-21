@@ -207,6 +207,7 @@ export function useBoldYieldSources() {
 
 export type BaseDollarYield = {
   asset: string;
+  apr: Dnum | null;
   weeklyApr: Dnum | null;
   tvl: Dnum | null;
   link: string;
@@ -244,6 +245,9 @@ export function useBaseDollarYieldSources() {
 
       return [{
         asset: "BD/USDC",
+        apr: latest.apr === null
+          ? null
+          : dnumOrNull(latest.apr / 100, 18),
         weeklyApr: latest.weekly_apr === null
           ? null
           : dnumOrNull(latest.weekly_apr / 100, 18),

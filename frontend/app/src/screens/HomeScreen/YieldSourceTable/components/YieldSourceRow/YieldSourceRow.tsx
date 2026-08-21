@@ -15,7 +15,8 @@ export const YieldSourceRow: FC<YieldSourceRowProps> = ({
   asset,
   tvl,
   link,
-  weeklyApr,
+  apr,
+  // weeklyApr,
   protocol,
 }) => {
   return (
@@ -32,7 +33,7 @@ export const YieldSourceRow: FC<YieldSourceRowProps> = ({
         </div>
       </td>
       <td>
-        <Amount fallback="…" percentage value={weeklyApr} />
+        <Amount fallback="…" percentage value={apr} />
       </td>
       <td>
         <Amount fallback="…" format="compact" prefix="$" value={tvl} />
