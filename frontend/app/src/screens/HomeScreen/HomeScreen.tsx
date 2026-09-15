@@ -87,8 +87,8 @@ export function HomeScreen() {
           display: "grid",
           gap: 24,
           gridTemplateColumns: {
-            base: "1fr",
-            large: "1fr 1fr",
+            base: "minmax(0, 1fr)",
+            large: "repeat(2, minmax(0, 1fr))",
           },
           gridTemplateAreas: {
             base: `

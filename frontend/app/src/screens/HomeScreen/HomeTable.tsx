@@ -127,57 +127,59 @@ export function HomeTable<Cols extends readonly ReactNode[]>({
           </div>
         )
         : (
-          <table
-            className={css({
-              width: "100%",
-              fontSize: 14,
-              "& th, & td": {
-                fontWeight: "inherit",
-                whiteSpace: "nowrap",
-                textAlign: "right",
-              },
-              "& th": {
-                paddingBottom: 8,
-                color: "contentAlt2",
-                userSelect: "none",
-              },
-              "& td": {
-                padding: "12px 0",
-                borderTop: "1px solid token(colors.tableBorder)",
-              },
-              "& th:first-of-type, & td:first-of-type": {
-                textAlign: "left",
-              },
-              "& thead tr + tr th": {
-                color: "contentAlt2",
-              },
-            })}
-          >
-            <thead>
-              <tr>
-                {columns.map((col, index) => (
-                  <th key={index}>
-                    {col}
-                  </th>
+          <div className={css({ minWidth: 0, overflowX: "auto" })} tabIndex={0} role="region" aria-label="Market data">
+            <table
+              className={css({
+                width: "100%",
+                fontSize: 14,
+                "& th, & td": {
+                  fontWeight: "inherit",
+                  whiteSpace: "nowrap",
+                  textAlign: "right",
+                },
+                "& th": {
+                  paddingBottom: 8,
+                  color: "contentAlt2",
+                  userSelect: "none",
+                },
+                "& td": {
+                  padding: "12px 0",
+                  borderTop: "1px solid token(colors.tableBorder)",
+                },
+                "& th:first-of-type, & td:first-of-type": {
+                  textAlign: "left",
+                },
+                "& thead tr + tr th": {
+                  color: "contentAlt2",
+                },
+              })}
+            >
+              <thead>
+                <tr>
+                  {columns.map((col, index) => (
+                    <th key={index}>
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, rowIndex) => (
+                  <Fragment key={rowIndex}>
+                    {!Array.isArray(row) ? row : (
+                      <tr>
+                        {row.map((cell, colIndex) => (
+                          <td key={colIndex}>
+                            {cell}
+                          </td>
+                        ))}
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, rowIndex) => (
-                <Fragment key={rowIndex}>
-                  {!Array.isArray(row) ? row : (
-                    <tr>
-                      {row.map((cell, colIndex) => (
-                        <td key={colIndex}>
-                          {cell}
-                        </td>
-                      ))}
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         )}
     </section>
   );

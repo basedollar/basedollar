@@ -138,7 +138,7 @@ export function Screen({
     )
     : (
       heading && (
-        <div style={{ width }}>
+        <div style={{ width, maxWidth: "100%" }}>
           {heading}
         </div>
       )
@@ -224,6 +224,9 @@ export function Screen({
           },
           transformOrigin: "50% 0",
           willChange: "transform, opacity",
+          minWidth: 0,
+          maxWidth: "100%",
+          gridTemplateColumns: "minmax(0, 1fr)",
         })}
         style={{
           width,

@@ -14,7 +14,6 @@ import { ErrorBanner } from "@/src/comps/ErrorBanner/ErrorBanner";
 import { WHITE_LABEL_CONFIG } from "@/src/white-label.config";
 
 export const LAYOUT_WIDTH = 1092;
-export const MIN_WIDTH = 960;
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { hasError } = useSubgraphStatus();
@@ -32,7 +31,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
           background: "background",
         })}
         style={{
-          minWidth: `${MIN_WIDTH}px`,
           maxWidth: `${LAYOUT_WIDTH + 24 * 2}px`,
         }}
       >
@@ -62,12 +60,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <div
           className={css({
             flexGrow: 1,
+            minWidth: 0,
+            width: "100%",
             display: "flex",
             flexDirection: "column",
           })}
-          style={{
-            width: `${LAYOUT_WIDTH + 24 * 2}px`,
-          }}
         >
           <div
             className={css({
@@ -75,7 +72,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              padding: "0 24px",
+              padding: { base: "0 12px", medium: "0 24px" },
             })}
           >
             {children}
@@ -83,7 +80,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <div
             className={css({
               width: "100%",
-              padding: "48px 24px 0",
+              padding: { base: "48px 12px 0", medium: "48px 24px 0" },
             })}
           >
             <ProtocolStats />

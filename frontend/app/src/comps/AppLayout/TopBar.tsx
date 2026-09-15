@@ -43,7 +43,7 @@ export function TopBar() {
           display: "grid",
           gridTemplateColumns: {
             base: "auto auto",
-            medium: "200px auto 200px",
+            large: "200px auto 200px",
           },
           justifyContent: "space-between",
           gap: 16,
@@ -141,7 +141,7 @@ export function TopBar() {
           className={css({
             display: "grid",
             justifyContent: "center",
-            hideBelow: "medium",
+            hideBelow: "large",
           })}
         >
           <Menu menuItems={menuItems} />
