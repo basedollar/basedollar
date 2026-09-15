@@ -31,6 +31,8 @@ export function ProductCardGroup({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: "wrap",
+          gap: 16,
         })}
       >
         <div
@@ -98,7 +100,11 @@ export function ProductCardGroup({
       <div
         className={css({
           display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
+          gridTemplateColumns: {
+            base: "minmax(0, 1fr)",
+            medium: "repeat(2, minmax(0, 1fr))",
+            large: "repeat(3, minmax(0, 1fr))",
+          },
           gap: 16,
         })}
       >

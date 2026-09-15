@@ -43,7 +43,10 @@ export function ProtocolStats() {
           display: "flex",
           justifyContent: "space-between",
           width: "100%",
-          height: 48,
+          minHeight: 48,
+          flexWrap: "wrap",
+          gap: 12,
+          padding: "12px 0",
           fontSize: 12,
           borderTop: "1px solid token(colors.tableBorder)",
           userSelect: "none",
@@ -72,7 +75,7 @@ export function ProtocolStats() {
             </span>
           </HFlex>
         </HFlex>
-        <HFlex gap={16}>
+        <HFlex gap={16} className={css({ flexWrap: "wrap" })}>
           {DISPLAYED_PRICES.map((symbol) => (
             <Price key={symbol} symbol={symbol} />
           ))}
