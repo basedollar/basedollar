@@ -255,6 +255,7 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
         LatestBatchData memory batch;
         if (isTroveInBatch) _getLatestBatchData(batchAddress, batch);
 
+        // v3: _movePendingTroveRewardsToActivePool(_troveId, _defaultPool, trove.redistBoldDebtGain, trove.redistCollGain);
         _movePendingTroveRewardsToActivePool(_defaultPool, trove.redistBoldDebtGain, trove.redistCollGain);
 
         (
@@ -556,12 +557,15 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
     }
 
     // Move a Trove's pending debt and collateral rewards from distributions, from the Default Pool to the Active Pool
+    // v3: _movePendingTroveRewardsToActivePool(uint256 _troveId, IDefaultPool _defaultPool, uint256 _bold, uint256 _coll)
+    // If Aero LP, the accounting of each pool updates while collateral remains in Aero Manager staked/unstaked
     function _movePendingTroveRewardsToActivePool(IDefaultPool _defaultPool, uint256 _bold, uint256 _coll) internal {
         if (_bold > 0) {
             _defaultPool.decreaseBoldDebt(_bold);
         }
 
         if (_coll > 0) {
+            // v3: _defaultPool.sendCollToActivePool(_troveId, _coll);
             _defaultPool.sendCollToActivePool(_coll);
         }
     }
@@ -623,10 +627,15 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
         }
 
         _singleRedemption.newStake = _updateStakeAndTotalStakes(_singleRedemption.troveId, newColl);
+        // v3: _movePendingTroveRewardsToActivePool(_singleRedemption.troveId, _defaultPool, trove.redistBoldDebtGain, trove.redistCollGain);
         _movePendingTroveRewardsToActivePool(
             _defaultPool, _singleRedemption.trove.redistBoldDebtGain, _singleRedemption.trove.redistCollGain
         );
         _updateTroveRewardSnapshots(_singleRedemption.troveId);
+        // v3: Add function here
+        // - Call troveId bounded account to unstake Aero LP collateral amount
+        // - Transfer Aero LP collateral amount from troveId bounded account to ActivePool
+        // _unstakeIfAeroLPCollateral(_singledRedemption.troveId, _singleRedemption.collLot);
 
         if (_isTroveInBatch) {
             emit BatchedTroveUpdated({
@@ -1385,6 +1394,7 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
         Troves[_troveId].lastDebtUpdateTime = uint64(block.timestamp);
         Troves[_troveId].lastInterestRateAdjTime = uint64(block.timestamp);
 
+        // v3: _movePendingTroveRewardsToActivePool(_troveId, _defaultPool, trove.redistBoldDebtGain, trove.redistCollGain);
         _movePendingTroveRewardsToActivePool(
             defaultPool, _troveChange.appliedRedistBoldDebtGain, _troveChange.appliedRedistCollGain
         );
@@ -1422,6 +1432,7 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
         Troves[_troveId].debt = _newDebt;
         Troves[_troveId].lastDebtUpdateTime = uint64(block.timestamp);
 
+        // v3: _movePendingTroveRewardsToActivePool(_troveId, _defaultPool, trove.redistBoldDebtGain, trove.redistCollGain);
         _movePendingTroveRewardsToActivePool(
             defaultPool, _troveChange.appliedRedistBoldDebtGain, _troveChange.appliedRedistCollGain
         );
@@ -1460,6 +1471,7 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
     ) external override {
         _requireCallerIsBorrowerOperations();
         _closeTrove(_troveId, _troveChange, _batchAddress, _newBatchColl, _newBatchDebt, Status.closedByOwner);
+        // v3: _movePendingTroveRewardsToActivePool(_troveId, _defaultPool, trove.redistBoldDebtGain, trove.redistCollGain);
         _movePendingTroveRewardsToActivePool(
             defaultPool, _troveChange.appliedRedistBoldDebtGain, _troveChange.appliedRedistCollGain
         );
@@ -1557,6 +1569,11 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
 
         // burn ERC721
         troveNFT.burn(_troveId);
+
+        // v3:
+        // If closed status == liquidation && coll is Aero LP, then:
+        // - Call _troveId bound account to unstake coll + send to active pool
+        // - Send claimed emissions to Aero Manager
     }
 
     function onAdjustTroveInsideBatch(
@@ -1579,6 +1596,7 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
         assert(_newTroveDebt > 0);
         _updateBatchShares(_troveId, _batchAddress, _troveChange, _newTroveDebt, _newBatchColl, _newBatchDebt, true);
 
+        // v3: _movePendingTroveRewardsToActivePool(_troveId, _defaultPool, trove.redistBoldDebtGain, trove.redistCollGain);
         _movePendingTroveRewardsToActivePool(
             defaultPool, _troveChange.appliedRedistBoldDebtGain, _troveChange.appliedRedistCollGain
         );
@@ -1650,6 +1668,7 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
             Troves[_troveId].lastDebtUpdateTime = uint64(block.timestamp);
         }
 
+        // v3: _movePendingTroveRewardsToActivePool(_troveId, _defaultPool, trove.redistBoldDebtGain, trove.redistCollGain);
         _movePendingTroveRewardsToActivePool(
             defaultPool, _troveChange.appliedRedistBoldDebtGain, _troveChange.appliedRedistCollGain
         );
@@ -1784,6 +1803,7 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
             true
         );
 
+        // v3: _movePendingTroveRewardsToActivePool(_troveId, _defaultPool, trove.redistBoldDebtGain, trove.redistCollGain);
         _movePendingTroveRewardsToActivePool(
             defaultPool, _troveChange.appliedRedistBoldDebtGain, _troveChange.appliedRedistCollGain
         );
@@ -1948,6 +1968,7 @@ contract TroveManager is LiquityBase, ITroveManager, ITroveEvents {
         Troves[_troveId].lastInterestRateAdjTime = uint64(block.timestamp);
 
         _updateTroveRewardSnapshots(_troveId);
+        // v3: _movePendingTroveRewardsToActivePool(_troveId, _defaultPool, trove.redistBoldDebtGain, trove.redistCollGain);
         _movePendingTroveRewardsToActivePool(
             defaultPool, _troveChange.appliedRedistBoldDebtGain, _troveChange.appliedRedistCollGain
         );

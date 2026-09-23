@@ -379,6 +379,7 @@ contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperatio
         vars.activePool.mintAggInterestAndAccountForTroveChange(_change, _interestBatchManager);
 
         // Pull coll tokens from sender and move them to the Active Pool
+        // v3: _pullCollAndSendToActivePool(vars.activePool, _collAmount, vars.troveId);
         _pullCollAndSendToActivePool(vars.activePool, _collAmount);
 
         // Mint the requested _boldAmount to the borrower and mint the gas comp to the GasPool
@@ -686,6 +687,7 @@ contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperatio
         }
 
         vars.activePool.mintAggInterestAndAccountForTroveChange(_troveChange, batchManager);
+        // v3: _moveTokensFromAdjustment(_troveId, receiver, _troveChange, vars.boldToken, vars.activePool);
         _moveTokensFromAdjustment(receiver, _troveChange, vars.boldToken, vars.activePool);
     }
 
@@ -753,6 +755,7 @@ contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperatio
         boldTokenCached.burn(msg.sender, trove.entireDebt);
 
         // Send the collateral back to the user
+        // v3: activePoolCached.sendColl(_troveId, receiver, trove.entireColl);
         activePoolCached.sendColl(receiver, trove.entireColl);
 
         _wipeTroveMappings(_troveId);
@@ -1284,6 +1287,7 @@ contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperatio
     // This function mints the BOLD corresponding to the borrower's chosen debt increase
     // (it does not mint the accrued interest).
     function _moveTokensFromAdjustment(
+        // v3: uint256 _troveId,
         address withdrawalReceiver,
         TroveChange memory _troveChange,
         IBoldToken _boldToken,
@@ -1299,17 +1303,26 @@ contract BorrowerOperations is LiquityBase, AddRemoveManagers, IBorrowerOperatio
 
         if (_troveChange.collIncrease > 0) {
             // Pull coll tokens from sender and move them to the Active Pool
+            // v3: _pullCollAndSendToActivePool(_activePool, _troveChange.collIncrease, _troveId);
             _pullCollAndSendToActivePool(_activePool, _troveChange.collIncrease);
         } else if (_troveChange.collDecrease > 0) {
             // Pull Coll from Active Pool and decrease its recorded Coll balance
+            // v3: 
+            // Calls ActivePool to pull staked LP token from troveId bound account
+            // If NOT Aero LP colateral, then behaves same as normal _activePool.sendColl(address, uint256)
+            // _activePool.sendColl(withdrawalReceiver, _troveChange.collDecrease, _troveId);
             _activePool.sendColl(withdrawalReceiver, _troveChange.collDecrease);
         }
     }
 
+    // v3:
+    // Pass in _troveId for trove-bounded account staking of Aero LP collateral
+    // _pullCollAndSendToActivePool(IActivePool _activePool, uint256 _amount, uint256 _troveId)
     function _pullCollAndSendToActivePool(IActivePool _activePool, uint256 _amount) internal {
         // Send Coll tokens from sender to active pool
         collToken.transferFrom(msg.sender, address(_activePool), _amount);
         // Make sure Active Pool accountancy is right
+        // v3: _activePool.accountForReceivedColl(_troveId, _amount);
         _activePool.accountForReceivedColl(_amount);
     }
 

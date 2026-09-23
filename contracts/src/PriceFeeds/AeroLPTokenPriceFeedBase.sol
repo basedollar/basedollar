@@ -205,6 +205,9 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         uint256 index = 0;
         uint256 maxTimeElapsed = OBSERVATION_PERIOD * points;
 
+        // TODO: Change to work with Aero's 1-minute interval observations and read calls
+        // -- Current idea for change --
+        // v3: for (uint256 i = length; i > length - (points * 30); i -= 30) {
         for (uint256 i = length; i > length - points; i -= 1) {
             IAeroPool.Observation memory prevObs = pool.observations(i - 1);
             IAeroPool.Observation memory currentObs = pool.observations(i);

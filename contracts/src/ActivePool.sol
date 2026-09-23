@@ -181,6 +181,15 @@ contract ActivePool is IActivePool {
 
     // --- Pool functionality ---
 
+    // v3: 
+    // Two different sendColl functions
+    // 1. sendColl(address _account, uint256 _amount) <-- current one
+    //      - Used by TroveManager post-liquidations/redemptions when Aero LP 
+    //      is already unstaked and transferred back in ActivePool
+    //      - Used by StabilityPool post-liquidation, same condition
+    // 2. sendColl(address _account, uint256 _amount, uint256 _troveId) <-- new
+    //      - Used by BorrowerOperations for individual trove actions on active troves
+    //      which keeps its Aero LP collateral staked by troveId-bounded account
     function sendColl(address _account, uint256 _amount) external override {
         _requireCallerIsBOorTroveMorSP();
 
@@ -196,11 +205,18 @@ contract ActivePool is IActivePool {
         // new
         bool keepStaked = isAeroLPCollateral && (_account == address(stabilityPool) || _account == collSurplusPoolAddress);
         if (!keepStaked) {
+            // v3:
+            // - Call _troveId bounded account to unstake
+            // - Pull collToken _amount from _troveId bounded account
+            // - Transfer collToken _amount to _account
             _unstakeIfAeroLPCollateral(_amount);
             collToken.safeTransfer(_account, _amount);
         }
     }
 
+    // v3:
+    // If Aero LP, calls troveId bound account to unstake and transfer to ActivePool
+    // sendCollToDefaultPool(uint256 _troveId, uint256 _amount)
     function sendCollToDefaultPool(uint256 _amount) external override {
         _requireCallerIsTroveManager();
 
@@ -225,11 +241,20 @@ contract ActivePool is IActivePool {
         emit ActivePoolCollBalanceUpdated(newCollBalance);
     }
 
+    // v3: receiveColl(uint256 _troveId, uint256 _amount)
     /// @dev Receives Coll tokens from BorrowerOperations or DefaultPool
     function receiveColl(uint256 _amount) external {
         _requireCallerIsBorrowerOperationsOrDefaultPool();
 
         _accountForReceivedColl(_amount);
+
+        // v3: Possible changes to stake handling
+        // - Liquidated colltokens in DefaultPool are transferred here
+        //   (regardless if Aero LP collateral or not)
+        // - If Aero LP, transfer collToken _amount to _troveId bound account
+        // - Call _troveId bound account to:
+        //      1. Claim emissions if passed min stake block + send to AeroManager
+        //      2. Stake _amount
 
         // old
         // // Pull Coll tokens from sender
@@ -254,6 +279,8 @@ contract ActivePool is IActivePool {
     }
 
     /// @dev Updates accounting of collBalance by adding amount already received
+    // v3: accountForReceivedColl(uint256 _troveId, uint256 _amount)
+    // Only called by BorrowerOperations
     function accountForReceivedColl(uint256 _amount) public {
         _requireCallerIsBorrowerOperationsOrDefaultPool();
 
@@ -263,12 +290,15 @@ contract ActivePool is IActivePool {
         // Transfers from ActivePool -> AeroManager -> AeroGauge
         // NOTE: if it is coming from default pool, the collateral is already staked
         if (msg.sender != defaultPoolAddress) {
+            // v3: _stakeIfAeroLPCollateral(_troveId, _amount);
             _stakeIfAeroLPCollateral(_amount);
         }
     }
 
     //TODO might need to make this a factory, to keep positions separate.
     /// @dev Stakes AERO LP collateral into AeroGauge
+    // v3: _stakeIfAeroLPCollateral(uint256 _troveId, uint256 _amount)
+    // Gets troveId bounded account address and calls it to stake Aero LP collateral _amount
     function _stakeIfAeroLPCollateral(uint256 _amount) internal {
         if (isAeroLPCollateral) {
             // Send to AeroManager
@@ -279,6 +309,8 @@ contract ActivePool is IActivePool {
     }
 
     /// @dev Unstakes and returns AERO LP collateral to ActivePool
+    // v3: _stakeIfAeroLPCollateral(uint256 _troveId, uint256 _amount)
+    // Calls troveId bounded account to unstake and transfer Aero LP collateral _amount to ActivePool
     function _unstakeIfAeroLPCollateral(uint256 _amount) internal {
         if (isAeroLPCollateral) {
             // AeroManager withdraws the _amount from AeroGauge and returns it to ActivePool

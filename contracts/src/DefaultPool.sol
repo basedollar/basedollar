@@ -62,6 +62,7 @@ contract DefaultPool is IDefaultPool {
 
     // --- Pool functionality ---
 
+    // v3: sendCollToActivePool(uint256 _troveId, uint256 _amount)
     function sendCollToActivePool(uint256 _amount) external override {
         _requireCallerIsTroveManager();
         uint256 newCollBalance = collBalance - _amount;
@@ -69,6 +70,7 @@ contract DefaultPool is IDefaultPool {
         emit DefaultPoolCollBalanceUpdated(newCollBalance);
 
         // Send Coll to Active Pool and increase its recorded Coll balance
+        // v3: IActivePool(activePoolAddress).receiveColl(_troveId, _amount);
         IActivePool(activePoolAddress).receiveColl(_amount);
     }
 
