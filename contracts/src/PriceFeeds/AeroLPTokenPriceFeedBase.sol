@@ -70,6 +70,9 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     uint256 public constant TOKEN_PRICE_DEVIATION_THRESHOLD = 2e16; // 2%
     uint256 public constant TWAP_GRANULARITY = 8; // 8 periods × 30 min = 4 hours
 
+    // v3: Keep as 30 minutes for logic
+    // Aero changes to 1-minute observation periods but we still want a TWAP
+    // of every 30 minute intervals.
     uint256 internal constant OBSERVATION_PERIOD = 30 minutes;
 
     bool internal immutable _deployed;
@@ -163,6 +166,13 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         SampleResults memory results = _sample(amount0In, amount1In, granularity);
         uint256 priceAverageCumulative0;
         uint256 priceAverageCumulative1;
+        // v3:
+        // No longer need the `usedLength` and `timeElapsed`
+        // for (uint256 i = 0; i < points; i++) {
+        //     priceAverageCumulative0 += results.prices0[i];
+        //     priceAverageCumulative1 += results.prices1[i];
+        // }
+        // return (priceAverageCumulative0 / granularity, priceAverageCumulative1 / granularity);
         for (uint256 i = 0; i < results.usedLength; i++) {
             priceAverageCumulative0 += results.prices0[i] * results.timeElapsed[i];
             priceAverageCumulative1 += results.prices1[i] * results.timeElapsed[i];
@@ -207,7 +217,26 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
 
         // TODO: Change to work with Aero's 1-minute interval observations and read calls
         // -- Current idea for change --
-        // v3: for (uint256 i = length; i > length - (points * 30); i -= 30) {
+        // v3:
+        // // Array of current and every time interval prior to `points` back
+        // uint256[] memory secondsAgo = new uint256[](points + 1);
+        // for (uint256 i; i < points + 1; i++) {
+        //     secondsAgo[i] = i * OBSERVATION_PERIOD;
+        // }
+        // (
+        //     uint256[] memory reserve0Cumulatives, 
+        //     uint256[] memory reserve1Cumulatives
+        // ) = pool.observe(secondsAgo);
+
+        // for (uint256 i; i < points; i++) {
+        //     uint256 current = i;
+        //     uint256 prev = i + 1;
+        //     uint256 _reserve0 = (reserve0Cumulatives[current] - reserve0Cumulatives[prev]);
+        //     uint256 _reserve1 = reserve1Cumulatives[current] - reserve1Cumulatives[prev];
+        //     results.prices0[index] = _getAmountOut(amount0In, pool.token0(), _reserve0, _reserve1);
+        //     results.prices1[index] = _getAmountOut(amount1In, pool.token1(), _reserve0, _reserve1);
+        // }
+
         for (uint256 i = length; i > length - points; i -= 1) {
             IAeroPool.Observation memory prevObs = pool.observations(i - 1);
             IAeroPool.Observation memory currentObs = pool.observations(i);
