@@ -375,7 +375,10 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         
         // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
         // Subtract the fee from the total claimed amount
-        _claimedAero[aeroTokenAddress] += totalAmount - totalClaimFee;
+        uint256 rewardAmount = totalAmount - totalClaimFee;
+        _claimedAero[aeroTokenAddress] += rewardAmount;
+        
+        claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
 
         emit Claimed(gauge, totalAmount, totalClaimFee, currentEpoch);
     }
