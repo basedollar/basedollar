@@ -6,7 +6,12 @@ import "./Interfaces/IActivePool.sol";
 import "./Interfaces/ICollateralRegistry.sol";
 import "./Interfaces/IAeroManager.sol";
 import "./Interfaces/IAeroGauge.sol";
+import "./Interfaces/IAeroV2Gauge.sol";
 import "./Interfaces/IAeroVoter.sol";
+import "./Interfaces/IAeroLeafVoter.sol";
+import "./Interfaces/IAeroVoterCommon.sol";
+import "./Interfaces/IAeroRootLocalAdapter.sol";
+import "./Interfaces/IAeroRootMessageOrchestrator.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./Dependencies/Ownable.sol";
@@ -232,113 +237,119 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     // When users claim, a percentage is sent to timelock treasury address
     // For this, add a mapping of claim amounts for each user based on their collateral amount, collateral type (APY differs depending on LP token), + interest rate, etc.
 
-    // /// @notice Pull LP token amount from ActivePool and stake into gauge
-    // /// @dev AeroManager stakes and claims AERO on behalf of all non-redeemable branches (that are LP token collaterals)
-    // /// @param gauge Aero gauge staking `token`
-    // /// @param token LP token address (must match the pool collateral token)
-    // /// @param amount LP amount to stake
-    // function stake(address gauge, address token, uint256 amount) external {
-    //     _requireCallerIsActivePool();
+    /// @notice Pull LP token amount from ActivePool and stake into gauge
+    /// @dev AeroManager stakes and claims AERO on behalf of all non-redeemable branches (that are LP token collaterals)
+    /// @param gauge Aero gauge staking `token`
+    /// @param token LP token address (must match the pool collateral token)
+    /// @param amount LP amount to stake
+    function stake(address gauge, address token, uint256 amount) external {
+        _requireCallerIsActivePool();
 
-    //     // Pull LP tokens from ActivePool
-    //     IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-    //     uint256 staked;
-    //     // Check if the gauge is alive
-    //     if (isAeroGaugeAlive(gauge)) {
-    //         // Allow the gauge to pull tokens from the AeroManager on deposit()
-    //         IERC20(token).safeIncreaseAllowance(gauge, amount);
-    //         // Stake LP tokens into AeroGauge
-    //         IAeroGauge(gauge).deposit(amount);
-    //         // Log amount staked
-    //         stakedAmounts[gauge] += amount;
+        // Pull LP tokens from ActivePool
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        uint256 staked;
+        // Check if the gauge is alive
+        if (isAeroGaugeAlive(gauge)) {
+            // Allow the gauge to pull tokens from the AeroManager on deposit()
+            IERC20(token).safeIncreaseAllowance(gauge, amount);
+            // Stake LP tokens into AeroGauge
+            IAeroGauge(gauge).deposit(amount);
+            // Log amount staked
+            stakedAmounts[gauge] += amount;
             
-    //         staked = amount;
+            staked = amount;
 
-    //         // Try to stake any remaining unstaked tokens to the gauge
-    //         // This is in case of edge cases where the gauge was killed and then revived
-    //         _stakeRemaining(gauge, token);
-    //     } else {
-    //         // Log amount not staked
-    //         unstakedAmounts[gauge] += amount;
-    //     }
-    //     emit Staked(gauge, token, amount, staked);
-    // }
+            // Try to stake any remaining unstaked tokens to the gauge
+            // This is in case of edge cases where the gauge was killed and then revived
+            _stakeRemaining(gauge, token);
+        } else {
+            // Log amount not staked
+            unstakedAmounts[gauge] += amount;
+        }
+        emit Staked(gauge, token, amount, staked);
+    }
 
-    // /// @notice Withdraw LP from the gauge and return it to the caller `ActivePool` or `StabilityPool` or `CollSurplusPool`
-    // /// @dev StabilityPool withdraws directly when depositor claims collGains
-    // /// @dev CollSurplusPool withdraws directly when depositor claims coll surplus
-    // /// @param gauge Aero gauge the LP was staked in
-    // /// @param token LP token being returned
-    // /// @param amount LP amount to withdraw
-    // function withdraw(address gauge, address token, uint256 amount) external {
-    //     _requireCallerIsAPOrSPOrCSP();
-    //     // Check for unstaked balance first
-    //     uint256 balance = unstakedAmounts[gauge];
-    //     uint256 unstaked;
-    //     if (amount > balance) {
-    //         unstaked = amount - balance;
-    //         // Withdraw LP tokens from AeroGauge
-    //         IAeroGauge(gauge).withdraw(unstaked);
-    //         // Log amount withdrawn
-    //         stakedAmounts[gauge] -= unstaked;
-    //         unstakedAmounts[gauge] = 0;
-    //     } else {
-    //         unstakedAmounts[gauge] -= amount;
-    //         // If any leftovers and gauge is alive, try to stake them
-    //         if (isAeroGaugeAlive(gauge)) {
-    //             _stakeRemaining(gauge, token);
-    //         }
-    //     }
-    //     // Log amount unstaked from gauge and total sent to ActivePool
-    //     emit Withdrawn(gauge, token, amount, unstaked);
-    //     // Transfer LP tokens to ActivePool
-    //     IERC20(token).safeTransfer(msg.sender, amount);
-    // }
+    /// @notice Withdraw LP from the gauge and return it to the caller `ActivePool` or `StabilityPool` or `CollSurplusPool`
+    /// @dev StabilityPool withdraws directly when depositor claims collGains
+    /// @dev CollSurplusPool withdraws directly when depositor claims coll surplus
+    /// @param gauge Aero gauge the LP was staked in
+    /// @param token LP token being returned
+    /// @param amount LP amount to withdraw
+    function withdraw(address gauge, address token, uint256 amount) external {
+        _requireCallerIsAPOrSPOrCSP();
+        // Check for unstaked balance first
+        uint256 balance = unstakedAmounts[gauge];
+        uint256 unstaked;
+        if (amount > balance) {
+            unstaked = amount - balance;
+            // Withdraw LP tokens from AeroGauge
+            IAeroGauge(gauge).withdraw(unstaked);
+            // Log amount withdrawn
+            stakedAmounts[gauge] -= unstaked;
+            unstakedAmounts[gauge] = 0;
+        } else {
+            unstakedAmounts[gauge] -= amount;
+            // If any leftovers and gauge is alive, try to stake them
+            if (isAeroGaugeAlive(gauge)) {
+                _stakeRemaining(gauge, token);
+            }
+        }
+        // Log amount unstaked from gauge and total sent to ActivePool
+        emit Withdrawn(gauge, token, amount, unstaked);
+        // Transfer LP tokens to ActivePool
+        IERC20(token).safeTransfer(msg.sender, amount);
+    }
 
-    // /// @dev Tries to stake any remaining unstaked tokens from AeroManager to the gauge if it is alive
-    // /// @param gauge Address of the gauge to stake remaining tokens from
-    // /// @param token Address of the token to stake
-    // function _stakeRemaining(address gauge, address token) internal {
-    //     uint256 balance = unstakedAmounts[gauge];
-    //     if (balance > 0) {
-    //         // Allow the gauge to pull tokens from the AeroManager on deposit()
-    //         IERC20(token).safeIncreaseAllowance(gauge, balance);
-    //         // Stake LP tokens into AeroGauge
-    //         IAeroGauge(gauge).deposit(balance);
-    //         // Log amount staked
-    //         stakedAmounts[gauge] += balance;
-    //         unstakedAmounts[gauge] = 0;
-    //         emit StakedRemaining(gauge, token, balance);
-    //     }
-    // }
+    /// @dev Tries to stake any remaining unstaked tokens from AeroManager to the gauge if it is alive
+    /// @param gauge Address of the gauge to stake remaining tokens from
+    /// @param token Address of the token to stake
+    function _stakeRemaining(address gauge, address token) internal {
+        uint256 balance = unstakedAmounts[gauge];
+        if (balance > 0) {
+            // Allow the gauge to pull tokens from the AeroManager on deposit()
+            IERC20(token).safeIncreaseAllowance(gauge, balance);
+            // Stake LP tokens into AeroGauge
+            IAeroGauge(gauge).deposit(balance);
+            // Log amount staked
+            stakedAmounts[gauge] += balance;
+            unstakedAmounts[gauge] = 0;
+            emit StakedRemaining(gauge, token, balance);
+        }
+    }
 
-    // /// @notice Pull accrued AERO from a gauge, pay the treasury fee, and credit the net to the current epoch bucket
-    // /// @dev Callable by anyone; reverts if the gauge's current epoch is already closed or reward token mismatches `aeroTokenAddress`
-    // /// @param gauge Gauge to claim rewards from
-    // function claim(address gauge) external nonReentrant {
-    //     require(_registeredGauges[gauge], "AeroManager: Gauge is not registered");
-    //     uint256 currentEpoch = currentEpochs[gauge];
-    //     require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
-    //     require(IAeroGauge(gauge).rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
+    /// @notice Pull accrued AERO from a gauge, pay the treasury fee, and credit the net to the current epoch bucket
+    /// @dev Callable by anyone; reverts if the gauge's current epoch is already closed or reward token mismatches `aeroTokenAddress`
+    /// @param gauge Gauge to claim rewards from
+    function claim(address gauge) external nonReentrant {
+        require(_registeredGauges[gauge], "AeroManager: Gauge is not registered");
+        uint256 currentEpoch = currentEpochs[gauge];
+        require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
+        // v2:
+        // require(IAeroGauge(gauge).rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
+        // v3:
+        require(rewardTokenOf(gauge) == aeroTokenAddress, "AeroManager: Reward token does not match");
 
-    //     // Claim AERO from AeroGauge
-    //     uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
-    //     IAeroGauge(gauge).getReward(address(this));
-    //     uint256 postBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
-    //     uint256 claimedAmount = postBalance - preBalance;
+        // Claim AERO from AeroGauge
+        uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
+        // v2:
+        // IAeroGauge(gauge).getReward(address(this));
+        // v3:
+        _claimEmissions(IAeroV2Gauge(gauge));
+        uint256 postBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
+        uint256 claimedAmount = postBalance - preBalance;
 
-    //     // Send a percentage of AERO to timelock treasury address
-    //     uint256 _claimFee = _getClaimFee(claimedAmount);
-    //     IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, _claimFee);
+        // Send a percentage of AERO to timelock treasury address
+        uint256 _claimFee = _getClaimFee(claimedAmount);
+        IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, _claimFee);
 
-    //     // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
-    //     uint256 rewardAmount = claimedAmount - _claimFee;
-    //     _claimedAero[aeroTokenAddress] += rewardAmount; // Subtract the fee from the total claimed amount
+        // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
+        uint256 rewardAmount = claimedAmount - _claimFee;
+        _claimedAero[aeroTokenAddress] += rewardAmount; // Subtract the fee from the total claimed amount
         
-    //     claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
+        claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
 
-    //     emit Claimed(gauge, claimedAmount, _claimFee, currentEpoch);
-    // }
+        emit Claimed(gauge, claimedAmount, _claimFee, currentEpoch);
+    }
 
     /// @notice Claim AERO emissions from all existing trove accounts in a branch
     /// @dev Callable by anyone. Not nonReentrant: accounts call back into receiveAeroRewards.
@@ -547,12 +558,50 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         emit ClaimFeeUpdateCancelled(oldFee, claimFee);
     }
 
+    function rewardTokenOf(address _gauge) public view returns (address) {
+        IAeroLeafVoter leafVoter = IAeroLeafVoter(IAeroGauge(_gauge).voter());
+
+        if (block.chainid != ILeafMessageOrchestrator(leafVoter.ORCHESTRATOR()).ROOT_CHAIN_ID()) {
+            return address(leafVoter.RECEIPT_TOKEN());
+        }
+
+        IAeroRootLocalAdapter adapter =
+            IAeroRootLocalAdapter(address(ILeafMessageOrchestrator(leafVoter.ORCHESTRATOR()).adapter()));
+
+        return IAeroRootMessageOrchestrator(adapter.ROOT_MESSAGE_ORCHESTRATOR())
+            .VOTER()
+            .MINTER()
+            .TOKEN();
+    }
+
     /// @notice Checks if the AeroGauge is alive
     /// @dev Gauges can be killed and revived, so we need to check if they are alive. When not alive, deposits into the gauge are reverted.
     /// @param _gauge Address of the gauge to check
     /// @return True if the gauge is alive, false otherwise
     function isAeroGaugeAlive(address _gauge) public view returns (bool) {
-        return IAeroVoter(IAeroGauge(_gauge).voter()).isAlive(_gauge);
+        // v2:
+        // return IAeroVoter(IAeroGauge(_gauge).voter()).isAlive(_gauge);
+        // v3:
+        IAeroLeafVoter leafVoter = IAeroLeafVoter(IAeroGauge(_gauge).voter());
+
+        return leafVoter.isActivated(_gauge)
+            && leafVoter.FACTORY_REGISTRY().emissionCap(_gauge) > 0
+            && leafVoter.chainStatus() == IAeroVoterCommon.ChainStatus.Active
+            && leafVoter.emissionsPerVP() > 0;
+    }
+
+    function _claimEmissions(IAeroV2Gauge _gauge) internal {
+        if (
+            _gauge.balanceOf(address(this)) > 0 || _gauge.rewards(address(this)) > 0
+                || _gauge.deferredEmissions(address(this)) > 0
+        ) {
+            IAeroGaugeFactory.PenaltyConfig memory penaltyConfig =
+                IAeroGaugeFactory(_gauge.gaugeFactory()).effectivePenaltyConfig(address(_gauge));
+            uint256 depositBlock = _gauge.depositBlock(address(this));
+            if (penaltyConfig.penaltyRate == 0 || block.number - depositBlock >= penaltyConfig.minStakeBlocks) {
+                _gauge.claimEmissions(address(this), address(this));
+            }
+        }
     }
 
     /// @notice Treasury fee as percentage of total claimed amount (`amount * claimFee / _100pct`)
@@ -583,7 +632,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         require(!collSurplusPools[address(cs)], "AeroManager: CollSurplusPool already added");
 
         // Double check stakingToken and rewardToken addresses from ActivePool matches in Gauge
-        IAeroGauge gauge = IAeroGauge(ap.aeroGaugeAddress());
+        IAeroV2Gauge gauge = IAeroV2Gauge(ap.aeroGaugeAddress());
         require(gauge.stakingToken() == address(ap.collToken()), "AeroManager: Staking token does not match");
         // v2:
         // require(gauge.rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");

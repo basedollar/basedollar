@@ -5,6 +5,7 @@ pragma solidity 0.8.24;
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
+import "./Interfaces/IAeroV2Gauge.sol";
 import "./Interfaces/IAeroGauge.sol";
 import "./Interfaces/IAeroManager.sol";
 import "./Interfaces/ITroveAccount.sol";
@@ -23,10 +24,10 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
     IActivePool public immutable activePool;
     IERC20 public immutable collToken;
     IERC20 public immutable aeroToken;
-    IAeroGauge public immutable gauge;
+    IAeroV2Gauge public immutable gauge;
     IAeroManager public immutable aeroManager;
 
-    constructor(IAddressesRegistry _addressesRegistry, IAeroGauge _gauge) {
+    constructor(IAddressesRegistry _addressesRegistry, IAeroV2Gauge _gauge) {
         // Lock the implementation. Clones have their own uninitialized storage.
         _initialized = true;
         activePool = _addressesRegistry.activePool();

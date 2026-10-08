@@ -7,6 +7,7 @@ import "../BorrowerOperations.sol";
 import "../Interfaces/IPriceFeed.sol";
 import "../Interfaces/IAeroPool.sol";
 import "../Interfaces/IAeroGauge.sol";
+import "../Interfaces/IAeroV2Gauge.sol";
 import {DECIMAL_PRECISION} from "../Dependencies/Constants.sol";
 import "../Dependencies/LiquityMath.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -57,7 +58,7 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     IBorrowerOperations public immutable borrowerOperations;
 
     IAeroPool public immutable pool;
-    IAeroGauge public immutable gauge;
+    IAeroV2Gauge public immutable gauge;
 
     bool public immutable isStablePair;
 
@@ -79,7 +80,7 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     
     constructor(
         address _borrowerOperationsAddress, 
-        IAeroGauge _gauge, 
+        IAeroV2Gauge _gauge, 
         address _token0UsdOracleAddress,
         address _token1UsdOracleAddress,
         uint256 _token0UsdStalenessThreshold,

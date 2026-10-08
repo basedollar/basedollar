@@ -91,12 +91,16 @@ contract DefaultPool is IDefaultPool {
         // If the collateral is AERO LP, do not pull it from the sender.
         // We only update accounting and keep it staked in AeroManager.
         // v2:
-        // if (!IActivePool(activePoolAddress).isAeroLPCollateral()) {
-        //     collToken.safeTransferFrom(msg.sender, address(this), _amount);
-        // }
+        if (!IActivePool(activePoolAddress).isAeroLPCollateral()) {
+            collToken.safeTransferFrom(msg.sender, address(this), _amount);
+        }
         // v3:
-        // Liquidated collateral has already been unstaked into ActivePool.
-        collToken.safeTransferFrom(msg.sender, address(this), _amount);
+        // Liquidated collateral has already been unstaked from individual TroveAccount
+        // into ActivePool and restaked via AeroManager.
+        // collToken.safeTransferFrom(msg.sender, address(this), _amount);
+
+        // Send to AeroManager to stake if Aero LP collateral
+        // Prevents accrued LP fees dusting stuck in protocol
 
         emit DefaultPoolCollBalanceUpdated(newCollBalance);
     }

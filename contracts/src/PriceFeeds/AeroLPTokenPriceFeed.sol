@@ -4,12 +4,12 @@ pragma solidity 0.8.24;
 
 
 import "./AeroLPTokenPriceFeedBase.sol";
-import "../Interfaces/IAeroGauge.sol";
+import "../Interfaces/IAeroV2Gauge.sol";
 
 contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
     constructor(
         address _borrowerOperationsAddress, 
-        IAeroGauge _gauge,
+        IAeroV2Gauge _gauge,
         address _token0UsdOracleAddress,
         address _token1UsdOracleAddress,
         uint256 _token0UsdStalenessThreshold,

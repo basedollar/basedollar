@@ -1,130 +1,226 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.4;
 
 interface IAeroGauge {
-    error NotAlive();
-    error NotAuthorized();
-    error NotVoter();
-    error NotTeam();
-    error RewardRateTooHigh();
-    error ZeroAmount();
-    error ZeroRewardRate();
+  /**
+   * @notice Emitted when the gauge collects pool fees through the VotingRewardsManager.
+   * @param _caller The address that triggered fee collection.
+   * @param _claimed0 The amount of token0 fees collected.
+   * @param _claimed1 The amount of token1 fees collected.
+   */
+  event ClaimFees(address indexed _caller, uint256 _claimed0, uint256 _claimed1);
 
-    event Deposit(address indexed from, address indexed to, uint256 amount);
-    event Withdraw(address indexed from, uint256 amount);
-    event NotifyReward(address indexed from, uint256 amount);
-    event ClaimFees(address indexed from, uint256 claimed0, uint256 claimed1);
-    event ClaimRewards(address indexed from, uint256 amount);
+  /**
+   * @notice Emitted when an account grants or revokes claim approval for an operator
+   * @param _account The account whose approval state changed
+   * @param _operator The operator being approved or revoked
+   * @param _approved The new approval state
+   */
+  event ClaimApproval(address indexed _account, address indexed _operator, bool _approved);
 
-    /// @notice Address of the pool LP token which is deposited (staked) for rewards
-    function stakingToken() external view returns (address);
+  /**
+   * @notice Emitted when an owner grants or revokes blanket withdrawal approval for an operator
+   * @param _owner The owner whose approval changed
+   * @param _operator The operator being approved or revoked
+   * @param _approved The new approval state
+   */
+  event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);
 
-    /// @notice Address of the token (AERO) rewarded to stakers
-    function rewardToken() external view returns (address);
+  /**
+   * @notice Emitted when a referral's deferred emissions are claimed.
+   * @param _referral The referral address whose deferred emissions were claimed.
+   * @param _recipient The recipient of the claimed emissions.
+   * @param _amount The deferred referral emissions paid to the recipient.
+   */
+  event ReferralEmissionsClaimed(address indexed _referral, address indexed _recipient, uint256 _amount);
 
-    /// @notice Address of the FeesVotingReward contract linked to the gauge
-    function feesVotingReward() external view returns (address);
+  /**
+   * @notice Thrown when the caller is neither the account nor an approved operator.
+   */
+  error NotAuthorized();
 
-    /// @notice Address of Protocol Voter
-    function voter() external view returns (address);
+  /**
+   * @notice Thrown when a caller other than the VotingRewardsManager attempts to collect fees.
+   */
+  error NotVotingRewardsManager();
 
-    /// @notice Address of Protocol Voting Escrow
-    function ve() external view returns (address);
+  /**
+   * @notice Thrown when a zero address is supplied where a non-zero address is required.
+   */
+  error ZeroAddress();
 
-    /// @notice Returns if gauge is linked to a legitimate Protocol pool
-    function isPool() external view returns (bool);
+  /**
+   * @notice Deposit a staked position
+   * @param _lp A token amount for V2 gauges or an NFT token ID for CL gauges
+   */
+  function deposit(uint256 _lp) external;
 
-    /// @notice Timestamp end of current rewards period
-    function periodFinish() external view returns (uint256);
+  /**
+   * @notice Deposit a staked position on behalf of an owner
+   * @dev For V2 gauges, approved MetaRouters are trusted to restrict `_owner` to the account that authorized the
+   *      routed deposit; otherwise, they could reset another account's early-unstake penalty timer.
+   * @param _lp A token amount for V2 gauges or an NFT token ID for CL gauges
+   * @param _owner The address credited as the staked owner
+   */
+  function depositFor(uint256 _lp, address _owner) external;
 
-    /// @notice Current reward rate of rewardToken to distribute per second
-    function rewardRate() external view returns (uint256);
+  /**
+   * @notice Withdraw a staked position owned by the caller
+   * @dev Defers accrued emissions when emission minting reverts
+   * @param _lp A token amount for V2 gauges or an NFT token ID for CL gauges
+   */
+  function withdraw(uint256 _lp) external;
 
-    /// @notice Most recent timestamp contract has updated state
-    function lastUpdateTime() external view returns (uint256);
+  /**
+   * @notice Withdraw a staked position on behalf of an account
+   * @dev Defers accrued emissions when emission minting reverts
+   * @param _lp A token amount for V2 gauges or an NFT token ID for CL gauges
+   * @param _account The position owner
+   */
+  function withdrawFrom(uint256 _lp, address _account) external;
 
-    /// @notice Most recent stored value of rewardPerToken
-    function rewardPerTokenStored() external view returns (uint256);
+  /**
+   * @notice Claim accrued and deferred emissions
+   * @dev Requires the caller to be the LP or an operator with claim approval
+   * @param _account The address of the LP staker whose emissions are being claimed
+   * @param _recipient The recipient of the claimed emissions
+   */
+  function claimEmissions(address _account, address _recipient) external;
 
-    /// @notice Amount of stakingToken deposited for rewards
-    function totalSupply() external view returns (uint256);
+  /**
+   * @notice Claims a referral's deferred emissions.
+   * @dev Requires the caller to be the referral or an operator with claim approval.
+   * @param _referral The referral address whose deferred emissions are being claimed.
+   * @param _recipient The recipient of the claimed emissions.
+   */
+  function claimReferralEmissions(address _referral, address _recipient) external;
 
-    /// @notice Get the amount of stakingToken deposited by an account
-    function balanceOf(address) external view returns (uint256);
+  /**
+   * @notice Grant or revoke an operator's approval to claim emissions on behalf of the caller
+   * @param _operator The operator to approve or revoke
+   * @param _approved True to approve, false to revoke
+   */
+  function approveForClaim(address _operator, bool _approved) external;
 
-    /// @notice Cached rewardPerTokenStored for an account based on their most recent action
-    function userRewardPerTokenPaid(address) external view returns (uint256);
+  /**
+   * @notice Grant or revoke blanket withdrawal authorization for an operator over all staked positions
+   * @param _operator The operator to authorize or revoke
+   * @param _approved True to grant blanket approval, false to revoke
+   */
+  function setApprovalForAll(address _operator, bool _approved) external;
 
-    /// @notice Cached amount of rewardToken earned for an account
-    function rewards(address) external view returns (uint256);
+  /**
+   * @notice Approve an operator to withdraw a staked position
+   * @param _operator The operator to authorize
+   * @param _lp A token amount for V2 gauges or an NFT token ID for CL gauges
+   */
+  function approve(address _operator, uint256 _lp) external;
 
-    /// @notice View to see the rewardRate given the timestamp of the start of the epoch
-    function rewardRateByEpoch(uint256) external view returns (uint256);
+  /**
+   * @notice Collect currently claimable pool fees directly to the VotingRewardsManager.
+   * @dev Only callable by the VotingRewardsManager.
+   * @return _amount0 The token0 fees collected.
+   * @return _amount1 The token1 fees collected.
+   */
+  function collectFees() external returns (uint256 _amount0, uint256 _amount1);
 
-    /// @notice Cached amount of fees generated from the Pool linked to the Gauge of token0
-    function fees0() external view returns (uint256);
+  /**
+   * @notice LeafVoter contract used for gauge settlement.
+   * @return The address of the LeafVoter.
+   */
+  function voter() external view returns (address);
 
-    /// @notice Cached amount of fees generated from the Pool linked to the Gauge of token1
-    function fees1() external view returns (uint256);
+  /**
+   * @notice Address of the factory that created this gauge.
+   * @return The address of the gauge factory.
+   */
+  function gaugeFactory() external view returns (address);
 
-    /// @notice Get the current reward rate per unit of stakingToken deposited
-    function rewardPerToken() external view returns (uint256 _rewardPerToken);
+  /**
+   * @notice Address of the VotingRewardsManager contract linked to the gauge.
+   * @return The address of the VotingRewardsManager.
+   */
+  function votingRewardsManager() external view returns (address);
 
-    /// @notice Returns the last time the reward was modified or periodFinish if the reward has ended
-    function lastTimeRewardApplicable() external view returns (uint256 _time);
+  /**
+   * @notice Returns if gauge is linked to a legitimate pool.
+   * @return Whether the gauge is linked to a legitimate pool.
+   */
+  function isPool() external view returns (bool);
 
-    /// @notice Returns accrued balance to date from last claim / first deposit.
-    function earned(address _account) external view returns (uint256 _earned);
+  /**
+   * @notice The gauge's cursor into the LeafVoter's cumulative reward share accumulator
+   * @return The cumulative reward share at the gauge's last settlement
+   */
+  function lastCumulativeRewardShare() external view returns (uint256);
 
-    /// @notice Total amount of rewardToken to distribute for the current rewards period
-    function left() external view returns (uint256 _left);
+  /**
+   * @notice Estimates the accrued and deferred emissions claimable by an account
+   * @dev Rewards accrued since the last settlement are an estimate
+   * @param _account The address of the LP staker
+   * @return The estimated claimable amount
+   */
+  function earned(address _account) external view returns (uint256);
 
-    /// @notice Retrieve rewards for an address.
-    /// @dev Throws if not called by same address or voter.
-    /// @param _account .
-    function getReward(address _account) external;
+  /**
+   * @notice Whether an operator is approved to claim emissions on behalf of an account
+   * @param _account The account that granted the approval
+   * @param _operator The operator being queried
+   * @return True if the operator is approved
+   */
+  function approvedForClaim(address _account, address _operator) external view returns (bool);
 
-    /// @notice Claim emissions for an account to a recipient
-    function claimEmissions(address _account, address _recipient) external;
+  /**
+   * @notice Deferred referral emissions stored for a referral.
+   * @param _referral The referral credited with the deferred emissions.
+   * @return The referral's deferred emissions.
+   */
+  function deferredReferralEmissions(address _referral) external view returns (uint256);
 
-    /// @notice Factory supplying the effective staking penalty configuration
-    function gaugeFactory() external view returns (address);
+  /**
+   * @notice Returns whether an operator has blanket withdrawal authorization for an owner's positions
+   * @param _owner The staked position owner
+   * @param _operator The candidate operator
+   * @return True if blanket approval is active
+   */
+  function isApprovedForAll(address _owner, address _operator) external view returns (bool);
 
-    /// @notice Block of the account's most recent deposit
-    function depositBlock(address _account) external view returns (uint256);
-
-    /// @notice Emissions deferred when a withdrawal could not mint rewards
-    function deferredEmissions(address _account) external view returns (uint256);
-
-    /// @notice Deposit LP tokens into gauge for msg.sender
-    /// @param _amount .
-    function deposit(uint256 _amount) external;
-
-    /// @notice Deposit LP tokens into gauge for any user
-    /// @param _amount .
-    /// @param _recipient Recipient to give balance to
-    function deposit(uint256 _amount, address _recipient) external;
-
-    /// @notice Withdraw LP tokens for user
-    /// @param _amount .
-    function withdraw(uint256 _amount) external;
-
-    /// @dev Notifies gauge of gauge rewards. Assumes gauge reward tokens is 18 decimals.
-    ///      If not 18 decimals, rewardRate may have rounding issues.
-    function notifyRewardAmount(uint256 amount) external;
-
-    /// @dev Notifies gauge of gauge rewards without distributing its fees.
-    ///      Assumes gauge reward tokens is 18 decimals.
-    ///      If not 18 decimals, rewardRate may have rounding issues.
-    function notifyRewardWithoutClaim(uint256 amount) external;
-
+  /**
+   * @notice Return currently claimable pool fees without moving tokens or mutating state.
+   * @return _amount0 The currently pending token0 fees.
+   * @return _amount1 The currently pending token1 fees.
+   */
+  function pendingFees() external view returns (uint256 _amount0, uint256 _amount1);
 }
 
 interface IAeroGaugeFactory {
+    /**
+     * @notice Early unstake penalty configuration shared by gauges created by this factory.
+     * @param minStakeBlocks Factory-wide default minimum staking period in blocks.
+     * @param penaltyRate Penalty rate in PIPS. Zero disables the penalty.
+     */
     struct PenaltyConfig {
         uint256 minStakeBlocks;
         uint256 penaltyRate;
     }
 
-    function effectivePenaltyConfig(address _gauge) external view returns (PenaltyConfig memory);
+    /**
+   * @notice Factory-wide early unstake penalty defaults.
+   * @return _config Current penalty configuration.
+   */
+  function penaltyConfig() external view returns (PenaltyConfig memory _config);
+
+  /**
+   * @notice Effective penalty config for `_gauge`.
+   * @param _gauge The gauge to query.
+   * @return The penalty config with the effective minimum-stake threshold.
+   */
+  function effectivePenaltyConfig(address _gauge) external view returns (PenaltyConfig memory);
+
+  /**
+   * @notice Resolves the effective minimum-stake threshold for `_gauge`.
+   * @param _gauge Address of the gauge.
+   * @return _minStakeBlocks Effective minimum staking period in blocks.
+   */
+  function minStakeBlocks(address _gauge) external view returns (uint256 _minStakeBlocks);
 }
