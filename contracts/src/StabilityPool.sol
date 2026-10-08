@@ -545,7 +545,11 @@ contract StabilityPool is LiquityBase, IStabilityPool, IStabilityPoolEvents {
         uint256 newCollBalance = collBalance - _collAmount;
         collBalance = newCollBalance;
         emit StabilityPoolCollBalanceUpdated(newCollBalance);
-        _unstakeIfAeroLPCollateral(_collAmount);
+        // v2:
+        // _unstakeIfAeroLPCollateral(_collAmount);
+        // v3:
+        // Liquidation collateral is already unstaked and held by StabilityPool.
+
         collToken.safeTransfer(msg.sender, _collAmount);
     }
 

@@ -8,7 +8,9 @@ interface IDefaultPool {
     // --- Functions ---
     function getCollBalance() external view returns (uint256);
     function getBoldDebt() external view returns (uint256);
-    function sendCollToActivePool(uint256 _amount) external;
+    // v2:
+    // function sendCollToActivePool(uint256 _amount) external;
+    function sendCollToActivePool(uint256 _troveId, uint256 _amount) external;
     function receiveColl(uint256 _amount) external;
 
     function increaseBoldDebt(uint256 _amount) external;

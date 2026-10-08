@@ -18,6 +18,7 @@ import "./ICollateralRegistry.sol";
 import "./IInterestRouter.sol";
 import "./IPriceFeed.sol";
 import "./IAeroManager.sol";
+import "./ITroveAccount.sol";
 
 interface IAddressesRegistry {
     struct AddressVars {
@@ -40,6 +41,7 @@ interface IAddressesRegistry {
         IBoldToken boldToken;
         IWETH WETH;
         IAeroManager aeroManager;
+        ITroveAccount troveAccountImplementation;
     }
 
     function CCR() external returns (uint256);
@@ -68,6 +70,7 @@ interface IAddressesRegistry {
     function boldToken() external view returns (IBoldToken);
     function WETH() external returns (IWETH);
     function debtLimit() external returns (uint256);
+    function troveAccountImplementation() external view returns (ITroveAccount);
 
     function aeroManager() external view returns (IAeroManager);
 

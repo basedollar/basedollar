@@ -12,6 +12,12 @@ import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/Constants.sol";
 import "./Interfaces/ICollSurplusPool.sol";
+import "./Interfaces/ITroveAccount.sol";
+
+// v3:
+// TODO:
+// - Handling batch AERO claims from TroveAccounts (looping through TroveManager.TroveId[])
+// - other changes to the codebase to support v3
 
 /// @title AeroManager
 /// @notice Stakes Aero LP collateral in gauges, claims AERO rewards, routes a configurable fee to treasury, and lets governance split the remainder across borrowers for withdrawal via `claimRewards`.
@@ -333,6 +339,33 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         emit Claimed(gauge, claimedAmount, _claimFee, currentEpoch);
     }
 
+    /// @notice Receive emissions claimed by an ActivePool's trove account
+    function receiveAeroRewards(address gauge, uint256 amount) external nonReentrant {
+        ITroveAccount troveAccount = ITroveAccount(msg.sender);
+        address activePool = troveAccount.activePoolAddress();
+        require(activePools[activePool], "AeroManager: Account is not linked to an active pool");
+        require(
+            IActivePool(activePool).troveAccounts(troveAccount.troveId()) == msg.sender,
+            "AeroManager: Caller is not a trove account"
+        );
+        require(IActivePool(activePool).aeroGaugeAddress() == gauge, "AeroManager: Gauge mismatch");
+        require(address(troveAccount.aeroToken()) == aeroTokenAddress, "AeroManager: Reward token does not match");
+
+        uint256 currentEpoch = currentEpochs[gauge];
+        require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
+
+        uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
+        IERC20(aeroTokenAddress).safeTransferFrom(msg.sender, address(this), amount);
+        uint256 claimedAmount = IERC20(aeroTokenAddress).balanceOf(address(this)) - preBalance;
+        uint256 _claimFee = _getClaimFee(claimedAmount);
+        IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, _claimFee);
+
+        uint256 rewardAmount = claimedAmount - _claimFee;
+        _claimedAero[aeroTokenAddress] += rewardAmount;
+        claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
+        emit Claimed(gauge, claimedAmount, _claimFee, currentEpoch);
+    }
+
     /// @notice Mark the gauge's current epoch closed so its rewards can be distributed
     /// @param gauge Gauge whose `currentEpochs[gauge]` is sealed
     function closeCurrentEpoch(address gauge) external onlyGovernor {
@@ -508,7 +541,9 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         // Double check stakingToken and rewardToken addresses from ActivePool matches in Gauge
         IAeroGauge gauge = IAeroGauge(ap.aeroGaugeAddress());
         require(gauge.stakingToken() == address(ap.collToken()), "AeroManager: Staking token does not match");
-        require(gauge.rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
+        // v2:
+        // require(gauge.rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
+        // Trove accounts use the payout token configured in AeroManager.
 
         activePools[activePool] = true;
         stabilityPools[address(sp)] = true;

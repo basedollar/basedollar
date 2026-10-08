@@ -79,7 +79,10 @@ contract CollSurplusPool is ICollSurplusPool {
         collBalance = collBalance - claimableColl;
         emit CollSent(_account, claimableColl);
 
-        _unstakeIfAeroLPCollateral(claimableColl);
+        // v2:
+        // _unstakeIfAeroLPCollateral(claimableColl);
+        // v3:
+        // Liquidation collateral is already unstaked and held by CollSurplusPool.
 
         collToken.safeTransfer(_account, claimableColl);
     }

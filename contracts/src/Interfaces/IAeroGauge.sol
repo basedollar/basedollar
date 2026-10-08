@@ -84,6 +84,18 @@ interface IAeroGauge {
     /// @param _account .
     function getReward(address _account) external;
 
+    /// @notice Claim emissions for an account to a recipient
+    function claimEmissions(address _account, address _recipient) external;
+
+    /// @notice Factory supplying the effective staking penalty configuration
+    function gaugeFactory() external view returns (address);
+
+    /// @notice Block of the account's most recent deposit
+    function depositBlock(address _account) external view returns (uint256);
+
+    /// @notice Emissions deferred when a withdrawal could not mint rewards
+    function deferredEmissions(address _account) external view returns (uint256);
+
     /// @notice Deposit LP tokens into gauge for msg.sender
     /// @param _amount .
     function deposit(uint256 _amount) external;
@@ -106,4 +118,13 @@ interface IAeroGauge {
     ///      If not 18 decimals, rewardRate may have rounding issues.
     function notifyRewardWithoutClaim(uint256 amount) external;
 
+}
+
+interface IAeroGaugeFactory {
+    struct PenaltyConfig {
+        uint256 minStakeBlocks;
+        uint256 penaltyRate;
+    }
+
+    function effectivePenaltyConfig(address _gauge) external view returns (PenaltyConfig memory);
 }

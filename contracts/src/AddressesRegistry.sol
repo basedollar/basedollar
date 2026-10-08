@@ -26,6 +26,7 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
     IBoldToken public boldToken;
     IWETH public WETH;
     IAeroManager public aeroManager;
+    ITroveAccount public troveAccountImplementation;
 
     // Critical system collateral ratio. If the system's total collateral ratio (TCR) falls below the CCR, some borrowing operation restrictions are applied
     uint256 public immutable CCR;
@@ -71,6 +72,8 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
     event CollateralRegistryAddressChanged(address _collateralRegistryAddress);
     event BoldTokenAddressChanged(address _boldTokenAddress);
     event WETHAddressChanged(address _wethAddress);
+    event TroveAccountImplementationChanged(address _troveAccountImplementationAddress);
+    event AeroManagerAddressChanged(address _aeroManagerAddress);
 
     constructor(
         address _owner,
@@ -119,6 +122,7 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
         boldToken = _vars.boldToken;
         WETH = _vars.WETH;
         aeroManager = _vars.aeroManager;
+        troveAccountImplementation = _vars.troveAccountImplementation;
 
         emit CollTokenAddressChanged(address(_vars.collToken));
         emit BorrowerOperationsAddressChanged(address(_vars.borrowerOperations));
@@ -138,6 +142,8 @@ contract AddressesRegistry is Ownable, IAddressesRegistry {
         emit CollateralRegistryAddressChanged(address(_vars.collateralRegistry));
         emit BoldTokenAddressChanged(address(_vars.boldToken));
         emit WETHAddressChanged(address(_vars.WETH));
+        emit AeroManagerAddressChanged(address(_vars.aeroManager));
+        emit TroveAccountImplementationChanged(address(_vars.troveAccountImplementation));
 
         _renounceOwnership();
     }

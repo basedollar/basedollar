@@ -62,16 +62,20 @@ contract DefaultPool is IDefaultPool {
 
     // --- Pool functionality ---
 
-    // v3: sendCollToActivePool(uint256 _troveId, uint256 _amount)
-    function sendCollToActivePool(uint256 _amount) external override {
+    // v2:
+    // function sendCollToActivePool(uint256 _amount) external override {
+    // v3:
+    function sendCollToActivePool(uint256 _troveId, uint256 _amount) external override {
         _requireCallerIsTroveManager();
         uint256 newCollBalance = collBalance - _amount;
         collBalance = newCollBalance;
         emit DefaultPoolCollBalanceUpdated(newCollBalance);
 
         // Send Coll to Active Pool and increase its recorded Coll balance
-        // v3: IActivePool(activePoolAddress).receiveColl(_troveId, _amount);
-        IActivePool(activePoolAddress).receiveColl(_amount);
+        // v2:
+        // IActivePool(activePoolAddress).receiveColl(_amount);
+        // v3:
+        IActivePool(activePoolAddress).receiveColl(_troveId, _amount);
     }
 
     function receiveColl(uint256 _amount) external {
@@ -86,9 +90,13 @@ contract DefaultPool is IDefaultPool {
         // new
         // If the collateral is AERO LP, do not pull it from the sender.
         // We only update accounting and keep it staked in AeroManager.
-        if (!IActivePool(activePoolAddress).isAeroLPCollateral()) {
-            collToken.safeTransferFrom(msg.sender, address(this), _amount);
-        }
+        // v2:
+        // if (!IActivePool(activePoolAddress).isAeroLPCollateral()) {
+        //     collToken.safeTransferFrom(msg.sender, address(this), _amount);
+        // }
+        // v3:
+        // Liquidated collateral has already been unstaked into ActivePool.
+        collToken.safeTransferFrom(msg.sender, address(this), _amount);
 
         emit DefaultPoolCollBalanceUpdated(newCollBalance);
     }

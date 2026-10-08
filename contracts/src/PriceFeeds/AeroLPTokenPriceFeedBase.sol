@@ -90,7 +90,12 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         require(address(_gauge) != address(0), "Gauge is 0 address");
 
         pool = IAeroPool(gauge.stakingToken());
-        isStablePair = pool.stable();
+        // v2:
+        // isStablePair = pool.stable();
+        // v3:
+        bytes32 poolType = pool.POOL_TYPE();
+        require(poolType == bytes32("V2_STABLE") || poolType == bytes32("V2_VOLATILE"), "Unsupported pool type");
+        isStablePair = poolType == bytes32("V2_STABLE");
 
         token0PoolDecimals = IERC20Metadata(pool.token0()).decimals();
         token1PoolDecimals = IERC20Metadata(pool.token1()).decimals();
@@ -168,16 +173,17 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         uint256 priceAverageCumulative1;
         // v3:
         // No longer need the `usedLength` and `timeElapsed`
-        // for (uint256 i = 0; i < points; i++) {
-        //     priceAverageCumulative0 += results.prices0[i];
-        //     priceAverageCumulative1 += results.prices1[i];
-        // }
-        // return (priceAverageCumulative0 / granularity, priceAverageCumulative1 / granularity);
-        for (uint256 i = 0; i < results.usedLength; i++) {
-            priceAverageCumulative0 += results.prices0[i] * results.timeElapsed[i];
-            priceAverageCumulative1 += results.prices1[i] * results.timeElapsed[i];
+        for (uint256 i = 0; i < granularity; i++) {
+            priceAverageCumulative0 += results.prices0[i];
+            priceAverageCumulative1 += results.prices1[i];
         }
-        return (priceAverageCumulative0 / results.totalTimeElapsed, priceAverageCumulative1 / results.totalTimeElapsed);
+        return (priceAverageCumulative0 / granularity, priceAverageCumulative1 / granularity);
+        // v2:
+        // for (uint256 i = 0; i < results.usedLength; i++) {
+        //     priceAverageCumulative0 += results.prices0[i] * results.timeElapsed[i];
+        //     priceAverageCumulative1 += results.prices1[i] * results.timeElapsed[i];
+        // }
+        // return (priceAverageCumulative0 / results.totalTimeElapsed, priceAverageCumulative1 / results.totalTimeElapsed);
     }
 
     ////////////////////////////////////////////////////////////////
@@ -191,9 +197,10 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     struct SampleResults {
         uint256[] prices0; // Prices of token0
         uint256[] prices1; // Prices of token1
-        uint256[] timeElapsed; // Time elapsed between each observation
-        uint256 totalTimeElapsed; // Total time elapsed in the sample
-        uint256 usedLength; // Total length of the sample used (may not equal array length)
+        // v2:
+        // uint256[] timeElapsed; // Time elapsed between each observation
+        // uint256 totalTimeElapsed; // Total time elapsed in the sample
+        // uint256 usedLength; // Total length of the sample used (may not equal array length)
     }
 
     /// @notice Sample the pool reserves and calculate the prices
@@ -209,61 +216,64 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
     ) internal view returns (SampleResults memory results) {
         results.prices0 = new uint256[](points);
         results.prices1 = new uint256[](points);
-        results.timeElapsed = new uint256[](points);
+        // v2:
+        // results.timeElapsed = new uint256[](points);
 
-        uint256 length = pool.observationLength() - 1;
-        uint256 index = 0;
-        uint256 maxTimeElapsed = OBSERVATION_PERIOD * points;
+        // v2:
+        // uint256 length = pool.observationLength() - 1;
+        // uint256 index = 0;
+        // uint256 maxTimeElapsed = OBSERVATION_PERIOD * points;
 
         // TODO: Change to work with Aero's 1-minute interval observations and read calls
         // -- Current idea for change --
         // v3:
-        // // Array of current and every time interval prior to `points` back
-        // uint256[] memory secondsAgo = new uint256[](points + 1);
-        // for (uint256 i; i < points + 1; i++) {
-        //     secondsAgo[i] = i * OBSERVATION_PERIOD;
-        // }
-        // (
-        //     uint256[] memory reserve0Cumulatives, 
-        //     uint256[] memory reserve1Cumulatives
-        // ) = pool.observe(secondsAgo);
+        // Array of current and every time interval prior to `points` back
+        uint32[] memory secondsAgo = new uint32[](points + 1);
+        for (uint256 i; i < points + 1; i++) {
+            secondsAgo[i] = uint32(i * OBSERVATION_PERIOD);
+        }
+        (
+            uint256[] memory reserve0Cumulatives,
+            uint256[] memory reserve1Cumulatives
+        ) = pool.observe(secondsAgo);
 
-        // for (uint256 i; i < points; i++) {
-        //     uint256 current = i;
-        //     uint256 prev = i + 1;
-        //     uint256 _reserve0 = (reserve0Cumulatives[current] - reserve0Cumulatives[prev]);
-        //     uint256 _reserve1 = reserve1Cumulatives[current] - reserve1Cumulatives[prev];
+        for (uint256 i; i < points; i++) {
+            uint256 current = i;
+            uint256 prev = i + 1;
+            uint256 _reserve0 = (reserve0Cumulatives[current] - reserve0Cumulatives[prev]) / OBSERVATION_PERIOD;
+            uint256 _reserve1 = (reserve1Cumulatives[current] - reserve1Cumulatives[prev]) / OBSERVATION_PERIOD;
+            results.prices0[i] = _getAmountOut(amount0In, pool.token0(), _reserve0, _reserve1);
+            results.prices1[i] = _getAmountOut(amount1In, pool.token1(), _reserve0, _reserve1);
+        }
+
+        // v2:
+        // for (uint256 i = length; i > length - points; i -= 1) {
+        //     IAeroPool.Observation memory prevObs = pool.observations(i - 1);
+        //     IAeroPool.Observation memory currentObs = pool.observations(i);
+        //     uint256 timeElapsed = currentObs.timestamp - prevObs.timestamp;
+        //     uint256 _reserve0 = (currentObs.reserve0Cumulative - prevObs.reserve0Cumulative) /
+        //         timeElapsed;
+        //     uint256 _reserve1 = (currentObs.reserve1Cumulative - prevObs.reserve1Cumulative) /
+        //         timeElapsed;
         //     results.prices0[index] = _getAmountOut(amount0In, pool.token0(), _reserve0, _reserve1);
         //     results.prices1[index] = _getAmountOut(amount1In, pool.token1(), _reserve0, _reserve1);
-        // }
-
-        for (uint256 i = length; i > length - points; i -= 1) {
-            IAeroPool.Observation memory prevObs = pool.observations(i - 1);
-            IAeroPool.Observation memory currentObs = pool.observations(i);
-            uint256 timeElapsed = currentObs.timestamp - prevObs.timestamp;
-            uint256 _reserve0 = (currentObs.reserve0Cumulative - prevObs.reserve0Cumulative) /
-                timeElapsed;
-            uint256 _reserve1 = (currentObs.reserve1Cumulative - prevObs.reserve1Cumulative) /
-                timeElapsed;
-            results.prices0[index] = _getAmountOut(amount0In, pool.token0(), _reserve0, _reserve1);
-            results.prices1[index] = _getAmountOut(amount1In, pool.token1(), _reserve0, _reserve1);
-            results.timeElapsed[index] = timeElapsed;
+        //     results.timeElapsed[index] = timeElapsed;
             
-            // index < length; length cannot overflow
-            unchecked {
-                index = index + 1;
-            }
+        //     // index < length; length cannot overflow
+        //     unchecked {
+        //         index = index + 1;
+        //     }
 
-            results.totalTimeElapsed += timeElapsed;
-            if (results.totalTimeElapsed >= maxTimeElapsed) {
-                // Cut off any overage from max time elapsed from the last observation and total time elapsed
-                uint256 overage = results.totalTimeElapsed - maxTimeElapsed;
-                results.timeElapsed[index - 1] = timeElapsed - overage;
-                results.totalTimeElapsed = maxTimeElapsed;
-                break;
-            }
-        }
-        results.usedLength = index;
+        //     results.totalTimeElapsed += timeElapsed;
+        //     if (results.totalTimeElapsed >= maxTimeElapsed) {
+        //         // Cut off any overage from max time elapsed from the last observation and total time elapsed
+        //         uint256 overage = results.totalTimeElapsed - maxTimeElapsed;
+        //         results.timeElapsed[index - 1] = timeElapsed - overage;
+        //         results.totalTimeElapsed = maxTimeElapsed;
+        //         break;
+        //     }
+        // }
+        // results.usedLength = index;
         return results;
     }
 

@@ -118,11 +118,19 @@ interface IAeroPool {
     /// @notice Get the number of observations recorded
     function observationLength() external view returns (uint256);
 
+    /// @notice Reserve cumulatives at each requested lookback in seconds
+    function observe(uint32[] calldata secondsAgo)
+        external
+        view
+        returns (uint256[] memory reserve0Cumulatives, uint256[] memory reserve1Cumulatives);
+
     /// @notice Get the value of the most recent observation
     function lastObservation() external view returns (Observation memory);
 
     /// @notice True if pool is stable, false if volatile
-    function stable() external view returns (bool);
+    // v2:
+    // function stable() external view returns (bool);
+    function POOL_TYPE() external view returns (bytes32);
 
     /// @notice Produces the cumulative price using counterfactuals to save gas and avoid a call to sync.
     function currentCumulativePrices()
