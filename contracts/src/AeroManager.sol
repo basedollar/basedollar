@@ -13,6 +13,7 @@ import "./Dependencies/Ownable.sol";
 import "./Dependencies/Constants.sol";
 import "./Interfaces/ICollSurplusPool.sol";
 import "./Interfaces/ITroveAccount.sol";
+import "./Interfaces/ITroveManager.sol";
 
 // v3:
 // TODO:
@@ -231,124 +232,164 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     // When users claim, a percentage is sent to timelock treasury address
     // For this, add a mapping of claim amounts for each user based on their collateral amount, collateral type (APY differs depending on LP token), + interest rate, etc.
 
-    /// @notice Pull LP token amount from ActivePool and stake into gauge
-    /// @dev AeroManager stakes and claims AERO on behalf of all non-redeemable branches (that are LP token collaterals)
-    /// @param gauge Aero gauge staking `token`
-    /// @param token LP token address (must match the pool collateral token)
-    /// @param amount LP amount to stake
-    function stake(address gauge, address token, uint256 amount) external {
-        _requireCallerIsActivePool();
+    // /// @notice Pull LP token amount from ActivePool and stake into gauge
+    // /// @dev AeroManager stakes and claims AERO on behalf of all non-redeemable branches (that are LP token collaterals)
+    // /// @param gauge Aero gauge staking `token`
+    // /// @param token LP token address (must match the pool collateral token)
+    // /// @param amount LP amount to stake
+    // function stake(address gauge, address token, uint256 amount) external {
+    //     _requireCallerIsActivePool();
 
-        // Pull LP tokens from ActivePool
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        uint256 staked;
-        // Check if the gauge is alive
-        if (isAeroGaugeAlive(gauge)) {
-            // Allow the gauge to pull tokens from the AeroManager on deposit()
-            IERC20(token).safeIncreaseAllowance(gauge, amount);
-            // Stake LP tokens into AeroGauge
-            IAeroGauge(gauge).deposit(amount);
-            // Log amount staked
-            stakedAmounts[gauge] += amount;
+    //     // Pull LP tokens from ActivePool
+    //     IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+    //     uint256 staked;
+    //     // Check if the gauge is alive
+    //     if (isAeroGaugeAlive(gauge)) {
+    //         // Allow the gauge to pull tokens from the AeroManager on deposit()
+    //         IERC20(token).safeIncreaseAllowance(gauge, amount);
+    //         // Stake LP tokens into AeroGauge
+    //         IAeroGauge(gauge).deposit(amount);
+    //         // Log amount staked
+    //         stakedAmounts[gauge] += amount;
             
-            staked = amount;
+    //         staked = amount;
 
-            // Try to stake any remaining unstaked tokens to the gauge
-            // This is in case of edge cases where the gauge was killed and then revived
-            _stakeRemaining(gauge, token);
-        } else {
-            // Log amount not staked
-            unstakedAmounts[gauge] += amount;
-        }
-        emit Staked(gauge, token, amount, staked);
-    }
+    //         // Try to stake any remaining unstaked tokens to the gauge
+    //         // This is in case of edge cases where the gauge was killed and then revived
+    //         _stakeRemaining(gauge, token);
+    //     } else {
+    //         // Log amount not staked
+    //         unstakedAmounts[gauge] += amount;
+    //     }
+    //     emit Staked(gauge, token, amount, staked);
+    // }
 
-    /// @notice Withdraw LP from the gauge and return it to the caller `ActivePool` or `StabilityPool` or `CollSurplusPool`
-    /// @dev StabilityPool withdraws directly when depositor claims collGains
-    /// @dev CollSurplusPool withdraws directly when depositor claims coll surplus
-    /// @param gauge Aero gauge the LP was staked in
-    /// @param token LP token being returned
-    /// @param amount LP amount to withdraw
-    function withdraw(address gauge, address token, uint256 amount) external {
-        _requireCallerIsAPOrSPOrCSP();
-        // Check for unstaked balance first
-        uint256 balance = unstakedAmounts[gauge];
-        uint256 unstaked;
-        if (amount > balance) {
-            unstaked = amount - balance;
-            // Withdraw LP tokens from AeroGauge
-            IAeroGauge(gauge).withdraw(unstaked);
-            // Log amount withdrawn
-            stakedAmounts[gauge] -= unstaked;
-            unstakedAmounts[gauge] = 0;
-        } else {
-            unstakedAmounts[gauge] -= amount;
-            // If any leftovers and gauge is alive, try to stake them
-            if (isAeroGaugeAlive(gauge)) {
-                _stakeRemaining(gauge, token);
-            }
-        }
-        // Log amount unstaked from gauge and total sent to ActivePool
-        emit Withdrawn(gauge, token, amount, unstaked);
-        // Transfer LP tokens to ActivePool
-        IERC20(token).safeTransfer(msg.sender, amount);
-    }
+    // /// @notice Withdraw LP from the gauge and return it to the caller `ActivePool` or `StabilityPool` or `CollSurplusPool`
+    // /// @dev StabilityPool withdraws directly when depositor claims collGains
+    // /// @dev CollSurplusPool withdraws directly when depositor claims coll surplus
+    // /// @param gauge Aero gauge the LP was staked in
+    // /// @param token LP token being returned
+    // /// @param amount LP amount to withdraw
+    // function withdraw(address gauge, address token, uint256 amount) external {
+    //     _requireCallerIsAPOrSPOrCSP();
+    //     // Check for unstaked balance first
+    //     uint256 balance = unstakedAmounts[gauge];
+    //     uint256 unstaked;
+    //     if (amount > balance) {
+    //         unstaked = amount - balance;
+    //         // Withdraw LP tokens from AeroGauge
+    //         IAeroGauge(gauge).withdraw(unstaked);
+    //         // Log amount withdrawn
+    //         stakedAmounts[gauge] -= unstaked;
+    //         unstakedAmounts[gauge] = 0;
+    //     } else {
+    //         unstakedAmounts[gauge] -= amount;
+    //         // If any leftovers and gauge is alive, try to stake them
+    //         if (isAeroGaugeAlive(gauge)) {
+    //             _stakeRemaining(gauge, token);
+    //         }
+    //     }
+    //     // Log amount unstaked from gauge and total sent to ActivePool
+    //     emit Withdrawn(gauge, token, amount, unstaked);
+    //     // Transfer LP tokens to ActivePool
+    //     IERC20(token).safeTransfer(msg.sender, amount);
+    // }
 
-    /// @dev Tries to stake any remaining unstaked tokens from AeroManager to the gauge if it is alive
-    /// @param gauge Address of the gauge to stake remaining tokens from
-    /// @param token Address of the token to stake
-    function _stakeRemaining(address gauge, address token) internal {
-        uint256 balance = unstakedAmounts[gauge];
-        if (balance > 0) {
-            // Allow the gauge to pull tokens from the AeroManager on deposit()
-            IERC20(token).safeIncreaseAllowance(gauge, balance);
-            // Stake LP tokens into AeroGauge
-            IAeroGauge(gauge).deposit(balance);
-            // Log amount staked
-            stakedAmounts[gauge] += balance;
-            unstakedAmounts[gauge] = 0;
-            emit StakedRemaining(gauge, token, balance);
-        }
-    }
+    // /// @dev Tries to stake any remaining unstaked tokens from AeroManager to the gauge if it is alive
+    // /// @param gauge Address of the gauge to stake remaining tokens from
+    // /// @param token Address of the token to stake
+    // function _stakeRemaining(address gauge, address token) internal {
+    //     uint256 balance = unstakedAmounts[gauge];
+    //     if (balance > 0) {
+    //         // Allow the gauge to pull tokens from the AeroManager on deposit()
+    //         IERC20(token).safeIncreaseAllowance(gauge, balance);
+    //         // Stake LP tokens into AeroGauge
+    //         IAeroGauge(gauge).deposit(balance);
+    //         // Log amount staked
+    //         stakedAmounts[gauge] += balance;
+    //         unstakedAmounts[gauge] = 0;
+    //         emit StakedRemaining(gauge, token, balance);
+    //     }
+    // }
 
-    /// @notice Pull accrued AERO from a gauge, pay the treasury fee, and credit the net to the current epoch bucket
-    /// @dev Callable by anyone; reverts if the gauge's current epoch is already closed or reward token mismatches `aeroTokenAddress`
-    /// @param gauge Gauge to claim rewards from
-    function claim(address gauge) external nonReentrant {
+    // /// @notice Pull accrued AERO from a gauge, pay the treasury fee, and credit the net to the current epoch bucket
+    // /// @dev Callable by anyone; reverts if the gauge's current epoch is already closed or reward token mismatches `aeroTokenAddress`
+    // /// @param gauge Gauge to claim rewards from
+    // function claim(address gauge) external nonReentrant {
+    //     require(_registeredGauges[gauge], "AeroManager: Gauge is not registered");
+    //     uint256 currentEpoch = currentEpochs[gauge];
+    //     require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
+    //     require(IAeroGauge(gauge).rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
+
+    //     // Claim AERO from AeroGauge
+    //     uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
+    //     IAeroGauge(gauge).getReward(address(this));
+    //     uint256 postBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
+    //     uint256 claimedAmount = postBalance - preBalance;
+
+    //     // Send a percentage of AERO to timelock treasury address
+    //     uint256 _claimFee = _getClaimFee(claimedAmount);
+    //     IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, _claimFee);
+
+    //     // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
+    //     uint256 rewardAmount = claimedAmount - _claimFee;
+    //     _claimedAero[aeroTokenAddress] += rewardAmount; // Subtract the fee from the total claimed amount
+        
+    //     claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
+
+    //     emit Claimed(gauge, claimedAmount, _claimFee, currentEpoch);
+    // }
+
+    /// @notice Claim AERO emissions from all existing trove accounts in a branch
+    /// @dev Callable by anyone. Not nonReentrant: accounts call back into receiveAeroRewards.
+    /// @param _activePool Registered Aero LP ActivePool whose trove accounts are claimed
+    /// @param _maxIterations Maximum number of iterations to claim emissions
+    /// @param _startIndex Starting index to claim emissions from
+    function claimTroveEmissions(address _activePool, uint256 _maxIterations, uint256 _startIndex) external {
+        require(activePools[_activePool], "AeroManager: ActivePool is not registered");
+        IActivePool ap = IActivePool(_activePool);
+        address gauge = ap.aeroGaugeAddress();
         require(_registeredGauges[gauge], "AeroManager: Gauge is not registered");
         uint256 currentEpoch = currentEpochs[gauge];
         require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
-        require(IAeroGauge(gauge).rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
 
-        // Claim AERO from AeroGauge
+        ITroveManager troveManager = ITroveManager(ap.troveManagerAddress());
+        uint256 troveIdsCount = troveManager.getTroveIdsCount();
+        uint256 length = troveIdsCount > _maxIterations ? _maxIterations : troveIdsCount;
+
+        // Claim emissions from all active troves in the branch
         uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
-        IAeroGauge(gauge).getReward(address(this));
+        for (uint256 i = _startIndex; i < length; i++) {
+            uint256 troveId = troveManager.getTroveFromTroveIdsArray(i);
+            address troveAccount = ap.troveAccounts(troveId);
+            if (troveAccount != address(0)) {
+                ITroveAccount(troveAccount).claimEmissions();
+            }
+        }
         uint256 postBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
-        uint256 claimedAmount = postBalance - preBalance;
-
-        // Send a percentage of AERO to timelock treasury address
-        uint256 _claimFee = _getClaimFee(claimedAmount);
-        IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, _claimFee);
-
-        // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
-        uint256 rewardAmount = claimedAmount - _claimFee;
-        _claimedAero[aeroTokenAddress] += rewardAmount; // Subtract the fee from the total claimed amount
+        uint256 totalAmount = postBalance - preBalance;
+        uint256 totalClaimFee = _getClaimFee(totalAmount);
         
-        claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
+        // Send a percentage of AERO to timelock treasury address
+        IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, totalClaimFee);
+        
+        // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
+        // Subtract the fee from the total claimed amount
+        _claimedAero[aeroTokenAddress] += totalAmount - totalClaimFee;
 
-        emit Claimed(gauge, claimedAmount, _claimFee, currentEpoch);
+        emit Claimed(gauge, totalAmount, totalClaimFee, currentEpoch);
     }
 
     /// @notice Receive emissions claimed by an ActivePool's trove account
     function receiveAeroRewards(address gauge, uint256 amount) external nonReentrant {
         ITroveAccount troveAccount = ITroveAccount(msg.sender);
-        address activePool = troveAccount.activePoolAddress();
-        require(activePools[activePool], "AeroManager: Account is not linked to an active pool");
+        IActivePool activePool = troveAccount.activePool();
+        require(activePools[address(activePool)], "AeroManager: Account is not linked to an active pool");
         require(
-            IActivePool(activePool).troveAccounts(troveAccount.troveId()) == msg.sender,
+            activePool.troveAccounts(troveAccount.troveId()) == msg.sender,
             "AeroManager: Caller is not a trove account"
         );
-        require(IActivePool(activePool).aeroGaugeAddress() == gauge, "AeroManager: Gauge mismatch");
+        require(activePool.aeroGaugeAddress() == gauge, "AeroManager: Gauge mismatch");
         require(address(troveAccount.aeroToken()) == aeroTokenAddress, "AeroManager: Reward token does not match");
 
         uint256 currentEpoch = currentEpochs[gauge];

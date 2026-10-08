@@ -87,14 +87,14 @@ contract CollSurplusPool is ICollSurplusPool {
         collToken.safeTransfer(_account, claimableColl);
     }
 
-    /// @dev Unstakes AERO LP collateral back to AeroManager and sends to this CollSurplusPool
-    function _unstakeIfAeroLPCollateral(uint256 _amount) internal {
-        bool isAeroLPCollateral = activePool.isAeroLPCollateral();
-        if (isAeroLPCollateral) {
-            address gauge = activePool.aeroGaugeAddress();
-            aeroManager.withdraw(gauge, address(collToken), _amount);
-        }
-    }
+    // /// @dev Unstakes AERO LP collateral back to AeroManager and sends to this CollSurplusPool
+    // function _unstakeIfAeroLPCollateral(uint256 _amount) internal {
+    //     bool isAeroLPCollateral = activePool.isAeroLPCollateral();
+    //     if (isAeroLPCollateral) {
+    //         address gauge = activePool.aeroGaugeAddress();
+    //         aeroManager.withdraw(gauge, address(collToken), _amount);
+    //     }
+    // }
 
     // --- 'require' functions ---
 

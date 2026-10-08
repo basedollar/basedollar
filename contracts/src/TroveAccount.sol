@@ -9,6 +9,7 @@ import "./Interfaces/IAeroGauge.sol";
 import "./Interfaces/IAeroManager.sol";
 import "./Interfaces/ITroveAccount.sol";
 import "./Interfaces/IAddressesRegistry.sol";
+import "./Interfaces/IActivePool.sol";
 
 /*
  * Holds the Aero LP stake for a single trove. Only ActivePool can move collateral.
@@ -19,7 +20,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
 
     uint256 public troveId;
     bool private _initialized;
-    address public immutable activePoolAddress;
+    IActivePool public immutable activePool;
     IERC20 public immutable collToken;
     IERC20 public immutable aeroToken;
     IAeroGauge public immutable gauge;
@@ -28,7 +29,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
     constructor(IAddressesRegistry _addressesRegistry, IAeroGauge _gauge) {
         // Lock the implementation. Clones have their own uninitialized storage.
         _initialized = true;
-        activePoolAddress = address(_addressesRegistry.activePool());
+        activePool = _addressesRegistry.activePool();
         collToken = _addressesRegistry.collToken();
         gauge = _gauge;
         aeroManager = _addressesRegistry.aeroManager();
@@ -55,6 +56,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
 
         // Harvest mature emissions before a deposit resets the staking timer.
         _claimEmissions();
+        _sendAeroRewards();
         gauge.deposit(_amount);
     }
 
@@ -64,14 +66,18 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
 
         // Gauge withdrawals settle emissions, including any early-exit penalty.
         gauge.withdraw(_amount);
-        collToken.safeTransfer(activePoolAddress, _amount);
+        collToken.safeTransfer(address(activePool), _amount);
         _sendAeroRewards();
     }
 
     // --- Reward operations ---
 
-    function claimEmissions() external nonReentrant {
+    function claimEmissions() external nonReentrant returns (uint256 amount) {
+        _requireCallerIsAeroManager();
         _claimEmissions();
+        amount = aeroToken.balanceOf(address(this));
+        aeroToken.safeTransfer(msg.sender, amount);
+        return amount;
     }
 
     function _claimEmissions() internal {
@@ -86,25 +92,29 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
                 gauge.claimEmissions(address(this), address(this));
             }
         }
-        _sendAeroRewards();
     }
 
-    function _sendAeroRewards() internal {
-        uint256 amount = aeroToken.balanceOf(address(this));
-        if (amount == 0) return;
+    function _sendAeroRewards() internal returns (uint256 amount) {
+        amount = aeroToken.balanceOf(address(this));
+        if (amount == 0) return 0;
 
         // Keep receipts here while an epoch is closed. Collateral exits must still be possible.
         uint256 epoch = aeroManager.currentEpochs(address(gauge));
-        if (aeroManager.epochClosed(address(gauge), epoch)) return;
-        if (aeroManager.aeroTokenAddress() != address(aeroToken)) return;
+        if (aeroManager.epochClosed(address(gauge), epoch)) return 0;
+        if (aeroManager.aeroTokenAddress() != address(aeroToken)) return 0;
 
         aeroToken.safeIncreaseAllowance(address(aeroManager), amount);
         aeroManager.receiveAeroRewards(address(gauge), amount);
+        return amount;
     }
 
     // --- 'require' functions ---
 
     function _requireCallerIsActivePool() internal view {
-        require(msg.sender == activePoolAddress, "TroveAccount: Caller is not ActivePool");
+        require(msg.sender == address(activePool), "TroveAccount: Caller is not ActivePool");
+    }
+
+    function _requireCallerIsAeroManager() internal view {
+        require(msg.sender == address(aeroManager), "TroveAccount: Caller is not AeroManager");
     }
 }
