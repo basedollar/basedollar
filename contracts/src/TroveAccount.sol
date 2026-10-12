@@ -27,6 +27,8 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
     IAeroV2Gauge public immutable gauge;
     IAeroManager public immutable aeroManager;
 
+    bool public isClosed;
+
     constructor(IAddressesRegistry _addressesRegistry, IAeroV2Gauge _gauge) {
         // Lock the implementation. Clones have their own uninitialized storage.
         _initialized = true;
@@ -65,6 +67,10 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         _requireCallerIsActivePool();
         if (_amount == 0) return;
 
+        if (gauge.balanceOf(address(this)) == _amount) {
+            isClosed = true;
+        }
+
         // Gauge withdrawals settle emissions, including any early-exit penalty.
         gauge.withdraw(_amount);
         collToken.safeTransfer(address(activePool), _amount);
@@ -81,6 +87,12 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         return amount;
     }
 
+    function recoverRewards() external nonReentrant {
+        require(isClosed, "TroveAccount: Cannot recover rewards from active trove");
+        _claimEmissions();
+        _sendAeroRewards();
+    }
+
     function _claimEmissions() internal {
         if (
             gauge.balanceOf(address(this)) > 0 || gauge.rewards(address(this)) > 0
@@ -90,7 +102,10 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
                 IAeroGaugeFactory(gauge.gaugeFactory()).effectivePenaltyConfig(address(gauge));
             uint256 depositBlock = gauge.depositBlock(address(this));
             if (penaltyConfig.penaltyRate == 0 || block.number - depositBlock >= penaltyConfig.minStakeBlocks) {
-                gauge.claimEmissions(address(this), address(this));
+                try gauge.claimEmissions(address(this), address(this)) {} 
+                catch {
+                  // Ignore claim failures so collateral operations can continue.
+                }
             }
         }
     }
@@ -100,8 +115,10 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         if (amount == 0) return 0;
 
         // Keep receipts here while an epoch is closed. Collateral exits must still be possible.
-        uint256 epoch = aeroManager.currentEpochs(address(gauge));
-        if (aeroManager.epochClosed(address(gauge), epoch)) return 0;
+        // uint256 epoch = aeroManager.currentEpochs(address(gauge));
+        // if (aeroManager.epochClosed(address(gauge), epoch)) return 0;
+        // ^^Rewards are credited to next epoch if current epoch is closed.
+        // This is to handle troves closing while a gauge epoch is closed.
         if (aeroManager.aeroTokenAddress() != address(aeroToken)) return 0;
 
         aeroToken.safeIncreaseAllowance(address(aeroManager), amount);

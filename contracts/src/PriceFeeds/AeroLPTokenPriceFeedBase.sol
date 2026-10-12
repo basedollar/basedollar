@@ -98,6 +98,11 @@ abstract contract AeroLPTokenPriceFeedBase is IPriceFeed {
         require(poolType == bytes32("V2_STABLE") || poolType == bytes32("V2_VOLATILE"), "Unsupported pool type");
         isStablePair = poolType == bytes32("V2_STABLE");
 
+        // V3 writes observations more than 60 seconds apart.
+        // 241 populated slots preserve at least 14,640 seconds.
+        (, uint16 cardinality,) = pool.observationBuffer();
+        require(cardinality >= 241, "Insufficient observation capacity");
+
         token0PoolDecimals = IERC20Metadata(pool.token0()).decimals();
         token1PoolDecimals = IERC20Metadata(pool.token1()).decimals();
 

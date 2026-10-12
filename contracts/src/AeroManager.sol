@@ -250,6 +250,8 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         uint256 staked;
         // Check if the gauge is alive
         if (isAeroGaugeAlive(gauge)) {
+            // Claim any mature rewards before depositing which resets stake block
+            _handleClaimOrWithdrawal(gauge, 0);
             // Allow the gauge to pull tokens from the AeroManager on deposit()
             IERC20(token).safeIncreaseAllowance(gauge, amount);
             // Stake LP tokens into AeroGauge
@@ -282,10 +284,15 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         uint256 unstaked;
         if (amount > balance) {
             unstaked = amount - balance;
-            // Withdraw LP tokens from AeroGauge
-            IAeroGauge(gauge).withdraw(unstaked);
-            // Log amount withdrawn
-            stakedAmounts[gauge] -= unstaked;
+            // v2:
+            // // Withdraw LP tokens from AeroGauge
+            // IAeroGauge(gauge).withdraw(unstaked);
+            // // Log amount withdrawn
+            // stakedAmounts[gauge] -= unstaked;
+            // v3:
+            // Withdraw LP tokens from AeroGauge, log amount withdrawn and handle claimed rewards
+            _handleClaimOrWithdrawal(gauge, unstaked);
+
             unstakedAmounts[gauge] = 0;
         } else {
             unstakedAmounts[gauge] -= amount;
@@ -306,6 +313,8 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     function _stakeRemaining(address gauge, address token) internal {
         uint256 balance = unstakedAmounts[gauge];
         if (balance > 0) {
+            // Claim any mature rewards before depositing which resets stake block
+            _handleClaimOrWithdrawal(gauge, 0);
             // Allow the gauge to pull tokens from the AeroManager on deposit()
             IERC20(token).safeIncreaseAllowance(gauge, balance);
             // Stake LP tokens into AeroGauge
@@ -329,26 +338,65 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         // v3:
         require(rewardTokenOf(gauge) == aeroTokenAddress, "AeroManager: Reward token does not match");
 
+        // // Claim AERO from AeroGauge
+        // uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
+        // // v2:
+        // // IAeroGauge(gauge).getReward(address(this));
+        // // v3:
+        // _claimEmissions(IAeroV2Gauge(gauge));
+        // uint256 postBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
+        // uint256 claimedAmount = postBalance - preBalance;
+
+        // // Send a percentage of AERO to timelock treasury address
+        // uint256 _claimFee = _getClaimFee(claimedAmount);
+        // IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, _claimFee);
+
+        // // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
+        // uint256 rewardAmount = claimedAmount - _claimFee;
+        // _claimedAero[aeroTokenAddress] += rewardAmount; // Subtract the fee from the total claimed amount
+        
+        // claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
+
+        // emit Claimed(gauge, claimedAmount, _claimFee, currentEpoch);
+
+        // Claim AERO from AeroGauge
+        _handleClaimOrWithdrawal(gauge, 0);
+    }
+
+    function _handleClaimOrWithdrawal(address _gauge, uint256 _withdrawalAmount) internal {
         // Claim AERO from AeroGauge
         uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
-        // v2:
-        // IAeroGauge(gauge).getReward(address(this));
-        // v3:
-        _claimEmissions(IAeroV2Gauge(gauge));
+        
+        if (_withdrawalAmount > 0) {
+            // Withdraw LP tokens from AeroGauge
+            IAeroGauge(_gauge).withdraw(_withdrawalAmount);
+            // Log amount withdrawn
+            stakedAmounts[_gauge] -= _withdrawalAmount;
+        } else {
+            _claimEmissions(IAeroV2Gauge(_gauge));
+        }
         uint256 postBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
         uint256 claimedAmount = postBalance - preBalance;
 
-        // Send a percentage of AERO to timelock treasury address
-        uint256 _claimFee = _getClaimFee(claimedAmount);
-        IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, _claimFee);
-
-        // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
-        uint256 rewardAmount = claimedAmount - _claimFee;
-        _claimedAero[aeroTokenAddress] += rewardAmount; // Subtract the fee from the total claimed amount
-        
-        claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
-
-        emit Claimed(gauge, claimedAmount, _claimFee, currentEpoch);
+        if (claimedAmount > 0) {
+            uint256 epoch = currentEpochs[_gauge];
+            // If current epoch is closed, credit rewards to the next epoch.
+            // Cannot revert since this would block trove adjustments
+            if (epochClosed[_gauge][epoch]) {
+                epoch += 1;
+            }
+            // Send a percentage of AERO to timelock treasury address
+            uint256 _claimFee = _getClaimFee(claimedAmount);
+            IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, _claimFee);
+    
+            // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
+            uint256 rewardAmount = claimedAmount - _claimFee;
+            _claimedAero[aeroTokenAddress] += rewardAmount; // Subtract the fee from the total claimed amount
+            
+            claimedAeroPerEpoch[epoch][_gauge] += rewardAmount;
+    
+            emit Claimed(_gauge, claimedAmount, _claimFee, epoch);
+        }
     }
 
     /// @notice Claim AERO emissions from all existing trove accounts in a branch
@@ -407,7 +455,12 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         require(address(troveAccount.aeroToken()) == aeroTokenAddress, "AeroManager: Reward token does not match");
 
         uint256 currentEpoch = currentEpochs[gauge];
-        require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
+        // require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
+        // If current epoch is closed, credit rewards to the next epoch.
+        // Cannot revert since this would block trove adjustments
+        if (epochClosed[gauge][currentEpoch]) {
+            currentEpoch += 1;
+        }
 
         uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
         IERC20(aeroTokenAddress).safeTransferFrom(msg.sender, address(this), amount);
@@ -599,7 +652,10 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
                 IAeroGaugeFactory(_gauge.gaugeFactory()).effectivePenaltyConfig(address(_gauge));
             uint256 depositBlock = _gauge.depositBlock(address(this));
             if (penaltyConfig.penaltyRate == 0 || block.number - depositBlock >= penaltyConfig.minStakeBlocks) {
-                _gauge.claimEmissions(address(this), address(this));
+                try _gauge.claimEmissions(address(this), address(this)) {}
+                catch {
+                    // Ignore claim failures so collateral operations can continue.
+                }
             }
         }
     }

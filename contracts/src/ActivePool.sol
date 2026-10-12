@@ -369,7 +369,7 @@ contract ActivePool is IActivePool {
     // v2:
     /// @dev Stakes liquidated AERO LP collateral into AeroGauge via AeroManager
     function _stakeIfAeroLPCollateralExcess(uint256 _amount) internal {
-        if (isAeroLPCollateral) {
+        if (isAeroLPCollateral && _amount > 0) {
             // Send to AeroManager
             // Then AeroManager deposits the _amount into AeroGauge
             // IAeroGauge(aeroGaugeAddress).deposit(_amount);
