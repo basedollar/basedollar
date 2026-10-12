@@ -414,11 +414,12 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
 
         ITroveManager troveManager = ITroveManager(ap.troveManagerAddress());
         uint256 troveIdsCount = troveManager.getTroveIdsCount();
-        uint256 length = troveIdsCount > _maxIterations ? _maxIterations : troveIdsCount;
+        require(_startIndex < troveIdsCount, "AeroManager: Start index is out of bounds");
+        uint256 endIndex = troveIdsCount - _startIndex > _maxIterations ? _maxIterations : troveIdsCount;
 
         // Claim emissions from all active troves in the branch
         uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
-        for (uint256 i = _startIndex; i < length; i++) {
+        for (uint256 i = _startIndex; i < endIndex; i++) {
             uint256 troveId = troveManager.getTroveFromTroveIdsArray(i);
             address troveAccount = ap.troveAccounts(troveId);
             if (troveAccount != address(0)) {

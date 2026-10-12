@@ -8,6 +8,11 @@ interface IHintHelpers {
         view
         returns (uint256 hintId, uint256 diff, uint256 latestRandomSeed);
 
+    function getApproxHintNonRedeemable(uint256 _collIndex, uint256 _interestRate, uint256 _numTrials, uint256 _inputRandomSeed)
+        external
+        view
+        returns (uint256 hintId, uint256 diff, uint256 latestRandomSeed);
+
     function predictOpenTroveUpfrontFee(uint256 _collIndex, uint256 _borrowedAmount, uint256 _interestRate)
         external
         view

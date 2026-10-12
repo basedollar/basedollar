@@ -23,6 +23,7 @@ contract DebtInFrontHelper is IDebtInFrontHelper {
     }
 
     function _findHint(
+        bool _isRedeemable,
         ITroveManager _troveManager,
         uint256 _collIndex,
         uint256 _interestRateLo,
@@ -34,14 +35,21 @@ contract DebtInFrontHelper is IDebtInFrontHelper {
             ? SignedMath.abs(int256(_troveManager.getTroveAnnualInterestRate(_hintId)) - int256(_interestRateLo))
             : type(uint256).max;
 
-        (uint256 newHintId, uint256 newDiff,) =
-            hintHelpers.getApproxHint(_collIndex, _interestRateLo, _numTrials, _randomSeed);
+        uint256 newHintId;
+        uint256 newDiff;
+        if (_isRedeemable) {
+            (newHintId, newDiff,) =
+                hintHelpers.getApproxHint(_collIndex, _interestRateLo, _numTrials, _randomSeed);
+        } else {
+            (newHintId, newDiff,) =
+                hintHelpers.getApproxHintNonRedeemable(_collIndex, _interestRateLo, _numTrials, _randomSeed);
+        }
 
         return newDiff < diff ? newHintId : _hintId;
     }
 
     function _getDebtBetween(
-        bool isRedeemable,
+        bool _isRedeemable,
         uint256 _collIndex,
         uint256 _interestRateLo, // inclusive
         uint256 _interestRateHi, // exclusive
@@ -51,7 +59,7 @@ contract DebtInFrontHelper is IDebtInFrontHelper {
         uint256 _numTrials
     ) internal view returns (uint256 debt, uint256 blockTimestamp) {
         ITroveManager troveManager;
-        if (isRedeemable) {
+        if (_isRedeemable) {
             troveManager = collateralRegistry.getTroveManager(_collIndex);
         } else {
             troveManager = collateralRegistry.getNonRedeemableTroveManager(_collIndex);
@@ -76,7 +84,7 @@ contract DebtInFrontHelper is IDebtInFrontHelper {
                 )
             );
 
-            _hintId = _findHint(troveManager, _collIndex, _interestRateLo, _hintId, _numTrials, randomSeed);
+            _hintId = _findHint(_isRedeemable, troveManager, _collIndex, _interestRateLo, _hintId, _numTrials, randomSeed);
         }
 
         (uint256 currId,) = sortedTroves.findInsertPosition(_interestRateLo, _hintId, _hintId);
