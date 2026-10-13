@@ -415,7 +415,8 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         ITroveManager troveManager = ITroveManager(ap.troveManagerAddress());
         uint256 troveIdsCount = troveManager.getTroveIdsCount();
         require(_startIndex < troveIdsCount, "AeroManager: Start index is out of bounds");
-        uint256 endIndex = troveIdsCount - _startIndex > _maxIterations ? _maxIterations : troveIdsCount;
+        uint256 endIndex = _startIndex + _maxIterations;
+        endIndex = troveIdsCount > endIndex ? endIndex : troveIdsCount;
 
         // Claim emissions from all active troves in the branch
         uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
@@ -463,16 +464,14 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
             currentEpoch += 1;
         }
 
-        uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
         IERC20(aeroTokenAddress).safeTransferFrom(msg.sender, address(this), amount);
-        uint256 claimedAmount = IERC20(aeroTokenAddress).balanceOf(address(this)) - preBalance;
-        uint256 _claimFee = _getClaimFee(claimedAmount);
+        uint256 _claimFee = _getClaimFee(amount);
         IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, _claimFee);
 
-        uint256 rewardAmount = claimedAmount - _claimFee;
+        uint256 rewardAmount = amount - _claimFee;
         _claimedAero[aeroTokenAddress] += rewardAmount;
         claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
-        emit Claimed(gauge, claimedAmount, _claimFee, currentEpoch);
+        emit Claimed(gauge, amount, _claimFee, currentEpoch);
     }
 
     /// @notice Mark the gauge's current epoch closed so its rewards can be distributed
