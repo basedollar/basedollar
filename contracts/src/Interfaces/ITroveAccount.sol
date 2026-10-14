@@ -12,7 +12,6 @@ interface ITroveAccount {
     function troveId() external view returns (uint256);
     function activePool() external view returns (IActivePool);
     function collToken() external view returns (IERC20);
-    function aeroToken() external view returns (IERC20);
     function gauge() external view returns (IAeroV2Gauge);
     function aeroManager() external view returns (IAeroManager);
 

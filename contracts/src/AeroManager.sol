@@ -454,7 +454,6 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
             "AeroManager: Caller is not a trove account"
         );
         require(activePool.aeroGaugeAddress() == gauge, "AeroManager: Gauge mismatch");
-        require(address(troveAccount.aeroToken()) == aeroTokenAddress, "AeroManager: Reward token does not match");
 
         uint256 currentEpoch = currentEpochs[gauge];
         // require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");

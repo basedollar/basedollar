@@ -23,7 +23,6 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
     bool private _initialized;
     IActivePool public immutable activePool;
     IERC20 public immutable collToken;
-    IERC20 public immutable aeroToken;
     IAeroV2Gauge public immutable gauge;
     IAeroManager public immutable aeroManager;
 
@@ -36,10 +35,8 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         collToken = _addressesRegistry.collToken();
         gauge = _gauge;
         aeroManager = _addressesRegistry.aeroManager();
-        aeroToken = IERC20(aeroManager.aeroTokenAddress());
 
         require(_gauge.stakingToken() == address(collToken), "TroveAccount: Staking token mismatch");
-        require(address(aeroToken) != address(collToken), "TroveAccount: Reward token is collateral");
     }
 
     function initialize(uint256 _troveId) external {
@@ -82,8 +79,9 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
     function claimEmissions() external nonReentrant returns (uint256 amount) {
         _requireCallerIsAeroManager();
         _claimEmissions();
-        amount = aeroToken.balanceOf(address(this));
-        aeroToken.safeTransfer(msg.sender, amount);
+        IERC20 _aeroToken = IERC20(aeroManager.aeroTokenAddress());
+        amount = _aeroToken.balanceOf(address(this));
+        _aeroToken.safeTransfer(msg.sender, amount);
         return amount;
     }
 
@@ -111,17 +109,15 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
     }
 
     function _sendAeroRewards() internal returns (uint256 amount) {
-        amount = aeroToken.balanceOf(address(this));
+        IERC20 _aeroToken = IERC20(aeroManager.aeroTokenAddress());
+        amount = _aeroToken.balanceOf(address(this));
         if (amount == 0) return 0;
 
-        // Keep receipts here while an epoch is closed. Collateral exits must still be possible.
-        // uint256 epoch = aeroManager.currentEpochs(address(gauge));
-        // if (aeroManager.epochClosed(address(gauge), epoch)) return 0;
-        // ^^Rewards are credited to next epoch if current epoch is closed.
-        // This is to handle troves closing while a gauge epoch is closed.
-        if (aeroManager.aeroTokenAddress() != address(aeroToken)) return 0;
+        // Collateral exits must still be possible.
+        // To handle troves closing while current epoch is closed,
+        // rewards are credited to next epoch.
 
-        aeroToken.safeIncreaseAllowance(address(aeroManager), amount);
+        _aeroToken.safeIncreaseAllowance(address(aeroManager), amount);
         aeroManager.receiveAeroRewards(address(gauge), amount);
         return amount;
     }
