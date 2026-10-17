@@ -7,7 +7,7 @@ import "src/PriceFeeds/AeroLPTokenPriceFeed.sol";
 contract AeroLPTokenPriceFeedTester is AeroLPTokenPriceFeed {
     constructor(
         address borrowerOperations_,
-        IAeroGauge gauge_,
+        IAeroV2Gauge gauge_,
         address token0UsdOracle_,
         address token1UsdOracle_,
         uint256 token0UsdStalenessThreshold_,

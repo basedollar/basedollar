@@ -2,7 +2,6 @@
 pragma solidity 0.8.24;
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import "src/Interfaces/IAeroGauge.sol";
 
 import "./MockAeroVoter.sol";
 
@@ -18,7 +17,7 @@ contract MockAeroToken is ERC20 {
     }
 }
 
-contract AeroGaugeTester is IAeroGauge {
+contract AeroGaugeTester {
 
     address public stakingToken;
     MockAeroToken public aeroToken;

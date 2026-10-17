@@ -6,6 +6,7 @@ import "src/Interfaces/IWETH.sol";
 
 /// @dev Minimal `IAddressesRegistry` for `CollateralRegistry.createNewBranch` validation tests.
 contract MockAddressesRegistryForCR is IAddressesRegistry {
+    ITroveAccount public override troveAccountImplementation;
     IERC20Metadata internal _collToken;
     ITroveManager internal _troveManager;
     IStabilityPool internal _stabilityPool;

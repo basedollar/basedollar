@@ -5,7 +5,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {AeroManager} from "src/AeroManager.sol";
 import {IAeroManager} from "src/Interfaces/IAeroManager.sol";
-import {IAeroGauge} from "src/Interfaces/IAeroGauge.sol";
+import {IV2Gauge as IAeroV2Gauge} from "src/Interfaces/MetaDEX03/gauges/IV2Gauge.sol";
 import {InvariantsTestHandler} from "./InvariantsTestHandler.t.sol";
 import {BaseMultiCollateralTest} from "./BaseMultiCollateralTest.sol";
 import {TestDeployer} from "./Deployment.t.sol";
@@ -80,7 +80,7 @@ contract AeroLPInvariantsTestHandler is InvariantsTestHandler {
 
     /// @notice LP token balance on AeroManager (should match `unstakedAmounts` in normal paths).
     function getManagerLpTokenBalance(address _gauge) external view returns (uint256) {
-        address token = IAeroGauge(_gauge).stakingToken();
+        address token = IAeroV2Gauge(_gauge).stakingToken();
         return IERC20(token).balanceOf(address(aeroManager));
     }
     

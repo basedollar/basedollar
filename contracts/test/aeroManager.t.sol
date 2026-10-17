@@ -25,7 +25,7 @@ contract AeroManagerTest is DevTestSetup {
         // As seen in BorrowerOperations._pullCollAndSendToActivePool(), we need to transfer the collateral to the ActivePool.
         vm.startPrank(address(borrowerOperations));
         weth.transfer(address(aeroActivePool), amount);
-        aeroActivePool.accountForReceivedColl(amount);
+        aeroActivePool.accountForReceivedColl(0, amount);
         vm.stopPrank();
     }
 
@@ -178,7 +178,7 @@ contract AeroManagerTest is DevTestSetup {
         // As seen in BorrowerOperations._pullCollAndSendToActivePool(), we need to transfer the collateral to the ActivePool.
         vm.startPrank(address(borrowerOperations));
         weth.transfer(address(aeroActivePool), amount);
-        aeroActivePool.accountForReceivedColl(amount);
+        aeroActivePool.accountForReceivedColl(0, amount);
         vm.stopPrank();
 
         assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), amount);
@@ -196,7 +196,7 @@ contract AeroManagerTest is DevTestSetup {
         // As seen in BorrowerOperations._pullCollAndSendToActivePool(), we need to transfer the collateral to the ActivePool.
         vm.startPrank(address(borrowerOperations));
         weth.transfer(address(aeroActivePool), amount);
-        aeroActivePool.accountForReceivedColl(amount);
+        aeroActivePool.accountForReceivedColl(0, amount);
         vm.stopPrank();
 
         uint256 preRecipient = weth.balanceOf(A);
@@ -946,7 +946,7 @@ contract AeroManagerTest is DevTestSetup {
         deal(address(weth), address(borrowerOperations), second);
         vm.startPrank(address(borrowerOperations));
         weth.transfer(address(aeroActivePool), second);
-        aeroActivePool.accountForReceivedColl(second);
+        aeroActivePool.accountForReceivedColl(0, second);
         vm.stopPrank();
 
         assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), first + second);
@@ -979,7 +979,7 @@ contract AeroManagerTest is DevTestSetup {
         deal(address(weth), address(borrowerOperations), 10e18);
         vm.startPrank(address(borrowerOperations));
         weth.transfer(address(aeroActivePool), 10e18);
-        aeroActivePool.accountForReceivedColl(10e18);
+        aeroActivePool.accountForReceivedColl(0, 10e18);
         vm.stopPrank();
 
         assertEq(aeroManagerImpl.stakedAmounts(address(gauge)), 13e18);
@@ -988,7 +988,7 @@ contract AeroManagerTest is DevTestSetup {
         deal(address(weth), address(borrowerOperations), 2e18);
         vm.startPrank(address(borrowerOperations));
         weth.transfer(address(aeroActivePool), 2e18);
-        aeroActivePool.accountForReceivedColl(2e18);
+        aeroActivePool.accountForReceivedColl(0, 2e18);
         vm.stopPrank();
         assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), 2e18);
 
@@ -1005,7 +1005,7 @@ contract AeroManagerTest is DevTestSetup {
         deal(address(weth), address(borrowerOperations), 2e18);
         vm.startPrank(address(borrowerOperations));
         weth.transfer(address(aeroActivePool), 2e18);
-        aeroActivePool.accountForReceivedColl(2e18);
+        aeroActivePool.accountForReceivedColl(0, 2e18);
         vm.stopPrank();
 
         assertEq(aeroManagerImpl.unstakedAmounts(address(gauge)), 2e18);

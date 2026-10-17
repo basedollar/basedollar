@@ -40,6 +40,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         require(_gauge.stakingToken() == address(collToken), "TroveAccount: Staking token mismatch");
     }
 
+    /// @notice Initialized by ActivePool to assign troveId
     function initialize(uint256 _troveId) external {
         _requireCallerIsActivePool();
         require(!_initialized, "TroveAccount: Already initialized");
@@ -51,6 +52,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
 
     // --- Collateral operations ---
 
+    /// @notice Deposits Aero LP collateral from troveId into Gauge
     function stake(uint256 _amount) external nonReentrant {
         _requireCallerIsActivePool();
         if (_amount == 0) return;
@@ -61,6 +63,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         gauge.deposit(_amount);
     }
 
+    /// @notice Withdraws staked Aero LP collateral of troveId from Gauge by ActivePool
     function withdraw(uint256 _amount) external nonReentrant {
         _requireCallerIsActivePool();
         if (_amount == 0) return;
@@ -77,6 +80,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
 
     // --- Reward operations ---
 
+    /// @notice claims emissions from individual trove's staked amount and sends to AeroManager
     function claimEmissions() external nonReentrant returns (uint256 amount) {
         _requireCallerIsAeroManager();
         _claimEmissions();
@@ -107,6 +111,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         }
     }
 
+    /// @dev Only claims emissions if its past minimum stake block since last deposit to avoid reward penalty slash
     function _claimEmissions() internal {
         if (
             gauge.balanceOf(address(this)) > 0 || gauge.rewards(address(this)) > 0
@@ -124,6 +129,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         }
     }
 
+    /// @dev Calls AeroManager to transfer and collect claimed emissions from trove account
     function _sendAeroRewards() internal returns (uint256 amount) {
         IERC20 _aeroToken = IERC20(aeroManager.aeroTokenAddress());
         amount = _aeroToken.balanceOf(address(this));

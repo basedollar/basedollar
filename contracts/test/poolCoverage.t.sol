@@ -11,7 +11,7 @@ contract PoolCoverageTest is DevTestSetup {
 
     function test_defaultPool_sendCollToActivePool_revertsWhenCallerIsNotTroveManager() external {
         vm.expectRevert("DefaultPool: Caller is not the TroveManager");
-        defaultPool.sendCollToActivePool(1);
+        defaultPool.sendCollToActivePool(0, 1);
     }
 
     function test_collSurplusPool_accountSurplus_revertsWhenCallerIsNotTroveManager() external {

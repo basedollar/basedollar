@@ -50,7 +50,7 @@ contract AeroManagerGaugeLifecycleHandler is Test {
         deal(address(weth), borrowerOperations, amt);
         vm.startPrank(borrowerOperations);
         IERC20(address(weth)).transfer(address(activePool), amt);
-        activePool.accountForReceivedColl(amt);
+        activePool.accountForReceivedColl(0, amt);
         vm.stopPrank();
     }
 

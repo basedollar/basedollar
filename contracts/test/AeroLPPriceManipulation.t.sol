@@ -72,7 +72,7 @@ contract AeroLPPriceManipulationTest is Test {
 
         feed = new AeroLPTokenPriceFeedTester(
             address(borrowerOperations),
-            IAeroGauge(address(gauge)),
+            IAeroV2Gauge(address(gauge)),
             address(token0UsdOracle),
             address(token1UsdOracle),
             1 days,
@@ -488,7 +488,7 @@ contract AeroLPPriceManipulationFuzzTest is Test {
 
         feed = new AeroLPTokenPriceFeedTester(
             address(borrowerOperations),
-            IAeroGauge(address(gauge)),
+            IAeroV2Gauge(address(gauge)),
             address(token0UsdOracle),
             address(token1UsdOracle),
             1 days,
@@ -750,7 +750,7 @@ contract AeroLPPriceManipulationInvariantTest is Test {
 
         feed = new AeroLPTokenPriceFeedTester(
             address(borrowerOperations),
-            IAeroGauge(address(gauge)),
+            IAeroV2Gauge(address(gauge)),
             address(token0UsdOracle),
             address(token1UsdOracle),
             1 days,
@@ -868,7 +868,7 @@ contract AeroLPStablePairManipulationTest is Test {
 
         feed = new AeroLPTokenPriceFeedTester(
             address(borrowerOperations),
-            IAeroGauge(address(gauge)),
+            IAeroV2Gauge(address(gauge)),
             address(token0UsdOracle),
             address(token1UsdOracle),
             1 days,
@@ -1021,7 +1021,7 @@ contract AeroLPStablePairFuzzTest is Test {
 
         feed = new AeroLPTokenPriceFeedTester(
             address(borrowerOperations),
-            IAeroGauge(address(gauge)),
+            IAeroV2Gauge(address(gauge)),
             address(token0UsdOracle),
             address(token1UsdOracle),
             1 days,

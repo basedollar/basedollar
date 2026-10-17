@@ -7,7 +7,7 @@ import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 import "src/Dependencies/AggregatorV3Interface.sol";
 import "src/Dependencies/Constants.sol";
-import "src/Interfaces/IAeroGauge.sol";
+import {IV2Gauge as IAeroV2Gauge} from "src/Interfaces/MetaDEX03/gauges/IV2Gauge.sol";
 import "src/PriceFeeds/AeroLPTokenPriceFeed.sol";
 import "src/PriceFeeds/AeroLPTokenPriceFeedBase.sol";
 
@@ -80,7 +80,7 @@ contract AeroLPTokenPriceFeedTest is Test {
 
         feed = new AeroLPTokenPriceFeedTester(
             address(borrowerOperations),
-            IAeroGauge(address(gauge)),
+            IAeroV2Gauge(address(gauge)),
             address(token0UsdOracle),
             address(token1UsdOracle),
             1 days,
@@ -119,7 +119,7 @@ contract AeroLPTokenPriceFeedTest is Test {
         vm.expectRevert("Gauge is 0 address");
         new AeroLPTokenPriceFeedTester(
             address(borrowerOperations),
-            IAeroGauge(address(0)),
+            IAeroV2Gauge(address(0)),
             address(token0UsdOracle),
             address(token1UsdOracle),
             1 days,
@@ -136,7 +136,7 @@ contract AeroLPTokenPriceFeedTest is Test {
         vm.expectRevert("Token0 and token1 decimals do not match");
         new AeroLPTokenPriceFeedTester(
             address(borrowerOperations),
-            IAeroGauge(address(gauge)),
+            IAeroV2Gauge(address(gauge)),
             address(token0UsdOracle),
             address(mismatchedOracle),
             1 days,
@@ -318,7 +318,7 @@ contract AeroLPTokenPriceFeedTest is Test {
 
         AeroLPTokenPriceFeedTester stableFeed = new AeroLPTokenPriceFeedTester(
             address(borrowerOperations),
-            IAeroGauge(address(g)),
+            IAeroV2Gauge(address(g)),
             address(o0),
             address(o1),
             1 days,
@@ -355,7 +355,7 @@ contract AeroLPTokenPriceFeedTest is Test {
 
         AeroLPTokenPriceFeedTester stableFeed = new AeroLPTokenPriceFeedTester(
             address(borrowerOperations),
-            IAeroGauge(address(g)),
+            IAeroV2Gauge(address(g)),
             address(o0),
             address(o1),
             1 days,
@@ -499,7 +499,7 @@ contract AeroLPTokenPriceFeedTest is Test {
 
         AeroLPTokenPriceFeedTester stableFeed = new AeroLPTokenPriceFeedTester(
             address(borrowerOperations),
-            IAeroGauge(address(g)),
+            IAeroV2Gauge(address(g)),
             address(o0),
             address(o1),
             1 days,

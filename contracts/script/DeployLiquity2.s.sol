@@ -17,6 +17,8 @@ import "src/BoldToken.sol";
 import "src/BorrowerOperations.sol";
 import "src/TroveManager.sol";
 import "src/TroveNFT.sol";
+import "src/TroveAccount.sol";
+import {IV2Gauge as IAeroV2Gauge} from "src/Interfaces/MetaDEX03/gauges/IV2Gauge.sol";
 import "src/CollSurplusPool.sol";
 import "src/DefaultPool.sol";
 import "src/GasPool.sol";
@@ -202,6 +204,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         IStabilityPool stabilityPool;
         ITroveManager troveManager;
         ITroveNFT troveNFT;
+        ITroveAccount troveAccountImplementation;
         MetadataNFT metadataNFT;
         IPriceFeed priceFeed;
         GasPool gasPool;
@@ -222,6 +225,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         address stabilityPool;
         address troveManager;
         address troveNFT;
+        address troveAccountImplementation;
         address metadataNFT;
         address priceFeed;
         address gasPool;
@@ -880,6 +884,9 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         addresses.sortedTroves = vm.computeCreate2Address(
             SALT, keccak256(getBytecode(type(SortedTroves).creationCode, address(contracts.addressesRegistry)))
         );
+        addresses.troveAccountImplementation = _troveManagerParams.isAeroLPCollateral ?
+            vm.computeCreate2Address(SALT, keccak256(getBytecode(type(TroveAccount).creationCode, address(contracts.addressesRegistry), _troveManagerParams.aeroGauge)))
+            : address(0);
 
         contracts.priceFeed = _deployPriceFeed(address(_collToken), addresses.borrowerOperations);
 
@@ -902,7 +909,8 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
             collateralRegistry: _collateralRegistry,
             boldToken: _boldToken,
             WETH: WETH,
-            aeroManager: _aeroManager
+            aeroManager: _aeroManager,
+            troveAccountImplementation: ITroveAccount(addresses.troveAccountImplementation)
         });
         contracts.addressesRegistry.setAddresses(addressVars);
 
@@ -915,6 +923,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         contracts.gasPool = new GasPool{salt: SALT}(contracts.addressesRegistry);
         contracts.collSurplusPool = new CollSurplusPool{salt: SALT}(contracts.addressesRegistry);
         contracts.sortedTroves = new SortedTroves{salt: SALT}(contracts.addressesRegistry);
+        contracts.troveAccountImplementation = _troveManagerParams.isAeroLPCollateral ? new TroveAccount{salt: SALT}(contracts.addressesRegistry, IAeroV2Gauge(_troveManagerParams.aeroGauge)) : TroveAccount(address(0));
 
         assert(address(contracts.borrowerOperations) == addresses.borrowerOperations);
         assert(address(contracts.troveManager) == addresses.troveManager);
@@ -925,6 +934,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         assert(address(contracts.gasPool) == addresses.gasPool);
         assert(address(contracts.collSurplusPool) == addresses.collSurplusPool);
         assert(address(contracts.sortedTroves) == addresses.sortedTroves);
+        assert(address(contracts.troveAccountImplementation) == addresses.troveAccountImplementation);
 
         // Connect contracts
         _boldToken.setBranchAddresses(

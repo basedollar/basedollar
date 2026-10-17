@@ -616,7 +616,8 @@ contract TestDeployer is MetadataDeployment {
             collateralRegistry: _collateralRegistry,
             boldToken: _boldToken,
             WETH: _weth,
-            aeroManager: _aeroParams.aeroManager
+            aeroManager: _aeroParams.aeroManager,
+            troveAccountImplementation: ITroveAccount(address(0))
         });
         contracts.addressesRegistry.setAddresses(addressVars);
 
@@ -784,7 +785,8 @@ contract TestDeployer is MetadataDeployment {
             collateralRegistry: _collateralRegistry,
             boldToken: _boldToken,
             WETH: _weth,
-            aeroManager: _aeroParams.aeroManager
+            aeroManager: _aeroParams.aeroManager,
+            troveAccountImplementation: ITroveAccount(address(0))
         });
         contracts.addressesRegistry.setAddresses(addressVars);
 
@@ -1008,7 +1010,8 @@ contract TestDeployer is MetadataDeployment {
             collateralRegistry: _params.collateralRegistry,
             boldToken: _params.boldToken,
             WETH: _params.weth,
-            aeroManager: _params.aeroManager
+            aeroManager: _params.aeroManager,
+            troveAccountImplementation: ITroveAccount(address(0))
         });
         contracts.addressesRegistry.setAddresses(addressVars);
 
