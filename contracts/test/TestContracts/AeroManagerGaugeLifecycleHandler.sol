@@ -59,6 +59,6 @@ contract AeroManagerGaugeLifecycleHandler is Test {
         if (bal == 0) return;
         uint256 amt = bound(amountSeed, 1, bal);
         vm.prank(borrowerOperations);
-        activePool.sendColl(withdrawRecipient, amt);
+        activePool.sendColl(withdrawRecipient, amt, 0);
     }
 }

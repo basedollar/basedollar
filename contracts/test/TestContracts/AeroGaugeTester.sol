@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {IGaugeFactory} from "src/Interfaces/MetaDEX03/factories/IGaugeFactory.sol";
 
 import "./MockAeroVoter.sol";
 
@@ -23,6 +24,7 @@ contract AeroGaugeTester {
     MockAeroToken public aeroToken;
     MockAeroVoter public immutable aeroVoter;
     mapping(address user => uint256 amount) public balanceOf;
+    mapping(address user => uint256 blockNumber) public depositBlock;
 
     address nullAddress = address(0);
     uint256 nullUint256 = 0;
@@ -31,6 +33,7 @@ contract AeroGaugeTester {
         stakingToken = _stakingToken;
         aeroToken = _rewardToken == address(0) ? new MockAeroToken() : MockAeroToken(_rewardToken);
         aeroVoter = new MockAeroVoter();
+        aeroVoter.setRewardToken(address(aeroToken));
     }
 
     /// @notice Address of the token (AERO) rewarded to stakers
@@ -40,6 +43,23 @@ contract AeroGaugeTester {
 
     function setRewardToken(MockAeroToken _aeroToken) external {
         aeroToken = _aeroToken;
+        aeroVoter.setRewardToken(address(_aeroToken));
+    }
+
+    function gaugeFactory() external view returns (address) {
+        return address(this);
+    }
+
+    function effectivePenaltyConfig(address) external pure returns (IGaugeFactory.PenaltyConfig memory) {
+        return IGaugeFactory.PenaltyConfig({minStakeBlocks: 0, penaltyRate: 0});
+    }
+
+    function deferredEmissions(address) external pure returns (uint256) {
+        return 0;
+    }
+
+    function claimEmissions(address account, address recipient) external {
+        aeroToken.mint(recipient, balanceOf[account]);
     }
 
     /// @notice Address of the FeesVotingReward contract linked to the gauge
@@ -144,6 +164,7 @@ contract AeroGaugeTester {
     /// @param _amount .
     function deposit(uint256 _amount) external {
         balanceOf[msg.sender] += _amount;
+        depositBlock[msg.sender] = block.number;
         IERC20(stakingToken).transferFrom(msg.sender, address(this), _amount);
     }
 
@@ -152,6 +173,7 @@ contract AeroGaugeTester {
     /// @param _recipient Recipient to give balance to
     function deposit(uint256 _amount, address _recipient) external {
         balanceOf[_recipient] += _amount;
+        depositBlock[_recipient] = block.number;
         IERC20(stakingToken).transferFrom(msg.sender, address(this), _amount);
     }
 

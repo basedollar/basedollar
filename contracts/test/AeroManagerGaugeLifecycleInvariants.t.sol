@@ -90,7 +90,8 @@ contract AeroManagerGaugeLifecycleInvariants is TestAccounts, BaseInvariantTest 
     /// @notice ActivePool accounting tracks all LP whether it sits in the gauge or on AeroManager (unstaked buffer).
     function invariant_collBalanceEqualsStakedPlusUnstaked() external view {
         uint256 coll = aeroActivePool.getCollBalance();
-        uint256 st = aeroManagerImpl.stakedAmounts(address(gauge));
+        uint256 st = aeroManagerImpl.stakedAmounts(address(gauge))
+            + gauge.balanceOf(aeroActivePool.troveAccounts(0));
         uint256 unst = aeroManagerImpl.unstakedAmounts(address(gauge));
         assertEq(coll, st + unst, "collBalance != staked + unstaked");
     }
@@ -99,7 +100,8 @@ contract AeroManagerGaugeLifecycleInvariants is TestAccounts, BaseInvariantTest 
     function invariant_physicalLpMatchesAccounting() external view {
         uint256 onGauge = IERC20(address(weth)).balanceOf(address(gauge));
         uint256 onManager = IERC20(address(weth)).balanceOf(address(aeroManagerImpl));
-        uint256 st = aeroManagerImpl.stakedAmounts(address(gauge));
+        uint256 st = aeroManagerImpl.stakedAmounts(address(gauge))
+            + gauge.balanceOf(aeroActivePool.troveAccounts(0));
         uint256 unst = aeroManagerImpl.unstakedAmounts(address(gauge));
         assertEq(onGauge + onManager, st + unst, "physical LP != staked + unstaked");
         assertEq(IERC20(address(weth)).balanceOf(address(aeroActivePool)), 0, "LP dust on ActivePool");
@@ -134,7 +136,8 @@ contract AeroManagerGaugeLifecycleInvariants is TestAccounts, BaseInvariantTest 
 
     function _assertAccounting() internal view {
         uint256 coll = aeroActivePool.getCollBalance();
-        uint256 st = aeroManagerImpl.stakedAmounts(address(gauge));
+        uint256 st = aeroManagerImpl.stakedAmounts(address(gauge))
+            + gauge.balanceOf(aeroActivePool.troveAccounts(0));
         uint256 unst = aeroManagerImpl.unstakedAmounts(address(gauge));
         assertEq(coll, st + unst);
 

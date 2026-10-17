@@ -155,7 +155,7 @@ contract AeroLPInvariants is Assertions, Logging, BaseInvariantTest, BaseMultiCo
     // ============ Aero LP-Specific Invariants ============
 
     /**
-     * @notice AeroManager `stakedAmounts + unstakedAmounts` should equal combined accounted collateral balances of ActivePool, StabilityPool, CollSurplusPool + DefaultPool
+     * @notice Trove account stakes plus AeroManager's staked and unstaked collateral should equal accounted pool collateral.
      * @dev When a gauge is killed, LP may sit on AeroManager (`unstakedAmounts`) instead of the gauge.
      */
     function invariant_StakedEqualsCollBalance() external view {
@@ -171,8 +171,7 @@ contract AeroLPInvariants is Assertions, Logging, BaseInvariantTest, BaseMultiCo
     }
 
     /**
-     * @notice Gauge balance should equal AeroManager stakedAmounts
-     * @dev The gauge should hold exactly what AeroManager says is staked
+     * @notice Gauge collateral should equal the combined stakes of trove accounts and AeroManager.
      */
     function invariant_GaugeBalanceEqualsStaked() external view {
         uint256 stakedAmount = handler.getStakedAmount(address(gauge));
@@ -181,7 +180,7 @@ contract AeroLPInvariants is Assertions, Logging, BaseInvariantTest, BaseMultiCo
         assertEq(
             gaugeBalance,
             stakedAmount,
-            "Aero LP: gauge balance should equal stakedAmounts"
+            "Aero LP: gauge balance should equal combined stakes"
         );
     }
 
@@ -219,7 +218,7 @@ contract AeroLPInvariants is Assertions, Logging, BaseInvariantTest, BaseMultiCo
 
     /**
      * @notice Total system collateral accounting for Aero LP branch
-     * @dev AP, SP, DP, and CSP accounting can all represent LP that remains staked in AeroManager.
+     * @dev ActivePool collateral is staked by trove accounts; DP, SP and CSP collateral is staked by AeroManager.
      */
     function invariant_AeroLPCollateralAccounting() external view {
         uint256 stakedAmount = handler.getStakedAmount(address(gauge));

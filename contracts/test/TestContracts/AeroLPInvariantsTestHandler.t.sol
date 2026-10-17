@@ -60,10 +60,17 @@ contract AeroLPInvariantsTestHandler is InvariantsTestHandler {
     // ============ Aero LP-Specific View Functions for Invariant Checks ============
     
     /**
-     * @notice Get the actual staked amount from AeroManager for a gauge
+     * @notice Get collateral staked by trove accounts and AeroManager for a gauge
      */
-    function getStakedAmount(address _gauge) external view returns (uint256) {
-        return AeroManager(address(aeroManager)).stakedAmounts(_gauge);
+    function getStakedAmount(address _gauge) external view returns (uint256 staked) {
+        staked = AeroManager(address(aeroManager)).stakedAmounts(_gauge);
+        for (uint256 i; i < branches.length; i++) {
+            if (branchGauge[i] != _gauge) continue;
+            for (uint256 j; j < branches[i].troveManager.getTroveIdsCount(); j++) {
+                uint256 troveId = branches[i].troveManager.getTroveFromTroveIdsArray(j);
+                staked += IAeroV2Gauge(_gauge).balanceOf(branches[i].activePool.troveAccounts(troveId));
+            }
+        }
     }
 
     /// @notice LP held on AeroManager when the gauge is killed (buffer before restake).
@@ -72,10 +79,10 @@ contract AeroLPInvariantsTestHandler is InvariantsTestHandler {
     }
     
     /**
-     * @notice Get the gauge balance held by AeroManager
+     * @notice Get the actual collateral token balance held by the gauge
      */
     function getGaugeBalance(address _gauge) external view returns (uint256) {
-        return IERC20(_gauge).balanceOf(address(aeroManager));
+        return IERC20(IAeroV2Gauge(_gauge).stakingToken()).balanceOf(_gauge);
     }
 
     /// @notice LP token balance on AeroManager (should match `unstakedAmounts` in normal paths).

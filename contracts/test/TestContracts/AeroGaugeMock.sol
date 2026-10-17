@@ -63,6 +63,46 @@ contract AeroPoolMock {
         _isStable = v;
     }
 
+    function POOL_TYPE() external view returns (bytes32) {
+        return _isStable ? bytes32("V2_STABLE") : bytes32("V2_VOLATILE");
+    }
+
+    function observationBuffer() external pure returns (uint16, uint16, uint16) {
+        return (240, 241, 241);
+    }
+
+    function observe(uint32[] calldata secondsAgos)
+        external
+        view
+        returns (uint256[] memory reserve0Cumulatives, uint256[] memory reserve1Cumulatives)
+    {
+        if (_shouldRevert || _revertQuoteToken0 || _revertQuoteToken1) revert("AeroPoolMock: revert");
+        reserve0Cumulatives = new uint256[](secondsAgos.length);
+        reserve1Cumulatives = new uint256[](secondsAgos.length);
+        for (uint256 i; i < secondsAgos.length; i++) {
+            if (!_useCustomObservations) {
+                uint256 timestamp = block.timestamp - secondsAgos[i];
+                reserve0Cumulatives[i] = (_useTwapReserves ? _twapReserve0 : _reserve0) * timestamp;
+                reserve1Cumulatives[i] = (_useTwapReserves ? _twapReserve1 : _reserve1) * timestamp;
+                continue;
+            }
+            uint256 timestamp = _customObservations[_customObservations.length - 1].timestamp - secondsAgos[i];
+            require(timestamp >= _customObservations[0].timestamp, "AeroPoolMock: insufficient history");
+            for (uint256 j = 1; j < _customObservations.length; j++) {
+                Observation memory prev = _customObservations[j - 1];
+                Observation memory next = _customObservations[j];
+                if (timestamp > next.timestamp) continue;
+                uint256 elapsed = timestamp - prev.timestamp;
+                uint256 duration = next.timestamp - prev.timestamp;
+                reserve0Cumulatives[i] = prev.reserve0Cumulative
+                    + (next.reserve0Cumulative - prev.reserve0Cumulative) * elapsed / duration;
+                reserve1Cumulatives[i] = prev.reserve1Cumulative
+                    + (next.reserve1Cumulative - prev.reserve1Cumulative) * elapsed / duration;
+                break;
+            }
+        }
+    }
+
     // Legacy setter (kept for backward compatibility)
     function setCumulativePrices(uint256 p0, uint256 p1, uint256 tsLast) external {
         _reserve0Cumulative = p0;

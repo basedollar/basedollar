@@ -192,15 +192,23 @@ contract AeroLPE2E is Test, TestAccounts {
         return AeroManager(address(aeroManager));
     }
 
+    function _getTotalStakedAmount() internal view returns (uint256 staked) {
+        staked = _getAeroManager().stakedAmounts(address(gauge));
+        for (uint256 i; i < aeroLPBranch.troveManager.getTroveIdsCount(); i++) {
+            uint256 troveId = aeroLPBranch.troveManager.getTroveFromTroveIdsArray(i);
+            staked += gauge.balanceOf(aeroLPBranch.activePool.troveAccounts(troveId));
+        }
+    }
+
     function _assertAeroLPStakedMatchesAccountedPools(string memory message) internal view {
         uint256 accountedColl = aeroLPBranch.activePool.getCollBalance()
             + aeroLPBranch.stabilityPool.getCollBalance()
             + aeroLPBranch.pools.defaultPool.getCollBalance()
             + aeroLPBranch.pools.collSurplusPool.getCollBalance();
 
-        uint256 staked = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 staked = _getTotalStakedAmount();
         assertEq(staked, accountedColl, message);
-        assertEq(gauge.balanceOf(address(aeroManager)), staked, "Gauge balance should match staked");
+        assertEq(lpToken.balanceOf(address(gauge)), staked, "Gauge balance should match staked");
     }
 
     // ============ Liquidation Flow Tests ============
@@ -226,7 +234,7 @@ contract AeroLPE2E is Test, TestAccounts {
         vm.prank(C);
         aeroLPBranch.stabilityPool.provideToSP(debt * 10, true);
 
-        uint256 stakedBefore = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 stakedBefore = _getTotalStakedAmount();
         uint256 apBalanceBefore = aeroLPBranch.activePool.getCollBalance();
 
         // Drop price by 50% to make A's trove liquidatable
@@ -236,7 +244,7 @@ contract AeroLPE2E is Test, TestAccounts {
         // Liquidate A
         aeroLPBranch.troveManager.liquidate(troveIdA);
 
-        uint256 stakedAfter = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 stakedAfter = _getTotalStakedAmount();
         uint256 apBalanceAfter = aeroLPBranch.activePool.getCollBalance();
 
         // Verify collateral accounting moved while AERO LP remains staked across pools
@@ -272,7 +280,7 @@ contract AeroLPE2E is Test, TestAccounts {
         assertGt(surplus, 0, "A should have claimable surplus");
         _assertAeroLPStakedMatchesAccountedPools("Staked should include surplus pool before claim");
 
-        uint256 stakedBeforeClaim = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 stakedBeforeClaim = _getTotalStakedAmount();
         uint256 ownerBalanceBefore = lpToken.balanceOf(A);
 
         vm.prank(A);
@@ -280,7 +288,7 @@ contract AeroLPE2E is Test, TestAccounts {
 
         assertEq(aeroLPBranch.pools.collSurplusPool.getCollateral(A), 0, "Surplus should be cleared");
         assertEq(lpToken.balanceOf(A), ownerBalanceBefore + surplus, "Owner should receive surplus");
-        assertEq(stakedBeforeClaim - _getAeroManager().stakedAmounts(address(gauge)), surplus, "Claim should unstake surplus");
+        assertEq(stakedBeforeClaim - _getTotalStakedAmount(), surplus, "Claim should unstake surplus");
         _assertAeroLPStakedMatchesAccountedPools("Staked should match accounted pools after surplus claim");
     }
 
@@ -293,11 +301,11 @@ contract AeroLPE2E is Test, TestAccounts {
         // Setup: Open two troves - A (low coll ratio) and B (high coll ratio)
         (uint256 troveIdA, uint256 troveIdB, uint256 collA, uint256 collB) = _setupRedistributionTroves();
 
-        uint256 stakedBefore = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 stakedBefore = _getTotalStakedAmount();
         
         // Verify initial state
         assertEq(stakedBefore, aeroLPBranch.activePool.getCollBalance(), "Initial: Staked should match AP balance");
-        assertEq(gauge.balanceOf(address(aeroManager)), stakedBefore, "Initial: Gauge balance should match staked");
+        assertEq(lpToken.balanceOf(address(gauge)), stakedBefore, "Initial: Gauge balance should match staked");
 
         // Drop price by 50% to make trove A liquidatable (A opened just above CCR)
         uint256 mcr = aeroLPBranch.troveManager.get_MCR();
@@ -380,7 +388,7 @@ contract AeroLPE2E is Test, TestAccounts {
         // Open trove on Aero LP branch
         _openTroveOnBranch(aeroLPBranch, 0, A, coll, debt, interestRate);
 
-        uint256 stakedBefore = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 stakedBefore = _getTotalStakedAmount();
 
         // Give C BOLD to redeem
         uint256 redeemAmount = debt / 4;
@@ -392,9 +400,9 @@ contract AeroLPE2E is Test, TestAccounts {
         vm.prank(C);
         collateralRegistry.redeemCollateral(redeemAmount, 10, 1e18);
 
-        uint256 stakedAfter = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 stakedAfter = _getTotalStakedAmount();
         uint256 apBalance = aeroLPBranch.activePool.getCollBalance();
-        uint256 gaugeBalance = gauge.balanceOf(address(aeroManager));
+        uint256 gaugeBalance = lpToken.balanceOf(address(gauge));
 
         // Verify: Gauge accounting invariants hold after redemption
         assertEq(stakedAfter, apBalance, "Staked should match AP balance after redemption");
@@ -423,7 +431,7 @@ contract AeroLPE2E is Test, TestAccounts {
         // Bound redemption amount to a valid range that will succeed
         uint256 redeemAmount = bound(redeemSeed, MIN_DEBT, debt / 2);
 
-        uint256 aeroLPStakedBefore = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 aeroLPStakedBefore = _getTotalStakedAmount();
 
         // Give C BOLD to redeem
         deal(address(boldToken), C, redeemAmount);
@@ -435,9 +443,9 @@ contract AeroLPE2E is Test, TestAccounts {
         collateralRegistry.redeemCollateral(redeemAmount, 10, 1e18);
 
         // Verify: Gauge accounting invariants always hold
-        uint256 stakedAfter = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 stakedAfter = _getTotalStakedAmount();
         uint256 apBalance = aeroLPBranch.activePool.getCollBalance();
-        uint256 gaugeBalance = gauge.balanceOf(address(aeroManager));
+        uint256 gaugeBalance = lpToken.balanceOf(address(gauge));
 
         assertEq(stakedAfter, apBalance, "Staked should match AP balance after redemption");
         assertEq(gaugeBalance, stakedAfter, "Gauge balance should match staked");
@@ -465,8 +473,8 @@ contract AeroLPE2E is Test, TestAccounts {
         uint256 troveIdA = _openTroveOnBranch(aeroLPBranch, 0, A, coll, debt, interestRate);
         _openTroveOnBranch(aeroLPBranch, 0, B, coll * 2, debt, interestRate);
 
-        uint256 stakedBefore = _getAeroManager().stakedAmounts(address(gauge));
-        uint256 gaugeBefore = gauge.balanceOf(address(aeroManager));
+        uint256 stakedBefore = _getTotalStakedAmount();
+        uint256 gaugeBefore = lpToken.balanceOf(address(gauge));
 
         // Trigger shutdown by dropping price to make TCR < SCR
         // Calculate price that puts TCR just below SCR
@@ -495,8 +503,8 @@ contract AeroLPE2E is Test, TestAccounts {
         vm.prank(C);
         aeroLPBranch.troveManager.urgentRedemption(debt, troveIds, 0);
 
-        uint256 stakedAfter = _getAeroManager().stakedAmounts(address(gauge));
-        uint256 gaugeAfter = gauge.balanceOf(address(aeroManager));
+        uint256 stakedAfter = _getTotalStakedAmount();
+        uint256 gaugeAfter = lpToken.balanceOf(address(gauge));
 
         // Aero LP-specific assertions: Gauge properly unstaked
         assertTrue(stakedAfter < stakedBefore, "Staked should decrease after urgent redemption");
@@ -520,7 +528,7 @@ contract AeroLPE2E is Test, TestAccounts {
         uint256 troveIdA = _openTroveOnBranch(aeroLPBranch, 0, A, coll, debt, interestRate);
         _openTroveOnBranch(aeroLPBranch, 0, B, coll * 2, debt, interestRate);
 
-        uint256 stakedBefore = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 stakedBefore = _getTotalStakedAmount();
 
         // Trigger shutdown by dropping price to make TCR < SCR
         uint256 totalColl = aeroLPBranch.activePool.getCollBalance();
@@ -546,7 +554,7 @@ contract AeroLPE2E is Test, TestAccounts {
         aeroLPBranch.troveManager.urgentRedemption(debt, troveIds, 0);
         
         // Verify gauge unstaking
-        uint256 stakedAfter = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 stakedAfter = _getTotalStakedAmount();
         assertTrue(stakedAfter < stakedBefore, "Staked should decrease");
         assertEq(stakedAfter, aeroLPBranch.activePool.getCollBalance(), "Staked should match AP");
     }
@@ -569,7 +577,7 @@ contract AeroLPE2E is Test, TestAccounts {
         uint256 troveIdA = _openTroveOnBranch(aeroLPBranch, 0, A, coll, debt, interestRate);
         _openTroveOnBranch(aeroLPBranch, 0, B, coll * 2, debt, interestRate);
 
-        uint256 stakedBefore = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 stakedBefore = _getTotalStakedAmount();
         uint256 troveCollA = aeroLPBranch.troveManager.getLatestTroveData(troveIdA).entireColl;
 
         // Users can close troves
@@ -581,12 +589,12 @@ contract AeroLPE2E is Test, TestAccounts {
         aeroLPBranch.borrowerOperations.closeTrove(troveIdA);
         vm.stopPrank();
 
-        uint256 stakedAfter = _getAeroManager().stakedAmounts(address(gauge));
+        uint256 stakedAfter = _getTotalStakedAmount();
 
         // Aero LP-specific assertions
         assertEq(stakedBefore - stakedAfter, troveCollA, "Staked should decrease by trove collateral");
         assertEq(stakedAfter, aeroLPBranch.activePool.getCollBalance(), "Staked should match AP balance");
-        assertEq(gauge.balanceOf(address(aeroManager)), stakedAfter, "Gauge balance should match staked");
+        assertEq(lpToken.balanceOf(address(gauge)), stakedAfter, "Gauge balance should match staked");
     }
 
     // ============ Normal Branch Behavior Verification ============

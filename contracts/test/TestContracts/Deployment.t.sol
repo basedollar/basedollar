@@ -14,6 +14,7 @@ import "src/HintHelpers.sol";
 import "src/MultiTroveGetter.sol";
 import "src/SortedTroves.sol";
 import "src/StabilityPool.sol";
+import "src/TroveAccount.sol";
 import "./BorrowerOperationsTester.t.sol";
 import "./TroveManagerTester.t.sol";
 import "./CollateralRegistryTester.sol";
@@ -95,6 +96,7 @@ contract TestDeployer is MetadataDeployment {
 
     struct LiquityContractsDev {
         IAddressesRegistry addressesRegistry;
+        ITroveAccount troveAccountImplementation;
         IBorrowerOperationsTester borrowerOperations; // Tester
         ISortedTroves sortedTroves;
         IActivePool activePool;
@@ -109,6 +111,7 @@ contract TestDeployer is MetadataDeployment {
 
     struct LiquityContracts {
         IAddressesRegistry addressesRegistry;
+        ITroveAccount troveAccountImplementation;
         IActivePool activePool;
         IBorrowerOperations borrowerOperations;
         ICollSurplusPool collSurplusPool;
@@ -134,6 +137,7 @@ contract TestDeployer is MetadataDeployment {
 
     struct LiquityContractAddresses {
         address activePool;
+        address troveAccountImplementation;
         address borrowerOperations;
         address collSurplusPool;
         address defaultPool;
@@ -595,6 +599,13 @@ contract TestDeployer is MetadataDeployment {
         addresses.sortedTroves = getAddress(
             address(this), getBytecode(type(SortedTroves).creationCode, address(contracts.addressesRegistry)), SALT
         );
+        if (_aeroParams.isAeroLPCollateral) {
+            addresses.troveAccountImplementation = getAddress(
+                address(this),
+                getBytecode(type(TroveAccount).creationCode, address(contracts.addressesRegistry), _aeroParams.aeroGaugeAddress),
+                SALT
+            );
+        }
 
         // Deploy contracts
         IAddressesRegistry.AddressVars memory addressVars = IAddressesRegistry.AddressVars({
@@ -617,7 +628,7 @@ contract TestDeployer is MetadataDeployment {
             boldToken: _boldToken,
             WETH: _weth,
             aeroManager: _aeroParams.aeroManager,
-            troveAccountImplementation: ITroveAccount(address(0))
+            troveAccountImplementation: ITroveAccount(addresses.troveAccountImplementation)
         });
         contracts.addressesRegistry.setAddresses(addressVars);
 
@@ -630,6 +641,11 @@ contract TestDeployer is MetadataDeployment {
         contracts.pools.gasPool = new GasPool{salt: SALT}(contracts.addressesRegistry);
         contracts.pools.collSurplusPool = new CollSurplusPool{salt: SALT}(contracts.addressesRegistry);
         contracts.sortedTroves = new SortedTroves{salt: SALT}(contracts.addressesRegistry);
+        if (_aeroParams.isAeroLPCollateral) {
+            contracts.troveAccountImplementation = new TroveAccount{salt: SALT}(
+                contracts.addressesRegistry, IAeroV2Gauge(_aeroParams.aeroGaugeAddress)
+            );
+        }
 
         assert(address(contracts.borrowerOperations) == addresses.borrowerOperations);
         assert(address(contracts.troveManager) == addresses.troveManager);
@@ -640,6 +656,7 @@ contract TestDeployer is MetadataDeployment {
         assert(address(contracts.pools.gasPool) == addresses.gasPool);
         assert(address(contracts.pools.collSurplusPool) == addresses.collSurplusPool);
         assert(address(contracts.sortedTroves) == addresses.sortedTroves);
+        assert(address(contracts.troveAccountImplementation) == addresses.troveAccountImplementation);
 
         // deploy zappers
         _deployZappers(
@@ -764,6 +781,13 @@ contract TestDeployer is MetadataDeployment {
         addresses.sortedTroves = getAddress(
             address(this), getBytecode(type(SortedTroves).creationCode, address(contracts.addressesRegistry)), SALT
         );
+        if (_aeroParams.isAeroLPCollateral) {
+            addresses.troveAccountImplementation = getAddress(
+                address(this),
+                getBytecode(type(TroveAccount).creationCode, address(contracts.addressesRegistry), _aeroParams.aeroGaugeAddress),
+                SALT
+            );
+        }
 
         // Deploy contracts
         IAddressesRegistry.AddressVars memory addressVars = IAddressesRegistry.AddressVars({
@@ -786,7 +810,7 @@ contract TestDeployer is MetadataDeployment {
             boldToken: _boldToken,
             WETH: _weth,
             aeroManager: _aeroParams.aeroManager,
-            troveAccountImplementation: ITroveAccount(address(0))
+            troveAccountImplementation: ITroveAccount(addresses.troveAccountImplementation)
         });
         contracts.addressesRegistry.setAddresses(addressVars);
 
@@ -799,6 +823,11 @@ contract TestDeployer is MetadataDeployment {
         contracts.pools.gasPool = new GasPool{salt: SALT}(contracts.addressesRegistry);
         contracts.pools.collSurplusPool = new CollSurplusPool{salt: SALT}(contracts.addressesRegistry);
         contracts.sortedTroves = new SortedTroves{salt: SALT}(contracts.addressesRegistry);
+        if (_aeroParams.isAeroLPCollateral) {
+            contracts.troveAccountImplementation = new TroveAccount{salt: SALT}(
+                contracts.addressesRegistry, IAeroV2Gauge(_aeroParams.aeroGaugeAddress)
+            );
+        }
 
         assert(address(contracts.borrowerOperations) == addresses.borrowerOperations);
         assert(address(contracts.troveManager) == addresses.troveManager);
@@ -809,6 +838,7 @@ contract TestDeployer is MetadataDeployment {
         assert(address(contracts.pools.gasPool) == addresses.gasPool);
         assert(address(contracts.pools.collSurplusPool) == addresses.collSurplusPool);
         assert(address(contracts.sortedTroves) == addresses.sortedTroves);
+        assert(address(contracts.troveAccountImplementation) == addresses.troveAccountImplementation);
 
         // Connect contracts
         _boldToken.setBranchAddresses(
@@ -986,6 +1016,13 @@ contract TestDeployer is MetadataDeployment {
         addresses.sortedTroves = getAddress(
             address(this), getBytecode(type(SortedTroves).creationCode, address(contracts.addressesRegistry)), SALT
         );
+        if (_params.isAeroLPCollateral) {
+            addresses.troveAccountImplementation = getAddress(
+                address(this),
+                getBytecode(type(TroveAccount).creationCode, address(contracts.addressesRegistry), _params.aeroGaugeAddress),
+                SALT
+            );
+        }
 
         contracts.priceFeed =
             _deployPriceFeed(_params.branch, _externalAddresses, _oracleParams, addresses.borrowerOperations);
@@ -1011,7 +1048,7 @@ contract TestDeployer is MetadataDeployment {
             boldToken: _params.boldToken,
             WETH: _params.weth,
             aeroManager: _params.aeroManager,
-            troveAccountImplementation: ITroveAccount(address(0))
+            troveAccountImplementation: ITroveAccount(addresses.troveAccountImplementation)
         });
         contracts.addressesRegistry.setAddresses(addressVars);
 
@@ -1024,6 +1061,11 @@ contract TestDeployer is MetadataDeployment {
         contracts.gasPool = new GasPool{salt: SALT}(contracts.addressesRegistry);
         contracts.collSurplusPool = new CollSurplusPool{salt: SALT}(contracts.addressesRegistry);
         contracts.sortedTroves = new SortedTroves{salt: SALT}(contracts.addressesRegistry);
+        if (_params.isAeroLPCollateral) {
+            contracts.troveAccountImplementation = new TroveAccount{salt: SALT}(
+                contracts.addressesRegistry, IAeroV2Gauge(_params.aeroGaugeAddress)
+            );
+        }
 
         assert(address(contracts.borrowerOperations) == addresses.borrowerOperations);
         assert(address(contracts.troveManager) == addresses.troveManager);
@@ -1034,6 +1076,7 @@ contract TestDeployer is MetadataDeployment {
         assert(address(contracts.gasPool) == addresses.gasPool);
         assert(address(contracts.collSurplusPool) == addresses.collSurplusPool);
         assert(address(contracts.sortedTroves) == addresses.sortedTroves);
+        assert(address(contracts.troveAccountImplementation) == addresses.troveAccountImplementation);
 
         // Connect contracts
         _params.boldToken.setBranchAddresses(
