@@ -6,7 +6,7 @@ pragma solidity ^0.8.4;
  * @notice Interface for transport adapters that carry payloads between `MessageOrchestrator` instances without
  * inspecting their content.
  */
-interface IAeroMessageAdapter {
+interface IMessageAdapter {
   /// @notice Thrown when `sendMessage` is invoked by a caller that is not a registered orchestrator.
   error CallerNotOrchestrator();
 

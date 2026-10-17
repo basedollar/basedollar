@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {IAeroGauge} from './IAeroGauge.sol';
+import {IGauge} from './IGauge.sol';
 
-interface IAeroV2Gauge is IAeroGauge {
+interface IV2Gauge is IGauge {
   /**
    * @notice Emitted when staking tokens are deposited into the gauge.
    * @param _caller The address that supplied the staking tokens.

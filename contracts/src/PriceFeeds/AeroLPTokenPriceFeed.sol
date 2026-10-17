@@ -4,7 +4,7 @@ pragma solidity 0.8.24;
 
 
 import "./AeroLPTokenPriceFeedBase.sol";
-import "../Interfaces/IAeroV2Gauge.sol";
+import {IV2Gauge as IAeroV2Gauge} from "../Interfaces/MetaDEX03/gauges/IV2Gauge.sol";
 
 contract AeroLPTokenPriceFeed is AeroLPTokenPriceFeedBase {
     constructor(

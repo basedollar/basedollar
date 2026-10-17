@@ -1,12 +1,14 @@
 /// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import {IMessageAdapter} from './IMessageAdapter.sol';
+
 /**
- * @title IAeroRootLocalAdapter
+ * @title IRootLocalAdapter
  * @notice Interface for the local adapter deployed on root that connects the `RootMessageOrchestrator` and the
  * on-root `LeafMessageOrchestrator` in the same transaction.
  */
-interface IAeroRootLocalAdapter {
+interface IRootLocalAdapter is IMessageAdapter {
   /// @notice Thrown when both orchestrator addresses passed to the constructor are identical.
   error IdenticalOrchestrators();
 

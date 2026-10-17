@@ -5,13 +5,15 @@ pragma solidity 0.8.24;
 import "./Interfaces/IActivePool.sol";
 import "./Interfaces/ICollateralRegistry.sol";
 import "./Interfaces/IAeroManager.sol";
-import "./Interfaces/IAeroGauge.sol";
-import "./Interfaces/IAeroV2Gauge.sol";
-import "./Interfaces/IAeroVoter.sol";
-import "./Interfaces/IAeroLeafVoter.sol";
-import "./Interfaces/IAeroVoterCommon.sol";
-import "./Interfaces/IAeroRootLocalAdapter.sol";
-import "./Interfaces/IAeroRootMessageOrchestrator.sol";
+import {IGauge as IAeroGauge} from "./Interfaces/MetaDEX03/gauges/IGauge.sol";
+import {IV2Gauge as IAeroV2Gauge} from "./Interfaces/MetaDEX03/gauges/IV2Gauge.sol";
+import {IGaugeFactory as IAeroGaugeFactory} from "./Interfaces/MetaDEX03/factories/IGaugeFactory.sol";
+import {IVoter as IAeroVoter} from "./Interfaces/MetaDEX03/voter/IVoter.sol";
+import {ILeafVoter as IAeroLeafVoter} from "./Interfaces/MetaDEX03/voter/ILeafVoter.sol";
+import {IVoterCommon as IAeroVoterCommon} from "./Interfaces/MetaDEX03/voter/IVoterCommon.sol";
+import {IRootLocalAdapter as IAeroRootLocalAdapter} from "./Interfaces/MetaDEX03/bridge/IRootLocalAdapter.sol";
+import {IRootMessageOrchestrator as IAeroRootMessageOrchestrator} from "./Interfaces/MetaDEX03/bridge/IRootMessageOrchestrator.sol";
+import {ILeafMessageOrchestrator as IAeroLeafMessageOrchestrator} from "./Interfaces/MetaDEX03/bridge/ILeafMessageOrchestrator.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./Dependencies/Ownable.sol";
@@ -613,12 +615,12 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     function rewardTokenOf(address _gauge) public view returns (address) {
         IAeroLeafVoter leafVoter = IAeroLeafVoter(IAeroGauge(_gauge).voter());
 
-        if (block.chainid != ILeafMessageOrchestrator(leafVoter.ORCHESTRATOR()).ROOT_CHAIN_ID()) {
+        if (block.chainid != IAeroLeafMessageOrchestrator(leafVoter.ORCHESTRATOR()).ROOT_CHAIN_ID()) {
             return address(leafVoter.RECEIPT_TOKEN());
         }
 
         IAeroRootLocalAdapter adapter =
-            IAeroRootLocalAdapter(address(ILeafMessageOrchestrator(leafVoter.ORCHESTRATOR()).adapter()));
+            IAeroRootLocalAdapter(address(IAeroLeafMessageOrchestrator(leafVoter.ORCHESTRATOR()).adapter()));
 
         return IAeroRootMessageOrchestrator(adapter.ROOT_MESSAGE_ORCHESTRATOR())
             .VOTER()

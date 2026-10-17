@@ -14,8 +14,7 @@ import "./Interfaces/IInterestRouter.sol";
 import "./Interfaces/IDefaultPool.sol";
 
 import "./Interfaces/IAeroManager.sol";
-import "./Interfaces/IAeroV2Gauge.sol";
-import "./Interfaces/ITroveAccount.sol";
+import {IV2Gauge as IAeroV2Gauge} from "./Interfaces/MetaDEX03/gauges/IV2Gauge.sol";
 import "./Interfaces/ITroveAccount.sol";
 
 /*

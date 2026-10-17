@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+/// @dev Original Aerodrome IVoter interface
 interface IAeroVoter {
     error AlreadyVotedOrDeposited();
     error DistributeWindow();

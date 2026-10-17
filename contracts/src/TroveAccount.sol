@@ -5,8 +5,9 @@ pragma solidity 0.8.24;
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
-import "./Interfaces/IAeroV2Gauge.sol";
-import "./Interfaces/IAeroGauge.sol";
+import {IGauge as IAeroGauge} from "./Interfaces/MetaDEX03/gauges/IGauge.sol";
+import {IV2Gauge as IAeroV2Gauge} from "./Interfaces/MetaDEX03/gauges/IV2Gauge.sol";
+import {IGaugeFactory as IAeroGaugeFactory} from "./Interfaces/MetaDEX03/factories/IGaugeFactory.sol";
 import "./Interfaces/IAeroManager.sol";
 import "./Interfaces/ITroveAccount.sol";
 import "./Interfaces/IAddressesRegistry.sol";
@@ -89,6 +90,21 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         require(isClosed, "TroveAccount: Cannot recover rewards from active trove");
         _claimEmissions();
         _sendAeroRewards();
+    }
+
+    /// @notice Transfers balance of any miscellaneous tokens stranded after trove closed.
+    /// This also serves as a recovery method for prior rewards if AERO token address changes.
+    /// @dev Only AeroManager governor can call this function.
+    function sweep(address token, address to) external nonReentrant {
+        require(msg.sender == aeroManager.governor(), "TroveAccount: Caller is not AeroManager governor");
+        require(token != address(collToken) && token != aeroManager.aeroTokenAddress(), "TroveAccount: token cannot be collateral or reward address");
+        require(to != address(0), "TroveAccount: to address cannot be null");
+        require(isClosed, "TroveAccount: Cannot sweep token while trove is active");
+        IERC20 erc20 = IERC20(token);
+        uint256 balance = erc20.balanceOf(address(this));
+        if (balance > 0) {
+            erc20.safeTransfer(to, balance);
+        }
     }
 
     function _claimEmissions() internal {

@@ -1,19 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {IAeroVoterCommon} from './IAeroVoterCommon.sol';
-import {IAeroMessageAdapter} from './IAeroMessageAdapter.sol';
-import {IAeroFactoryRegistry} from './IAeroFactoryRegistry.sol';
+import {IAccessControl} from '@openzeppelin/contracts/access/IAccessControl.sol';
+
+import {ILeafMessageOrchestrator} from '../bridge/ILeafMessageOrchestrator.sol';
+import {IFactoryRegistry} from '../factories/IFactoryRegistry.sol';
+import {IReceiptTokenExtensions as IReceiptToken} from '../token/IReceiptTokenExtensions.sol';
+import {IVoterCommon} from './IVoterCommon.sol';
 
 /**
- * @title IAeroLeafVoter
+ * @title ILeafVoter
  * @notice Leaf-chain Voter: turns per-chain reward rates and per-tokenId allocations into per-gauge emission
  *         rates, and exposes the claim surface for gauges and the redeem surface for `ReceiptToken` holders.
  * @dev Root drives two paths through the Leaf MessageOrchestrator: `applyChainAllocation` sets the chain budget
  *      and emissions scalar (no cooldown), `applyGaugeAllocations` spreads it over gauges (cooldown per chain).
  * @dev An operator drives local redistributions through `allocateGauges`. Settlement state advances lazily.
  */
-interface IAeroLeafVoter is IAeroVoterCommon {
+interface ILeafVoter is IVoterCommon, IAccessControl {
   /*//////////////////////////////////////////////////////////////
                                  STRUCTS
   //////////////////////////////////////////////////////////////*/
@@ -671,7 +674,7 @@ interface IAeroLeafVoter is IAeroVoterCommon {
    *         contracts during settlement. Set at deployment, immutable.
    * @return _factoryRegistry The configured FactoryRegistry.
    */
-  function FACTORY_REGISTRY() external view returns (IAeroFactoryRegistry _factoryRegistry);
+  function FACTORY_REGISTRY() external view returns (IFactoryRegistry _factoryRegistry);
 
   /**
    * @notice GaugeManager authorized for the gauge-lifecycle writes,
@@ -871,24 +874,4 @@ interface IAeroLeafVoter is IAeroVoterCommon {
    * @return _gauges The set's values as a memory array.
    */
   function allocatedGauges(uint256 _tokenId) external view returns (address[] memory _gauges);
-}
-
-interface ILeafMessageOrchestrator {
-    /// @notice Local `LeafVoter` bound to this orchestrator at deployment.
-    /// @dev The only caller allowed to `dispatch`, and the source of the roles checked here.
-    /// @return Local `LeafVoter`.
-    function LEAF_VOTER() external view returns (IAeroLeafVoter);
-
-    /// @notice Chain id of root, the only chain this leaf orchestrator messages. Set at deployment.
-    /// @dev `setAdapter` requires the registered adapter's `REMOTE_CHAIN_ID` to equal this.
-    /// @return Root chain id.
-    function ROOT_CHAIN_ID() external view returns (uint256);
-    
-    /// @notice Registered transport adapter for the root pair, or zero if none.
-    /// @return Registered adapter.
-    function adapter() external view returns (IAeroMessageAdapter);
-}
-
-interface IReceiptToken {
-    // Nothing
 }

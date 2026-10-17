@@ -33,7 +33,6 @@ import "src/PriceFeeds/cbBTCPriceFeed.sol";
 import "src/PriceFeeds/cbETHPriceFeed.sol";
 import "src/PriceFeeds/AEROPriceFeed.sol";
 import "src/PriceFeeds/AeroLPTokenPriceFeed.sol";
-import {IAeroGauge} from "src/Interfaces/IAeroGauge.sol";
 import {AeroManager} from "src/AeroManager.sol";
 import {IAeroManager} from "src/Interfaces/IAeroManager.sol";
 import "src/CollateralRegistry.sol";

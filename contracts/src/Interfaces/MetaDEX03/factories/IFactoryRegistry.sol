@@ -2,13 +2,13 @@
 pragma solidity ^0.8.4;
 
 /**
- * @title IAeroFactoryRegistry
+ * @title IFactoryRegistry
  * @notice Per-chain approval gate for factories and relationship graph of the
  *         protocol. Tracks which gauge factories and target factories may
  *         participate on the chain, records how gauges, targets, factories
  *         and rewards contracts relate and holds the meta router allowlist.
  */
-interface IAeroFactoryRegistry {
+interface IFactoryRegistry {
   /**
    * @notice Emitted when a gauge factory is registered into the approval set.
    * @param _gaugeFactory The registered gauge factory.

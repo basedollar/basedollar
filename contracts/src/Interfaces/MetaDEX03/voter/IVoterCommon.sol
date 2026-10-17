@@ -2,10 +2,10 @@
 pragma solidity ^0.8.4;
 
 /**
- * @title IAeroVoterCommon
+ * @title IVoterCommon
  * @notice Types shared by `IVoter` (root) and `ILeafVoter` (leaf), so the same struct crosses chains unchanged.
  */
-interface IAeroVoterCommon {
+interface IVoterCommon {
   /*//////////////////////////////////////////////////////////////
                                   ENUMS
   //////////////////////////////////////////////////////////////*/
