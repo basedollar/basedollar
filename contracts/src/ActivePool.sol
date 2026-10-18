@@ -213,10 +213,6 @@ contract ActivePool is IActivePool {
         // v2:
         // bool keepStaked = isAeroLPCollateral && (_account == address(stabilityPool) || _account == collSurplusPoolAddress);
         // if (!keepStaked) {
-        //     // v3:
-        //     // - Call _troveId bounded account to unstake
-        //     // - Pull collToken _amount from _troveId bounded account
-        //     // - Transfer collToken _amount to _account
         //     _unstakeIfAeroLPCollateral(_amount);
         //     collToken.safeTransfer(_account, _amount);
         // }
@@ -270,15 +266,6 @@ contract ActivePool is IActivePool {
     }
 
     // v3:
-    function sendCollToDefaultPool(uint256 _troveId, uint256 _amount) external override {
-        _requireCallerIsTroveManager();
-
-        _accountForSendColl(_amount);
-        _unstakeIfAeroLPCollateral(_troveId, _amount);
-        IDefaultPool(defaultPoolAddress).receiveColl(_amount);
-    }
-
-    // v3:
     function unstakeColl(uint256 _troveId, uint256 _amount) external override {
         _requireCallerIsTroveManager();
         _unstakeIfAeroLPCollateral(_troveId, _amount);
@@ -299,22 +286,6 @@ contract ActivePool is IActivePool {
         _requireCallerIsBorrowerOperationsOrDefaultPool();
 
         _accountForReceivedColl(_amount);
-
-        // v3: Possible changes to stake handling
-        // - Liquidated colltokens in DefaultPool are transferred here
-        //   (regardless if Aero LP collateral or not)
-        // - If Aero LP, transfer collToken _amount to _troveId bound account
-        // - Call _troveId bound account to:
-        //      1. Claim emissions if passed min stake block + send to AeroManager
-        //      2. Stake _amount
-
-        // old
-        // // Pull Coll tokens from sender
-        // collToken.safeTransferFrom(msg.sender, address(this), _amount);
-
-        // // If the collateral is AERO LP, stake it
-        // // Transfers from ActivePool -> AeroManager -> AeroGauge
-        // _stakeIfAeroLPCollateral(_amount);
 
         // new
         // If it is coming from default pool, the collateral is already staked
@@ -358,13 +329,12 @@ contract ActivePool is IActivePool {
         // NOTE: if it is coming from default pool, the collateral is already staked
         // v2:
         // if (msg.sender != defaultPoolAddress) {
-        //     // v3: _stakeIfAeroLPCollateral(_troveId, _amount);
         //     _stakeIfAeroLPCollateral(_amount);
         // }
+        // v3:
         _stakeIfAeroLPCollateral(_troveId, _amount);
     }
 
-    //TODO might need to make this a factory, to keep positions separate.
     // v2:
     /// @dev Stakes liquidated AERO LP collateral into AeroGauge via AeroManager
     function _stakeIfAeroLPCollateralExcess(uint256 _amount) internal {
@@ -375,6 +345,7 @@ contract ActivePool is IActivePool {
             IAeroManager(aeroManagerAddress).stake(aeroGaugeAddress, address(collToken), _amount);
         }
     }
+
     // v3:
     // Gets troveId bounded account address and calls it to stake Aero LP collateral _amount
     /// @dev Stakes AERO LP collateral through individual TroveAccount bounded by _troveId
@@ -400,6 +371,7 @@ contract ActivePool is IActivePool {
             IAeroManager(aeroManagerAddress).withdraw(aeroGaugeAddress, address(collToken), _amount);
         }
     }
+
     // v3:
     // Calls troveId bounded account to unstake and transfer Aero LP collateral _amount to ActivePool
     function _unstakeIfAeroLPCollateral(uint256 _troveId, uint256 _amount) internal {

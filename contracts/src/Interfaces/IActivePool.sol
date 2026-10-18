@@ -43,7 +43,6 @@ interface IActivePool {
     function sendColl(address _account, uint256 _amount) external;
     function sendColl(address _account, uint256 _amount, uint256 _troveId) external;
     function sendCollToDefaultPool(uint256 _amount) external;
-    function sendCollToDefaultPool(uint256 _troveId, uint256 _amount) external;
     // v2:
     // function receiveColl(uint256 _amount) external;
     // function accountForReceivedColl(uint256 _amount) external;
