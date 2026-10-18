@@ -13,21 +13,30 @@ import "./Interfaces/ITroveAccount.sol";
 import "./Interfaces/IAddressesRegistry.sol";
 import "./Interfaces/IActivePool.sol";
 
-/*
- * Holds the Aero LP stake for a single trove. Only ActivePool can move collateral.
- * Claimed emissions are sent to AeroManager for distribution.
- */
+/// @title TroveAccount
+/// @notice Holds the Aero LP stake for a single trove. Only ActivePool can move collateral.
+/// @dev Claimed emissions are sent to AeroManager for distribution.
 contract TroveAccount is ITroveAccount, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    uint256 public troveId;
-    bool private _initialized;
     IActivePool public immutable activePool;
     IERC20 public immutable collToken;
     IAeroV2Gauge public immutable gauge;
     IAeroManager public immutable aeroManager;
 
+    bool private _initialized;
+
+    /// @notice TroveID of bounded trove this account handles staked Aero LP collateral for
+    uint256 public troveId;
+
+    /// @notice Status of trove
     bool public isClosed;
+
+    /// @notice Collateral deposited in the gauge.
+    uint256 public stakedAmount;
+
+    /// @notice Collateral held here while the gauge is not alive.
+    uint256 public unstakedAmount;
 
     constructor(IAddressesRegistry _addressesRegistry, IAeroV2Gauge _gauge) {
         // Lock the implementation. Clones have their own uninitialized storage.
@@ -52,30 +61,54 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
 
     // --- Collateral operations ---
 
-    /// @notice Deposits Aero LP collateral from troveId into Gauge
+    /// @notice Stakes collateral when the gauge is alive, otherwise holds it here.
     function stake(uint256 _amount) external nonReentrant {
         _requireCallerIsActivePool();
         if (_amount == 0) return;
 
-        // Harvest mature emissions before a deposit resets the staking timer.
-        _claimEmissions();
-        _sendAeroRewards();
-        gauge.deposit(_amount);
+        unstakedAmount += _amount;
+        if (aeroManager.isAeroGaugeAlive(address(gauge))) {
+            _stakeRemaining();
+        }
     }
 
-    /// @notice Withdraws staked Aero LP collateral of troveId from Gauge by ActivePool
+    /// @notice Returns collateral to ActivePool, using unstaked collateral first.
     function withdraw(uint256 _amount) external nonReentrant {
         _requireCallerIsActivePool();
         if (_amount == 0) return;
 
-        if (gauge.balanceOf(address(this)) == _amount) {
+        if (stakedAmount + unstakedAmount == _amount) {
             isClosed = true;
         }
 
-        // Gauge withdrawals settle emissions, including any early-exit penalty.
-        gauge.withdraw(_amount);
+        uint256 balance = unstakedAmount;
+        if (_amount > balance) {
+            uint256 amountToUnstake = _amount - balance;
+            stakedAmount -= amountToUnstake;
+            unstakedAmount = 0;
+            // Gauge withdrawals settle emissions, including any early-exit penalty.
+            gauge.withdraw(amountToUnstake);
+        } else {
+            unstakedAmount = balance - _amount;
+            if (aeroManager.isAeroGaugeAlive(address(gauge))) {
+                _stakeRemaining();
+            }
+        }
         collToken.safeTransfer(address(activePool), _amount);
         _sendAeroRewards();
+    }
+
+    /// @dev The caller must check that the gauge is alive before staking the idle balance.
+    function _stakeRemaining() internal {
+        uint256 amount = unstakedAmount;
+        if (amount == 0) return;
+
+        // Harvest mature emissions before a deposit resets the staking timer.
+        _claimEmissions();
+        _sendAeroRewards();
+        stakedAmount += amount;
+        unstakedAmount = 0;
+        gauge.deposit(amount);
     }
 
     // --- Reward operations ---
@@ -90,6 +123,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         return amount;
     }
 
+    /// @notice claims leftover emissions deferred/stranded after trove already closed
     function recoverRewards() external nonReentrant {
         require(isClosed, "TroveAccount: Cannot recover rewards from active trove");
         _claimEmissions();

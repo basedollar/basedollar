@@ -6,6 +6,7 @@ import "./ICollateralRegistry.sol";
 
 interface IAeroManager {
     function stakedAmounts(address gauge) external view returns (uint256);
+    function isAeroGaugeAlive(address gauge) external view returns (bool);
     function setAeroTokenAddress(address _aeroTokenAddress) external;
     function addActivePool(address activePool) external;
     function stake(address gauge, address token, uint256 amount) external;

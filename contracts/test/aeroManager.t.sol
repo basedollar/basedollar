@@ -5,6 +5,7 @@ import "./TestContracts/DevTestSetup.sol";
 import "./TestContracts/AeroGaugeTester.sol";
 import "./TestContracts/WETHTester.sol";
 import "src/AeroManager.sol";
+import "src/TroveAccount.sol";
 import "src/Dependencies/Constants.sol";
 
 contract AeroManagerTest is DevTestSetup {
@@ -921,6 +922,117 @@ contract AeroManagerTest is DevTestSetup {
         aeroManagerImpl.acceptGovernor();
 
         assertEq(aeroManagerImpl.governor(), governor);
+    }
+
+    // --- Trove account gauge lifecycle ---
+
+    function _assertTroveCollateral(uint256 troveId, uint256 staked, uint256 unstaked) internal view {
+        ITroveAccount account = ITroveAccount(aeroActivePool.troveAccounts(troveId));
+        assertEq(account.stakedAmount(), staked);
+        assertEq(account.unstakedAmount(), unstaked);
+        assertEq(gauge.balanceOf(address(account)), staked);
+        assertEq(weth.balanceOf(address(account)), unstaked);
+    }
+
+    function test_troveAccount_stakeTracksStakedAmount() public {
+        _stakeThroughActivePool(0, 8e18);
+        _assertTroveCollateral(0, 8e18, 0);
+    }
+
+    function test_troveAccount_stakeWhenGaugeKilledHoldsCollateral() public {
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        _stakeThroughActivePool(0, 7e18);
+        _stakeThroughActivePool(0, 3e18);
+        _assertTroveCollateral(0, 0, 10e18);
+        assertEq(weth.balanceOf(address(gauge)), 0);
+    }
+
+    function test_troveAccount_stakeAfterRevivalStakesAllIdleCollateral() public {
+        _stakeThroughActivePool(0, 8e18);
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        _stakeThroughActivePool(0, 4e18);
+        _assertTroveCollateral(0, 8e18, 4e18);
+
+        gauge.aeroVoter().setGaugeAlive(address(gauge), true);
+        uint256 rewardsBefore = aeroManagerImpl.claimedAero();
+        _stakeThroughActivePool(0, 3e18);
+
+        _assertTroveCollateral(0, 15e18, 0);
+        uint256 fee = 8e18 * aeroManagerImpl.claimFee() / 1e18;
+        assertEq(aeroManagerImpl.claimedAero(), rewardsBefore + 8e18 - fee);
+    }
+
+    function test_troveAccount_withdrawWhenKilledUsesIdleCollateralFirst() public {
+        _stakeThroughActivePool(0, 8e18);
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        _stakeThroughActivePool(0, 5e18);
+
+        uint256 recipientBefore = weth.balanceOf(A);
+        vm.prank(address(borrowerOperations));
+        aeroActivePool.sendColl(A, 3e18, 0);
+
+        _assertTroveCollateral(0, 8e18, 2e18);
+        assertEq(weth.balanceOf(A), recipientBefore + 3e18);
+        assertFalse(TroveAccount(aeroActivePool.troveAccounts(0)).isClosed());
+    }
+
+    function test_troveAccount_withdrawAfterRevivalStakesIdleRemainder() public {
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        _stakeThroughActivePool(0, 10e18);
+        gauge.aeroVoter().setGaugeAlive(address(gauge), true);
+
+        vm.prank(address(borrowerOperations));
+        aeroActivePool.sendColl(A, 4e18, 0);
+
+        _assertTroveCollateral(0, 6e18, 0);
+        assertFalse(TroveAccount(aeroActivePool.troveAccounts(0)).isClosed());
+    }
+
+    function test_troveAccount_withdrawWhenKilledPullsOnlyShortfallFromGauge() public {
+        _stakeThroughActivePool(0, 8e18);
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        _stakeThroughActivePool(0, 2e18);
+
+        vm.prank(address(borrowerOperations));
+        aeroActivePool.sendColl(A, 7e18, 0);
+
+        _assertTroveCollateral(0, 3e18, 0);
+        assertFalse(TroveAccount(aeroActivePool.troveAccounts(0)).isClosed());
+    }
+
+    function test_troveAccount_partialWithdrawalEqualToGaugeBalanceDoesNotClose() public {
+        _stakeThroughActivePool(0, 8e18);
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        _stakeThroughActivePool(0, 2e18);
+
+        vm.prank(address(borrowerOperations));
+        aeroActivePool.sendColl(A, 8e18, 0);
+
+        _assertTroveCollateral(0, 2e18, 0);
+        assertFalse(TroveAccount(aeroActivePool.troveAccounts(0)).isClosed());
+    }
+
+    function test_troveAccount_fullWithdrawalOfIdleCollateralClosesAccount() public {
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        _stakeThroughActivePool(0, 10e18);
+
+        vm.prank(address(borrowerOperations));
+        aeroActivePool.sendColl(A, 10e18, 0);
+
+        _assertTroveCollateral(0, 0, 0);
+        assertTrue(TroveAccount(aeroActivePool.troveAccounts(0)).isClosed());
+    }
+
+    function test_troveAccount_fullWithdrawalOfMixedCollateralClosesAccount() public {
+        _stakeThroughActivePool(0, 8e18);
+        gauge.aeroVoter().setGaugeAlive(address(gauge), false);
+        _stakeThroughActivePool(0, 2e18);
+
+        vm.prank(address(borrowerOperations));
+        aeroActivePool.sendColl(A, 10e18, 0);
+
+        _assertTroveCollateral(0, 0, 0);
+        assertTrue(TroveAccount(aeroActivePool.troveAccounts(0)).isClosed());
     }
 
     // --- Gauge killed / revived (Voter.isAlive), unstaked buffer, _stakeRemaining ---

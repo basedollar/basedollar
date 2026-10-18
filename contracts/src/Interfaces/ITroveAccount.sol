@@ -14,6 +14,8 @@ interface ITroveAccount {
     function collToken() external view returns (IERC20);
     function gauge() external view returns (IAeroV2Gauge);
     function aeroManager() external view returns (IAeroManager);
+    function stakedAmount() external view returns (uint256);
+    function unstakedAmount() external view returns (uint256);
 
     function initialize(uint256 _troveId) external;
     function stake(uint256 _amount) external;

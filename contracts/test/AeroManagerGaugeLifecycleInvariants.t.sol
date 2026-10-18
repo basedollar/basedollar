@@ -5,6 +5,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {AeroManager} from "src/AeroManager.sol";
 import {IActivePool} from "src/Interfaces/IActivePool.sol";
+import {ITroveAccount} from "src/Interfaces/ITroveAccount.sol";
 import {IWETH} from "src/Interfaces/IWETH.sol";
 
 import {TestDeployer} from "./TestContracts/Deployment.t.sol";
@@ -87,28 +88,39 @@ contract AeroManagerGaugeLifecycleInvariants is TestAccounts, BaseInvariantTest 
         targetContract(address(handler));
     }
 
-    /// @notice ActivePool accounting tracks all LP whether it sits in the gauge or on AeroManager (unstaked buffer).
-    function invariant_collBalanceEqualsStakedPlusUnstaked() external view {
+    function _troveUnstakedAmount() internal view returns (uint256) {
+        address account = aeroActivePool.troveAccounts(0);
+        return account == address(0) ? 0 : ITroveAccount(account).unstakedAmount();
+    }
+
+    /// @notice ActivePool tracks LP in the gauge, AeroManager, and the trove account.
+    function invariant_collBalanceEqualsStakedPlusUnstaked() public view {
         uint256 coll = aeroActivePool.getCollBalance();
         uint256 st = aeroManagerImpl.stakedAmounts(address(gauge))
             + gauge.balanceOf(aeroActivePool.troveAccounts(0));
-        uint256 unst = aeroManagerImpl.unstakedAmounts(address(gauge));
+        uint256 unst = aeroManagerImpl.unstakedAmounts(address(gauge)) + _troveUnstakedAmount();
         assertEq(coll, st + unst, "collBalance != staked + unstaked");
     }
 
-    /// @notice LP exists only on gauge or AeroManager (never idle on ActivePool for Aero LP).
-    function invariant_physicalLpMatchesAccounting() external view {
+    /// @notice Physical LP balances match accounting, including idle trove collateral.
+    function invariant_physicalLpMatchesAccounting() public view {
         uint256 onGauge = IERC20(address(weth)).balanceOf(address(gauge));
         uint256 onManager = IERC20(address(weth)).balanceOf(address(aeroManagerImpl));
+        address account = aeroActivePool.troveAccounts(0);
+        uint256 onAccount = IERC20(address(weth)).balanceOf(account);
         uint256 st = aeroManagerImpl.stakedAmounts(address(gauge))
             + gauge.balanceOf(aeroActivePool.troveAccounts(0));
-        uint256 unst = aeroManagerImpl.unstakedAmounts(address(gauge));
-        assertEq(onGauge + onManager, st + unst, "physical LP != staked + unstaked");
+        uint256 unst = aeroManagerImpl.unstakedAmounts(address(gauge)) + _troveUnstakedAmount();
+        assertEq(onGauge + onManager + onAccount, st + unst, "physical LP != staked + unstaked");
+        assertEq(onAccount, _troveUnstakedAmount(), "trove idle LP != unstaked amount");
+        if (account != address(0)) {
+            assertEq(ITroveAccount(account).stakedAmount(), gauge.balanceOf(account), "trove stake != gauge balance");
+        }
         assertEq(IERC20(address(weth)).balanceOf(address(aeroActivePool)), 0, "LP dust on ActivePool");
     }
 
     /// @notice `isAeroGaugeAlive` tracks the mock voter flag.
-    function invariant_aliveMatchesVoter() external view {
+    function invariant_aliveMatchesVoter() public view {
         assertEq(
             aeroManagerImpl.isAeroGaugeAlive(address(gauge)),
             gauge.aeroVoter().isAlive(address(gauge)),
@@ -135,16 +147,8 @@ contract AeroManagerGaugeLifecycleInvariants is TestAccounts, BaseInvariantTest 
     }
 
     function _assertAccounting() internal view {
-        uint256 coll = aeroActivePool.getCollBalance();
-        uint256 st = aeroManagerImpl.stakedAmounts(address(gauge))
-            + gauge.balanceOf(aeroActivePool.troveAccounts(0));
-        uint256 unst = aeroManagerImpl.unstakedAmounts(address(gauge));
-        assertEq(coll, st + unst);
-
-        uint256 onGauge = IERC20(address(weth)).balanceOf(address(gauge));
-        uint256 onManager = IERC20(address(weth)).balanceOf(address(aeroManagerImpl));
-        assertEq(onGauge + onManager, st + unst);
-        assertEq(IERC20(address(weth)).balanceOf(address(aeroActivePool)), 0);
-        assertEq(aeroManagerImpl.isAeroGaugeAlive(address(gauge)), gauge.aeroVoter().isAlive(address(gauge)));
+        invariant_collBalanceEqualsStakedPlusUnstaked();
+        invariant_physicalLpMatchesAccounting();
+        invariant_aliveMatchesVoter();
     }
 }

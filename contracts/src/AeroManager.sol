@@ -22,13 +22,11 @@ import "./Interfaces/ICollSurplusPool.sol";
 import "./Interfaces/ITroveAccount.sol";
 import "./Interfaces/ITroveManager.sol";
 
-// v3:
-// TODO:
-// - Handling batch AERO claims from TroveAccounts (looping through TroveManager.TroveId[])
-// - other changes to the codebase to support v3
-
 /// @title AeroManager
 /// @notice Stakes Aero LP collateral in gauges, claims AERO rewards, routes a configurable fee to treasury, and lets governance split the remainder across borrowers for withdrawal via `claimRewards`.
+/// @dev Users claim their AERO rewards directly here
+/// When users claim, a percentage is sent to timelock treasury address
+/// Distributed amounts for each user per epoch is based on their collateral amount, collateral type (APY differs depending on LP token), + interest rate, etc.
 contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
 
@@ -232,13 +230,6 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         _addActivePool(activePool);
     }
 
-    //TODO vote with AERO tokens on any gauges that governance chooses.
-
-    // MAYBE TODO?:
-    // Users claim their AERO rewards directly here
-    // When users claim, a percentage is sent to timelock treasury address
-    // For this, add a mapping of claim amounts for each user based on their collateral amount, collateral type (APY differs depending on LP token), + interest rate, etc.
-
     /// @notice Pull LP token amount from ActivePool and stake into gauge
     /// @dev AeroManager stakes and claims AERO on behalf of all non-redeemable branches (that are LP token collaterals)
     /// @param gauge Aero gauge staking `token`
@@ -340,27 +331,6 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         // v3:
         require(rewardTokenOf(gauge) == aeroTokenAddress, "AeroManager: Reward token does not match");
 
-        // // Claim AERO from AeroGauge
-        // uint256 preBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
-        // // v2:
-        // // IAeroGauge(gauge).getReward(address(this));
-        // // v3:
-        // _claimEmissions(IAeroV2Gauge(gauge));
-        // uint256 postBalance = IERC20(aeroTokenAddress).balanceOf(address(this));
-        // uint256 claimedAmount = postBalance - preBalance;
-
-        // // Send a percentage of AERO to timelock treasury address
-        // uint256 _claimFee = _getClaimFee(claimedAmount);
-        // IERC20(aeroTokenAddress).safeTransfer(treasuryAddress, _claimFee);
-
-        // // Keep the remaining AERO for the AeroManager (this will be distributed to users later)
-        // uint256 rewardAmount = claimedAmount - _claimFee;
-        // _claimedAero[aeroTokenAddress] += rewardAmount; // Subtract the fee from the total claimed amount
-        
-        // claimedAeroPerEpoch[currentEpoch][gauge] += rewardAmount;
-
-        // emit Claimed(gauge, claimedAmount, _claimFee, currentEpoch);
-
         // Claim AERO from AeroGauge
         _handleClaimOrWithdrawal(gauge, 0);
     }
@@ -458,7 +428,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         require(activePool.aeroGaugeAddress() == gauge, "AeroManager: Gauge mismatch");
 
         uint256 currentEpoch = currentEpochs[gauge];
-        // require(!epochClosed[gauge][currentEpoch], "AeroManager: Current epoch is already closed");
+
         // If current epoch is closed, credit rewards to the next epoch.
         // Cannot revert since this would block trove adjustments
         if (epochClosed[gauge][currentEpoch]) {
@@ -693,7 +663,9 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
         require(gauge.stakingToken() == address(ap.collToken()), "AeroManager: Staking token does not match");
         // v2:
         // require(gauge.rewardToken() == aeroTokenAddress, "AeroManager: Reward token does not match");
+        // v3:
         // Trove accounts use the payout token configured in AeroManager.
+        require(rewardTokenOf(address(gauge)) == aeroTokenAddress, "AeroManager: Reward token does not match");
 
         activePools[activePool] = true;
         stabilityPools[address(sp)] = true;
