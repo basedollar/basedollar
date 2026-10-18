@@ -5,6 +5,7 @@ pragma solidity 0.8.24;
 import "./Interfaces/IActivePool.sol";
 import "./Interfaces/ICollateralRegistry.sol";
 import "./Interfaces/IAeroManager.sol";
+import {IPool as IAeroPool} from "./Interfaces/MetaDEX03/pools/IPool.sol";
 import {IGauge as IAeroGauge} from "./Interfaces/MetaDEX03/gauges/IGauge.sol";
 import {IV2Gauge as IAeroV2Gauge} from "./Interfaces/MetaDEX03/gauges/IV2Gauge.sol";
 import {IGaugeFactory as IAeroGaugeFactory} from "./Interfaces/MetaDEX03/factories/IGaugeFactory.sol";
@@ -92,6 +93,7 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     event ClaimFeeUpdated(uint256 oldFee, uint256 newFee);
     event ClaimFeeUpdatePending(uint256 oldFee, uint256 newFee, uint256 timestamp, uint256 delayPeriod);
     event ClaimFeeUpdateCancelled(uint256 pendingFee, uint256 currentFee);
+    event CollectLPFees(address indexed gauge, address to);
     event AeroTokenAddressUpdated(address oldAeroTokenAddress, address newAeroTokenAddress);
     event AeroTokenAddressUpdatePending(address oldAeroTokenAddress, address newAeroTokenAddress, uint256 timestamp, uint256 delayPeriod);
     event TreasuryAddressUpdated(address oldTreasuryAddress, address newTreasuryAddress);
@@ -537,6 +539,16 @@ contract AeroManager is IAeroManager, ReentrancyGuard, Ownable {
     /// @notice View the amount of claimed rewards for a specific reward token
     function claimedAero(address rewardToken) external view returns (uint256) {
         return _claimedAero[rewardToken];
+    }
+
+    /// @notice Collect LP fees accrued from idle unstaked Aero LP collateral
+    /// @dev Only AeroManager governor can call this function
+    function collectLPFees(address to, address gauge) external nonReentrant onlyGovernor {
+        require(_registeredGauges[gauge], "AeroManager: Gauge is not registered");
+        require(to != address(0), "TroveAccount: to address cannot be null");
+        IAeroPool pool = IAeroPool(IAeroV2Gauge(gauge).stakingToken());
+        pool.claimFees(to);
+        emit CollectLPFees(gauge, to);
     }
 
     /// @notice Update the treasury cut on gauge claims; increases are delayed, decreases apply immediately

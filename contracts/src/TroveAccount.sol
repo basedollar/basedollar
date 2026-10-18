@@ -5,6 +5,7 @@ pragma solidity 0.8.24;
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 
+import {IPool as IAeroPool} from "./Interfaces/MetaDEX03/pools/IPool.sol";
 import {IGauge as IAeroGauge} from "./Interfaces/MetaDEX03/gauges/IGauge.sol";
 import {IV2Gauge as IAeroV2Gauge} from "./Interfaces/MetaDEX03/gauges/IV2Gauge.sol";
 import {IGaugeFactory as IAeroGaugeFactory} from "./Interfaces/MetaDEX03/factories/IGaugeFactory.sol";
@@ -38,6 +39,12 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
     /// @notice Collateral held here while the gauge is not alive.
     uint256 public unstakedAmount;
 
+    event Initialized(uint256 indexed troveId, address collToken, address activePool, address gauge, address aeroManager);
+    event Staked(address indexed gauge, address token, uint256 amountReceived, uint256 amountStaked);
+    event StakedRemaining(address indexed gauge, address token, uint256 amount);
+    event Withdrawn(address indexed gauge, address token, uint256 amountSent, uint256 amountUnstaked);
+    event CollectLPFees(address indexed gauge, address to);
+
     constructor(IAddressesRegistry _addressesRegistry, IAeroV2Gauge _gauge) {
         // Lock the implementation. Clones have their own uninitialized storage.
         _initialized = true;
@@ -57,6 +64,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         _initialized = true;
         troveId = _troveId;
         collToken.safeApprove(address(gauge), type(uint256).max);
+        emit Initialized(troveId, address(collToken), address(activePool), address(gauge), address(aeroManager));
     }
 
     // --- Collateral operations ---
@@ -66,10 +74,13 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         _requireCallerIsActivePool();
         if (_amount == 0) return;
 
+        uint256 staked;
         unstakedAmount += _amount;
         if (aeroManager.isAeroGaugeAlive(address(gauge))) {
             _stakeRemaining();
+            staked = _amount;
         }
+        emit Staked(address(gauge), address(collToken), _amount, staked);
     }
 
     /// @notice Returns collateral to ActivePool, using unstaked collateral first.
@@ -82,12 +93,13 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         }
 
         uint256 balance = unstakedAmount;
+        uint256 unstaked;
         if (_amount > balance) {
-            uint256 amountToUnstake = _amount - balance;
-            stakedAmount -= amountToUnstake;
+            unstaked = _amount - balance;
+            stakedAmount -= unstaked;
             unstakedAmount = 0;
             // Gauge withdrawals settle emissions, including any early-exit penalty.
-            gauge.withdraw(amountToUnstake);
+            gauge.withdraw(unstaked);
         } else {
             unstakedAmount = balance - _amount;
             if (aeroManager.isAeroGaugeAlive(address(gauge))) {
@@ -96,6 +108,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         }
         collToken.safeTransfer(address(activePool), _amount);
         _sendAeroRewards();
+        emit Withdrawn(address(gauge), address(collToken), _amount, unstaked);
     }
 
     /// @dev The caller must check that the gauge is alive before staking the idle balance.
@@ -109,6 +122,7 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         stakedAmount += amount;
         unstakedAmount = 0;
         gauge.deposit(amount);
+        emit StakedRemaining(address(gauge), address(collToken), amount);
     }
 
     // --- Reward operations ---
@@ -128,6 +142,16 @@ contract TroveAccount is ITroveAccount, ReentrancyGuard {
         require(isClosed, "TroveAccount: Cannot recover rewards from active trove");
         _claimEmissions();
         _sendAeroRewards();
+    }
+
+    /// @notice Collect LP fees accrued from idle unstaked Aero LP collateral
+    /// @dev Only AeroManager governor can call this function
+    function collectLPFees(address to) external nonReentrant {
+        require(msg.sender == aeroManager.governor(), "TroveAccount: Caller is not AeroManager governor");
+        require(to != address(0), "TroveAccount: to address cannot be null");
+        IAeroPool pool = IAeroPool(gauge.stakingToken());
+        pool.claimFees(to);
+        emit CollectLPFees(address(gauge), to);
     }
 
     /// @notice Transfers balance of any miscellaneous tokens stranded after trove closed.
