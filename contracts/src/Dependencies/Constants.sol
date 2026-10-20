@@ -50,12 +50,13 @@ uint256 constant LIQUIDATION_PENALTY_SP_CBETH = 5 * _1pct;
 uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_CBETH = 20 * _1pct;
 
 // AERO (Aerodrome token) parameters
-uint256 constant CCR_AERO = 200 * _1pct;
-uint256 constant MCR_AERO = 165 * _1pct;
-uint256 constant SCR_AERO = 165 * _1pct;
+uint256 constant CCR_AERO = 185 * _1pct;
+uint256 constant MCR_AERO = 140 * _1pct;
+uint256 constant SCR_AERO = 140 * _1pct;
 uint256 constant DEBT_LIMIT_AERO = 1_000_000e18;
 uint256 constant LIQUIDATION_PENALTY_SP_AERO = 5 * _1pct;
 uint256 constant LIQUIDATION_PENALTY_REDISTRIBUTION_AERO = 20 * _1pct;
+uint256 constant COLL_GAS_COMPENSATION_CAP_AERO = 500e18;
 
 // Aero LP Token parameters
 uint256 constant CCR_AERO_LP = 200 * _1pct;
