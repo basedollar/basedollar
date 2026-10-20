@@ -119,7 +119,19 @@ The `CollateralRegistry` contract maintains two separate collateral lists:
 
 ### Adding New Branches
 
-New branches can be added via `createNewBranch(token, troveManager, isRedeemable)` by the collateral governor. If the new branch uses an Aero LP collateral, it is automatically registered with the AeroManager.
+New branches can be added via `createNewBranch(addressesRegistry, isRedeemable)` by the collateral governor. If the new branch uses an Aero LP collateral, it is automatically registered with the AeroManager.
+
+#### Deploying the AERO token branch on Base
+
+`script/DeployAeroBranch.s.sol` adds a normal, redeemable AERO token branch to an existing deployment. It uses 185% CCR, 140% MCR and SCR, a 1,000,000 BOLD debt limit, 5% stability-pool liquidation penalty, 20% redistribution penalty, and a branch-specific gas-compensation cap of 500 AERO (18 decimals). The default AERO token and AERO/USD oracle addresses come from the existing Base deployment script. Verify both addresses and the oracle feed before broadcasting.
+
+From `contracts/`, set `DEPLOYER_PRIVATE_KEY`, `COLLATERAL_REGISTRY`, `REFERENCE_ADDRESSES_REGISTRY` (an existing branch in the same deployment), `AERO_BRANCH_SALT` (a unique `bytes32` hex value), and your `BASE_RPC_URL`. Optionally set `AERO_TOKEN`, `AERO_USD_ORACLE`, or `AERO_ORACLE_STALENESS` to override the defaults. Simulate first:
+
+```shell
+forge script script/DeployAeroBranch.s.sol:DeployAeroBranch --rpc-url "$BASE_RPC_URL"
+```
+
+After reviewing the simulation, add `--broadcast` to deploy the branch contracts. By default the script prints the new addresses registry and the calldata for the collateral governor to call `createNewBranch(addressesRegistry, true)`. If the deployer is also the collateral governor, set `REGISTER_BRANCH=true` to register the branch in the same broadcast. No governance call is needed when that option succeeds.
 
 ---
 
