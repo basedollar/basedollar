@@ -265,9 +265,12 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         boldToken = BoldToken(boldAddress);
 
         // Check BOLD is untouched
-        require(boldToken.totalSupply() == 0, "Some BOLD has been minted!");
-        require(boldToken.collateralRegistryAddress() == address(0), "Collateral registry already set");
-        require(boldToken.owner() == deployer, "Not BOLD owner");
+        require(boldToken.collateralRegistryAddress() == COLLATERAL_REGISTRY_ADDRESS, "Incorrect collateral registry of BOLD");
+        require(boldToken.owner() == address(0), "BOLD ownership not renounced");
+        require(CollateralRegistry(COLLATERAL_REGISTRY_ADDRESS).governor() == GOVERNOR_ADDRESS, "Incorrect governor address");
+        // require(boldToken.totalSupply() == 0, "Some BOLD has been minted!");
+        // require(boldToken.collateralRegistryAddress() == address(0), "Collateral registry already set");
+        // require(boldToken.owner() == deployer, "Not BOLD owner");
 
         if (block.chainid == 8453) {
             // Base mainnet
