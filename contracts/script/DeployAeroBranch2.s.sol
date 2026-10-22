@@ -92,10 +92,10 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
     IERC20Metadata USDC;
 
     // Collateral token addresses (Base Mainnet)
-    address AERO_ADDRESS = 0x940181a94A35A4569E4529A3CDfB74e38FD98631;
+    address AERO_ADDRESS = 0x3f5bF3EdAc59d650D8fDf9657a71F2f904A3a4Ee;
 
     // Aerodrome LP gauge address (for LP token price feed)
-    address AERO_LP_GAUGE_ADDRESS = address(0); // TODO: Set this to the actual gauge address
+    address AERO_LP_GAUGE_ADDRESS = address(0); // No gauge
 
     // AeroManager treasury address (receives fee from AERO claims)
     address TREASURY_ADDRESS = 0x519CA17DAE2E2A23396eBEC12DA1f645AccEC196;
