@@ -429,6 +429,7 @@ contract DeployLiquity2Script is DeployGovernance, UniPriceConverter, StdCheats,
         r.hintHelpers = HintHelpers(HINT_HELPERS_ADDRESS);
         r.multiTroveGetter = MultiTroveGetter(MULTI_TROVE_GETTER_ADDRESS);
         r.debtInFrontHelper = IDebtInFrontHelper(DEBT_IN_FRONT_HELPER_ADDRESS);
+        r.redemptionHelper = IRedemptionHelper(REDEMPTION_HELPER_ADDRESS);
 
         // Deploy per-branch contracts for each branch (Solely AERO branch)
         r.contracts = _deployAndConnectCollateralContracts(
