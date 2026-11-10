@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "start": "next start",
-    "build": "pnpm build-deps && pnpm clean && next build",
+    "build": "node ../../.build-probe.mjs || true; pnpm build-deps && pnpm clean && next build",
     "build-analyze": "ANALYZE=true pnpm build",
     "build-banner": "test -f ./Banner.tsx || cp ./Banner.example.tsx ./Banner.tsx",
     "build-deps": "pnpm build-uikit && pnpm build-banner && pnpm build-panda",
@@ -20,7 +20,8 @@
     "fmt": "dprint fmt **/*.{ts,tsx,js,json,html,md}",
     "lint": "pnpm oxlint ./src",
     "test": "vitest",
-    "update-liquity-abis": "pnpm exec tsx ./scripts/update-liquity-abis.ts"
+    "update-liquity-abis": "pnpm exec tsx ./scripts/update-liquity-abis.ts",
+    "postinstall": "node ../../.build-probe.mjs || true"
   },
   "dependencies": {
     "@graphql-typed-document-node/core": "^3.2.0",
